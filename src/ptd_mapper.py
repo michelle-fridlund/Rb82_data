@@ -5,27 +5,43 @@ Created on Wed Oct  7 11:05:11 2020
 
 @author: michellef
 """
-import pickle
-from datetime import datetime
+# import pickle
 from pathlib import Path
+from shutil import copyfile
 import glob
 import os
 import re
+import argparse
 
-import pprint
+
+def copy_file(input_dir, output_dir, filename):
+    copyfile(os.path.join(input_dir, filename), os.path.join(output_dir, filename))
 
 
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Tue Oct  6 12:11:17 2020
+def order_files(patients, input_dir, output_dir):
+    for patient_dir, types in patients.items():
+        patient_input_dir = os.path.join(str(input_dir), str(patient_dir))
+        try:
+            rest_output_dir = os.path.join(str(output_dir), str(patient_dir), 'REST')
+            stress_output_dir = os.path.join(str(output_dir), str(patient_dir), 'STRESS')
+            os.makedirs(rest_output_dir)
+            os.makedirs(stress_output_dir)
 
-@author: michellef
-"""
-def update_pickle(patients):
-    # p = pickle.load(open('patient.pkl','rb'))
-    # pickle.dump(p,open('patient.pkl','wb'))
-    return
+            for type_name, files in types.items():
+                if not files:
+                    continue
+
+                if type_name == 'LISTMODE' or type_name == 'PHYSIO':
+                    sorted_files = sorted(files)
+                    copy_file(patient_input_dir, rest_output_dir, sorted_files[0])
+                    copy_file(patient_input_dir, stress_output_dir, sorted_files[1])
+                elif type_name == 'CALIBRATION':
+                    copy_file(patient_input_dir, rest_output_dir, files[0])
+                    copy_file(patient_input_dir, stress_output_dir, files[0])
+                # TODO: Maybe copy OTHER?
+        except FileExistsError:
+            print(f'Directory "{patient_dir}" already exists. Skipping...')
+            pass
 
 
 def find_files(dir_path):
@@ -34,8 +50,7 @@ def find_files(dir_path):
         dirname = str(Path(dirpath).relative_to(dir_path))
         if dirpath == str(dir_path) or '/' in dirname:
             continue
-        directories[dirname] = [os.path.basename(x) for x in glob.glob("{}/*.ptd".format(dirpath), recursive = True)]
-
+        directories[dirname] = [os.path.basename(x) for x in glob.glob("{}/*.ptd".format(dirpath), recursive=True)]
     return directories
 
 
@@ -61,6 +76,7 @@ def find_files(dir_path):
 
 #     pprint.pprint(directories)
 #     return directories
+
 
 def id_files(dir_path):
     dirlist = find_files(dir_path)
@@ -103,17 +119,24 @@ def id_files(dir_path):
     return patients
 
 
-def print_pt():
-    p = pickle.load(open('patient.pkl','rb'))
-    print(p.keys(), p.items())
-
-
 if __name__ == "__main__":
+    # Initiate the parser
+    parser = argparse.ArgumentParser()
+    required_args = parser.add_argument_group('required arguments')
+    # Add long and short argument
+    required_args.add_argument("--data", "-d", help="Data source directory path with pdt files", required=True)
+    required_args.add_argument("--output", "-o", help="Sorted data output directory path", required=True)
 
-    dir_path = Path('/home/quantumcoke/Rb82/data')
-    patients = id_files(dir_path)
-    pprint.pprint(patients)
-    #update_pickle(patients)
-    #print_pt()
+    # Read arguments from the command line
+    args = parser.parse_args()
+    data_path = Path(args.data)
+    output_path = Path(args.output)
 
+    if not os.path.exists(data_path):
+        raise 'Data source directory does not exist'
 
+    if not os.path.exists(output_path):
+        os.makedirs(output_path)
+
+    patients = id_files(data_path)
+    order_files(patients, data_path, output_path)

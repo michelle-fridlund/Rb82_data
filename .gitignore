@@ -1,3 +1,4 @@
 .spyproject
-/data
 *.pkl
+*output*/
+data/
