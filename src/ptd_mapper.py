@@ -48,6 +48,7 @@ def find_files(dir_path):
     directories = {}
     for (dirpath, dirnames, filenames) in os.walk(dir_path):
         dirname = str(Path(dirpath).relative_to(dir_path))
+        # Do not go deeper than 1 directory level
         if dirpath == str(dir_path) or '/' in dirname:
             continue
         directories[dirname] = [os.path.basename(x) for x in glob.glob("{}/*.ptd".format(dirpath), recursive=True)]
@@ -126,8 +127,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     required_args = parser.add_argument_group('required arguments')
     # Add long and short argument
-    required_args.add_argument("--data", "-d", help="Data source directory path with pdt files", required=True)
-    required_args.add_argument("--output", "-o", help="Sorted data output directory path", required=True)
+    required_args.add_argument("--data", "-d", help="PET data source directory path with pdt files", required=True)
+    required_args.add_argument("--output", "-o", help="Sorted/filtered PET data output directory path", required=True)
 
     # Read arguments from the command line
     args = parser.parse_args()
