@@ -19,6 +19,10 @@ def copy_file(input_dir, output_dir, filename):
 
 
 def order_files(patients, input_dir, output_dir):
+    if not patients:
+        print('No files to copy')
+        return
+
     for patient_dir, types in patients.items():
         patient_input_dir = os.path.join(str(input_dir), str(patient_dir))
         try:
@@ -55,6 +59,7 @@ def find_files(dir_path):
     return directories
 
 
+# Alternative file tree builder
 # def find_files_alternative(dir_path):
 #     directories = {}
 #     if not dir_path.is_dir():

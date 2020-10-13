@@ -35,6 +35,10 @@ def find_available_patient_dirs(dir_path):
 
 
 def copy_ct_to_pet(dir_path, patients):
+    if not patients:
+        print('No files to copy')
+        return
+
     for (dirpath, dirnames, filenames) in os.walk(dir_path):
         dirname = str(Path(dirpath).relative_to(dir_path))
         patient_name = get_name(dirname)
