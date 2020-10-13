@@ -108,6 +108,8 @@ def id_files(dir_path):
                 patient['PHYSIO'].append(item)
             elif 'CALIBRATION' in item:
                 patient['CALIBRATION'].append(item)
+            elif 'FDG' in item:
+                pass
             else:
                 patient['OTHER'].append(item)
 
