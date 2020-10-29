@@ -19,10 +19,6 @@ def copy_file(input_dir, output_dir, filename):
 
 
 def order_files(patients, input_dir, output_dir):
-    if not patients:
-        print('No files to copy')
-        return
-
     for patient_dir, types in patients.items():
         patient_input_dir = os.path.join(str(input_dir), str(patient_dir))
         try:
@@ -52,14 +48,12 @@ def find_files(dir_path):
     directories = {}
     for (dirpath, dirnames, filenames) in os.walk(dir_path):
         dirname = str(Path(dirpath).relative_to(dir_path))
-        # Do not go deeper than 1 directory level
         if dirpath == str(dir_path) or '/' in dirname:
             continue
         directories[dirname] = [os.path.basename(x) for x in glob.glob("{}/*.ptd".format(dirpath), recursive=True)]
     return directories
 
 
-# Alternative file tree builder
 # def find_files_alternative(dir_path):
 #     directories = {}
 #     if not dir_path.is_dir():
@@ -75,7 +69,7 @@ def find_files(dir_path):
 
 #         for inner_path in cur_path.iterdir():
 #             if not inner_path.is_file():
-#                 continue
+#                 continueprint(f'{p} is now in {new_path}')
 
 #             filename = str(inner_path.relative_to(cur_path))
 #             directories[dirname].append(filename)
@@ -87,7 +81,7 @@ def find_files(dir_path):
 def id_files(dir_path):
     dirlist = find_files(dir_path)
     patients = {}
-    occurencies = {}
+#    occurencies = {}
     for key, filename in dirlist.items():
         patient = {
             'LISTMODE': [],
@@ -97,15 +91,15 @@ def id_files(dir_path):
         }
 
         patient_name = re.search('^[^0-9]*', key).group()
-        if occurencies.get(patient_name):
-            occurencies[patient_name] = (occurencies[patient_name][0], occurencies[patient_name][1] + 1)
-        else:
-            occurencies[patient_name] = (key, 1)
+        # if occurencies.get(patient_name):
+        #     occurencies[patient_name] = (occurencies[patient_name][0], occurencies[patient_name][1] + 1)
+        # else:
+        #     occurencies[patient_name] = (key, 1)
 
-        # print(patient_name, occurencies[patient_name])
-        if occurencies[patient_name][1] > 1:
-            patients.pop(occurencies[patient_name][0], None)
-            continue
+        # # print(patient_name, occurencies[patient_name])
+        # if occurencies[patient_name][1] > 1:
+        #     patients.pop(occurencies[patient_name][0], None)
+        #     continue
 
         for item in filename:
             if 'LISTMODE' in item or '.LM.' in item:
@@ -120,7 +114,7 @@ def id_files(dir_path):
                 patient['OTHER'].append(item)
 
         if len(patient['LISTMODE']) != 2 or len(patient['PHYSIO']) != 2 or len(patient['CALIBRATION']) != 1:
-            continue
+            continue        
 
         patients[key] = patient
 
@@ -132,8 +126,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     required_args = parser.add_argument_group('required arguments')
     # Add long and short argument
-    required_args.add_argument("--data", "-d", help="PET data source directory path with pdt files", required=True)
-    required_args.add_argument("--output", "-o", help="Sorted/filtered PET data output directory path", required=True)
+    required_args.add_argument("--data", "-d", help="Data source directory path with pdt files", required=True)
+    required_args.add_argument("--output", "-o", help="Sorted data output directory path", required=True)
 
     # Read arguments from the command line
     args = parser.parse_args()

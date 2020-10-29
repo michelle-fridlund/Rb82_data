@@ -18,7 +18,6 @@ from pathlib import Path
 #    name = Path(file).stem
 #    name = os.path.splitext(os.path.basename(file))[0]
 
-
 def getnib(file, dirpath):
     filepath = os.path.join(dirpath, file)
     try:
@@ -26,27 +25,27 @@ def getnib(file, dirpath):
     except FileNotFoundError:
         print(f'File {filepath} not found. Skipping...')
     return np.array(nib_.get_fdata(), dtype='double')
-
+    
 def mysave(file, dirpath):
     numpy = getnib(file,dirpath)
     name = Path(file).with_suffix('').with_suffix('')
     np.save(os.path.join(dirpath, str(name) + '.npy'), numpy)
 
 
-def find_files(current_path):
-    c = 0
-    for (dirpath, dirnames, filenames) in os.walk(current_path):
+def find_files(current_path):  
+    c = 0     
+    for (dirpath, dirnames, filenames) in os.walk(current_path): 
         print(f'We are at {dirpath}')
         filelist = glob.glob("{}/*.nii.gz".format(dirpath), recursive = True)
         for file in filelist:
             mysave(file,dirpath)
             c += 1
-    print('Done. %d numpy files saved.' %c)
-
+    print('Done. %d numpy files saved.' %c)   
+    
 if __name__ == "__main__":
-
+    
     dirpath = '/homes/michellef/Amyloid/data_michelle/'
     find_files(dirpath)
-
+            
 
 

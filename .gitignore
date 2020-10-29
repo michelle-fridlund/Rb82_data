@@ -1,4 +1,3 @@
-.spyproject
-*.pkl
-*output*/
-data/
+/data
+tmp_params.txt
+
