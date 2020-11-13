@@ -16,19 +16,13 @@ def check_dir(output):
     if not os.path.exists(output):
         os.makedirs(output)
 
-
 def get_name(string, **name_):
     if name_.get("regex") == "date": #Getting date from DICOM header
-       reg = re.search('(?<=\[)(.*)(?=\])', string)
-       d = reg.group(0)
-    elif name_.get("regex") == "txt": #When reading from text file
-       reg = re.search('\]\s*(.*)', string)
-       d = reg.group(1)
+       return (re.search('(?<=\[)(.*)(?=\])', string)).group(0)
+    if name_.get("regex") == "txt": #When reading from text file
+       return (re.search('\]\s*(.*)', string)).group(1)
     else:
-       reg = re.search('^(.*?)\/', string) #From dirname 
-       d = reg.group(1)
-    return d
-
+       return (re.search('^(.*?)\/', string)).group(1) #From dirname 
 
 #Copy files to destination
 def copy_files(file_path, save_path):
@@ -38,7 +32,7 @@ def copy_files(file_path, save_path):
     for file in file_path.iterdir():
         src = os.path.join(file_path, os.path.basename(file))
         dst = os.path.join(save_path, os.path.basename(file))
-        check_dir(dst)
+        check_dir(save_path)
         copyfile(src,dst)
 
 
@@ -62,7 +56,6 @@ def sort_anon(dir_path,text_path):
               line_ = line.strip()
               name = get_name(line_, regex = 'txt')
               scan_date = get_name(line_, regex = 'date')[:4]
-              print(scan_date)
               anon_patients[name] = scan_date
     os.remove(os.path.join(str(text_path),'anon.txt'))
     return anon_patients
