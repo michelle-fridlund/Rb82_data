@@ -33,6 +33,8 @@ def get_name(string, **name_):
        return (re.search('(?<=\[)(.*)(?=\])', string)).group(0)
     if name_.get("regex") == "txt": #When reading from text file
        return (re.search('\]\s*(.*)', string)).group(1)
+    if name_.get("regex") == "ReconReady": #For JSRecon sorted folders
+       return (re.search('(?<=\/)(.*)(\/)', string)).group(1)
     else:
        return (re.search('^(.*?)\/', string)).group(1) #From dirname 
 
@@ -50,7 +52,8 @@ def find_anon(dir_path):
                     if line_.startswith('%study date (yyyy:mm:dd):='):
                         d = line_.split(':=')[1]
                         scandate = datetime.strptime(d,'%Y:%m:%d').strftime('%Y%m%d') 
-                        name = get_name(dirname,regex='')
+                        temp = (re.search('(\/homes\/michellef\/Rb82\/data\/PET_OCT8_Anonymous_JSReconReady)\/(?<=\/)(.*)', str(new_path))).group(2)
+                        name = get_name(temp, regex ='ReconReady')
                         my_dates[name] = scandate
             os.remove(new_path/'dump.txt')
     print(my_dates)
@@ -126,6 +129,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
     data_path = Path(args.data)
     
-    find_anon(data_path)
+    get_info(data_path)
 
 
