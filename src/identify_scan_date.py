@@ -4,6 +4,11 @@
 Created on Mon Nov  9 17:02:09 2020
 
 @author: michellef
+
+##############################################################################
+Script for sorting the data by year and copying the corresponding CTs to 
+both REST and STRESS
+##############################################################################
 """
 import os 
 import re
