@@ -67,7 +67,8 @@ def find_ptd(dir_path):
                             if line_.startswith('%study date (yyyy:mm:dd):='):
                                 d = line_.split(':=')[1]
                                 scandate = datetime.strptime(d,'%Y:%m:%d').strftime('%Y%m%d') 
-                                name = get_name(str(new_path), regex ='ReconReady')
+                                #name = get_name(str(new_path), regex ='ReconReady') #IF SORTED BY YEAR
+                                name = get_name(str(dirname), regex = '')
                                 my_dates[name] = scandate
                                 bar.next()
                     os.remove(new_path/'dump.txt')
@@ -92,9 +93,9 @@ def find_ct(dir_path):
           for line in tqdm(f.readlines(), desc ="Loading CTs"): #progress bar 
               line_ = line.strip()
               name1 = get_name(line_, regex = 'txt')
-              name = get_name(name1, regex='')
+              #name = get_name(name1, regex='') #IF SORTED BY YEAR
               scan_date = get_name(line_, regex = 'date')
-              anon_patients[name] = scan_date
+              anon_patients[name1] = scan_date
               sleep(.001)
     os.remove('/homes/michellef/anon.txt')
     return anon_patients
@@ -131,7 +132,7 @@ def get_info(dir_path):
             if ptd[1]!=ct[1]:
                 print(f'{c}. Mismatch in patient "{ptd[0]}"')
                 c+= 1
-    #print(final_dict)
+    #print(f'\n {final_dict}')
 
     # for k, v in sorted_ptd.items():
     #     print(f'{k} is at {v}')
