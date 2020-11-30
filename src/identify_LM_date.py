@@ -67,12 +67,13 @@ def find_ptd(dir_path):
                             if line_.startswith('%study date (yyyy:mm:dd):='):
                                 d = line_.split(':=')[1]
                                 scandate = datetime.strptime(d,'%Y:%m:%d').strftime('%Y%m%d') 
-                                #name = get_name(str(new_path), regex ='ReconReady') #IF SORTED BY YEAR
-                                name = get_name(str(dirname), regex = '')
+                                name = get_name(str(new_path), regex ='ReconReady') #IF SORTED BY YEAR
+                                #name = get_name(str(dirname), regex = '')
                                 my_dates[name] = scandate
                                 bar.next()
                     os.remove(new_path/'dump.txt')
     return my_dates
+
 
 #Goes into all CT foldes, writes scan date from each DICOM header into a single file
 def check_dates(dir_path):
@@ -80,7 +81,9 @@ def check_dates(dir_path):
         dirname = str(Path(dirpath).relative_to(dir_path)) 
         if '/IMA' in str(dirname) or '/CT' in str(dirname): 
             new_path = os.path.join(dir_path, dirname) 
-            d_name = (re.search('(?<=\/)(.*)(\/)', str(dirname))).group(1)
+            d_name1 = (re.search('(?<=\/)(.*)(\/)', str(dirname))).group(1)
+            d_name = get_name(d_name1, regex= "")
+            #print(new_path, d_name)
             os.chdir(new_path) 
             os.system(f"for d in * ; do echo strings | dcmdump $d \
                       --search StudyDate| (head -c 30; echo '{d_name}') \
@@ -100,6 +103,7 @@ def find_ct(dir_path):
     os.remove('/homes/michellef/anon.txt')
     return anon_patients
 
+
 def get_items(my_dict, **tag_):
     my_items = []
     for k,v in my_dict.items():
@@ -114,6 +118,7 @@ def concatenation(my_strings,my_numbers):
     #celsius_dict = dict(zip(sorted_ptd.keys(), celsius))
     return result1
 
+
 #Sort the two dictionaries, compare dates for same patients
 def get_info(dir_path):
 #    f = open('/homes/michellef/info.txt', 'w')
@@ -122,6 +127,8 @@ def get_info(dir_path):
 
     sorted_ptd = {k: v for k, v in sorted(dates_ptd.items(), key=lambda k: k[0])}
     sorted_ct = {k: v for k, v in sorted(dates_ct.items(), key=lambda k: k[0])}
+    #sorted_ptd = dict(sorted(dates_ptd.items(), key=lambda k: k[0])) #CAN ALSO DO THAT??
+    #{k: str(v) + '_hooj' for k, v in ... } # STRUCTURE FOR CHANGING DICT OR IMPLEMENTING AN 'IF'
     
     final_dict = {}
     c = 1
