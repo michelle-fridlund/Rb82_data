@@ -11,9 +11,15 @@ import re
 from pathlib import Path
 from shutil import copyfile
 
+def create_dir(output):
+    if not os.path.exists(output):
+        os.makedirs(output)
+
 def get_name(string, **name_):
     if name_.get("regex") == "date":
         return (re.search('(\/homes\/michellef\/Rb82\/data\/PET_OCT8_Anonymous_JSReconReady)\/(?<=\/)(.*)', string)).group(2)
+    if name_.get("regex") == "path":
+        return (re.search('\/homes\/michellef\/(.*)', string)).group(1)
     else:
         return (re.search('^(.*?)\/', string)).group(1)
     
@@ -41,16 +47,23 @@ def find_files(dir_path):
                     LM_list[name] = str(ptds)
     return LM_list
 
-def copy_file(input_dir, output_dir, filename):
-    copyfile(os.path.join(input_dir, filename), os.path.join(output_dir, filename))
+def LM_chopper(data_path, new_path):
+    name = get_name(data_path, regex = 'path')
+    my_dir = name.replace("/", "\\")
+    string = f'cscript C:\\JSRecon12\\LMChopper64\\LMChopper64.js Z:\\{my_dir}'
+    create_dir(new_path)
+    os.chdir(new_path)
+    f = open("run.bat", "w")
+    # write line to output file
+    f.write(string)
+    f.close()
+    #os.remove('run.bat')
 
 def prep_chopper(dir_path):
     l = find_files(dir_path)
-    #print(l)
     for k,v in l.items():
-        #print(v)
-        phase = os.path.basename(get_name(v, regex = 'ReconReady'))
-        #new_name = f'{v}_{phase}'
-        #print(f'{k}_{phase}')
+        new_path = os.path.join('/homes/michellef/Rb82/data/PET_LMChopper_OCT8', k)
+        LM_chopper(v,new_path)
 
-find_files('/homes/michellef/Rb82/data/PET_OCT8_Anonymous_JSReconReady/2016')
+
+prep_chopper('/homes/michellef/Rb82/data/PET_OCT8_Anonymous_JSReconReady/')
