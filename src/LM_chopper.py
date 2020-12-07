@@ -5,11 +5,14 @@ Created on Mon Nov 30 14:23:30 2020
 
 @author: michellef
 """
-
+##############################################################################
+#A script to prepare listmode files for LD-simulation with LMChopper64.js and 
+#Copy the resulting correspong
 import os
 import re
 from pathlib import Path
 from shutil import copyfile
+from progress.bar import Bar
 
 def create_dir(output):
     if not os.path.exists(output):
@@ -23,8 +26,8 @@ def get_name(string, **name_):
     else:
         return (re.search('^(.*?)\/', string)).group(1)
     
-#Return the second .ptd file
-def find_LM(pt):
+#Return the second .ptd file 
+def find_LM(pt, **name_):
     p = Path(pt)
     ptds = []
     if not p.is_dir():
@@ -32,7 +35,10 @@ def find_LM(pt):
     for f in p.iterdir():
         if 'ptd' in f.name:
             ptds.append(f)
-    return ptds[1]
+    if name_.get("number") == "one":
+        return ptds[1]
+    else:   #Custom
+        return ptds
 
 #Find all listmodes
 def find_files(dir_path):
@@ -43,10 +49,12 @@ def find_files(dir_path):
                 or '/STRESS' in str(dirname) and 'IMA' not in str(dirname) and 'CT' not in str(dirname): 
                     new_path = Path(os.path.join(dir_path, dirname))
                     name = get_name(str(new_path), regex = 'date')
-                    ptds = find_LM(new_path)
+                    ptds = find_LM(new_path, number = 'one')
                     LM_list[name] = str(ptds)
     return LM_list
 
+#Prepare .bat executables for running LM chopper from petrecon 
+#(Separately for REST & STRESS)
 def LM_chopper(data_path, new_path):
     name = get_name(data_path, regex = 'path')
     my_dir = name.replace("/", "\\")
@@ -65,5 +73,40 @@ def prep_chopper(dir_path):
         new_path = os.path.join('/homes/michellef/Rb82/data/PET_LMChopper_OCT8', k)
         LM_chopper(v,new_path)
 
+def delete_files(original_path):
+    for (dirpath, dirnames, filenames) in os.walk(original_path): 
+            dirname = str(Path(dirpath).relative_to(original_path)) 
+            if '/REST' in str(dirname) and 'IMA' not in str(dirname) and 'CT' not in str(dirname) \
+                or '/STRESS' in str(dirname) and 'IMA' not in str(dirname) and 'CT' not in str(dirname): 
+                    new_path = Path(os.path.join(original_path, dirname))
+                    ptds = find_LM(new_path, number = 'one')
+                    os.remove(ptds)
 
-prep_chopper('/homes/michellef/Rb82/data/PET_OCT8_Anonymous_JSReconReady/')
+#Copy selected low dose into previously structured/copied folder
+def copy_files(dir_path, dst):
+    #delete_files('/homes/michellef/Rb82/data/PET_LMChopper_OCT8/2016/2016') #Delete original LM file
+    my_ptds = {}
+    for (dirpath, dirnames, filenames) in os.walk(dir_path): 
+            dirname = str(Path(dirpath).relative_to(dir_path)) 
+            if '/REST' in str(dirname): #can also add STRESS
+                    new_path = Path(os.path.join(dir_path, dirname))
+                    ptds = find_LM(new_path, number = '')
+                    #Get simulated LD -->
+                    #5p = [0], 10p = [1], 25 = [2], 100 = [3]
+                    my_ptds[dirname] = str(ptds[3])
+    with Bar('Loading LISTMODE:', suffix='%(percent)d%%') as bar:
+        for k,v in my_ptds.items(): #Add progress bar here
+            save_path = os.path.join(dst, k)
+            create_dir(save_path)
+            copyfile(v, os.path.join(save_path, os.path.basename(v)))
+            bar.next()
+
+#Simulated data path
+dir_path = '/homes/michellef/Rb82/data/PET_LMChopper_OCT8/2016/'
+#Temporary data path 
+dst = '/homes/michellef/Rb82/data/PET_LMChopper_OCT8/2016_50p'
+
+#One at a time
+copy_files(dir_path, dst)
+#Use original listmode data path here
+#prep_chopper('/homes/michellef/Rb82/data/PET_OCT8_Anonymous_JSReconReady/')
