@@ -79,9 +79,11 @@ def delete_files(original_path):
             if '/REST' in str(dirname) and 'IMA' not in str(dirname) and 'CT' not in str(dirname) \
                 or '/STRESS' in str(dirname) and 'IMA' not in str(dirname) and 'CT' not in str(dirname): 
                     new_path = Path(os.path.join(original_path, dirname))
-                    ptds = find_LM(new_path, number = 'one')
-                    #print(ptds) #PLEASE MAKE SURE THE FILES ARE CORRECT FIRST!
-                    os.remove(ptds)
+                    ptds = find_LM(new_path, number = '')
+                    print(ptds[2]) #PLEASE MAKE SURE THE FILES ARE CORRECT FIRST!
+                    #os.remove(ptds[2])
+                    #os.chdir(str(new_path))
+                    #os.remove('TempDicomHeader.IMA')
 
 #Copy selected low dose into previously structured/copied folder
 def copy_files(dir_path, dst):
@@ -95,27 +97,30 @@ def copy_files(dir_path, dst):
                     #5p = [0], 10p = [1], 25p = [2], 50p = [3]
                     #my_ptds[dirname] = str(ptds[3])
                     if len(ptds) == 4:
-                        my_ptds[dirname] = str(ptds[3])
+                        my_ptds[dirname] = str(ptds[2])
                     else: 
                         print(f'{dirname} has {len(ptds)} files!!!')
                         pass
-    print(my_ptds)
-    # with Bar('Loading LISTMODE:', suffix='%(percent)d%%') as bar:
-    #     for k,v in my_ptds.items(): #Add progress bar here
-    #         save_path = os.path.join(dst, k)
-    #         create_dir(save_path)
-    #         copyfile(v, os.path.join(save_path, os.path.basename(v)))
-    #         bar.next()
+    #print(my_ptds)
+    with Bar('Loading LISTMODE:', suffix='%(percent)d%%') as bar:
+        for k,v in my_ptds.items(): #Add progress bar here
+            save_path = os.path.join(dst, k)
+            create_dir(save_path)
+            copyfile(v, os.path.join(save_path, os.path.basename(v)))
+            bar.next()
+    print('Done!!!')
+#TODO: Add arguments 
 
 ##Simulated data path
-dir_path = '/homes/michellef/Rb82/data/PET_LMChopper_OCT8/2018'
+dir_path = '/homes/michellef/Rb82/data/PET_LMChopper_OCT8/2020'
 ##Temporary data path 
-dst = '/homes/michellef/Rb82/data/PET_LMChopper_OCT8/2018_50p'
+dst = '/homes/michellef/Rb82/data/PET_LMChopper_OCT8/2020_25p'
 
 #ALSO USE THIS FOR DELETING ANY GIVEN DOSE LEVEL
 #delete_files(dst) #Delete original LM file
 
 ##One at a time
 copy_files(dir_path, dst)
+
 #Use original listmode data path here
 #prep_chopper('/homes/michellef/Rb82/data/PET_OCT8_Anonymous_JSReconReady/')

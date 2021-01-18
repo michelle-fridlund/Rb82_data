@@ -86,9 +86,9 @@ def check_dates(dir_path):
             #print(new_path, d_name)
             os.chdir(new_path) 
             os.system(f"for d in * ; do echo strings | dcmdump $d \
-                      --search StudyDate| (head -c 30; echo '{d_name}') \
+                      --search StudyDate | (head -c 30; echo '{d_name}') \
                       >> /homes/michellef/anon.txt; break 1; done")
-
+    print('Done!')
 def find_ct(dir_path):
     check_dates(dir_path)
     anon_patients = {}
@@ -101,7 +101,7 @@ def find_ct(dir_path):
               anon_patients[name1] = scan_date
               sleep(.001)
     os.remove('/homes/michellef/anon.txt')
-    return anon_patients
+    print(anon_patients)
 
 
 def get_items(my_dict, **tag_):
@@ -155,5 +155,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
     data_path = Path(args.data)
     
-    get_info(data_path)
+    #get_info(data_path)
+    check_dates(data_path)
 
