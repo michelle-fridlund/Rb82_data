@@ -12,7 +12,6 @@ from tensorflow.keras.layers import Conv3D, Conv3DTranspose, Dropout, Input
 from tensorflow.keras.layers import Activation, BatchNormalization, concatenate, add
 from tensorflow.keras import backend as K, regularizers
 import os
-import PETCT_inference
 
 def conv_block(layer,fsize,dropout,downsample=True):
     for i in range(1,3):
