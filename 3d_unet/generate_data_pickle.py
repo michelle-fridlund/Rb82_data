@@ -2,27 +2,39 @@
 
 import pickle
 import os
+from sklearn.model_selection import train_test_split
+from pathlib import Path
+import numpy as np
 
-"""
+data_path = '/homes/michellef/my_projects/Rb82/data/Dicoms_OCT8/100p_STAT'
 
-Save pickle file of train and validation pts
-Should have indexes "train" and "test" or "train_X" and "valid_X" 
-where X is integer from 0, representing the LOG in k-fold.
+def find_patients(data_path):
+    pts = os.listdir(data_path)
+    pts_train, pts_val = train_test_split(pts, test_size = 0.25)
+    return pts_train, pts_val
 
-"""
+def write_summary(data_path):
+    summary = {'train': [], 'valid': []}
+    pts_train, pts_val = find_patients(data_path)
+    for t in pts_train:
+        summary['train'].append(t)
+    for v in pts_val:
+        summary['valid'].append(v)
+    print(f"Train: {len(summary['train'])}, Validation: {len(summary['valid'])} patient were found!")
+    return summary
 
-summary = { 'train': [], 'valid': [] }
+def build_pickle(data_path):
+    output  = str(Path(data_path).parent) 
+    os.chdir(output)
+    summary = write_summary(data_path)
+    # with open('data.pickle', 'wb') as p:
+    #     pickle.dump(summary, p)
+    print(pickle.load(open('data.pickle','rb')))
 
-pts = os.listdir('/users/claes/projects/LowdosePET/PETrecon/HjerteFDG_mnc')
-
-summary['train'].append(pts[0])
-summary['train'].append(pts[1])
-summary['valid'].append(pts[10])
-summary['valid'].append(pts[11])
-
-with open('test_dat.pickle', 'wb') as file_pi:
-    pickle.dump(summary,file_pi)
     
+if __name__=="__main__":
+    
+    build_pickle(data_path)
     
 """ 
 
