@@ -35,9 +35,10 @@ if __name__=="__main__":
     
     #Network training arguments
     parser.add_argument('--model', dest='model', default ='Rb82_denoise', help='model name')
-    parser.add_argument('--batch_size', dest='batch_size', type=int, default = 1, help='batch size')
-    parser.add_argument('--learning_rate', '-l', dest='lr', type=int, default = 0.0001, help='learning rate')
-    parser.add_argument('--epoch', '-e', dest='epoch', type=int, default = 100, help='number of epochs')
+    parser.add_argument('--learning_rate', '-l', dest='lr', type=float, default = 0.0001, help='learning rate')
+    parser.add_argument('--epoch', '-e', dest='epoch', type=int, default = 100, help='number of training epochs')
+    parser.add_argument('--input_channels', dest='inout_channels', type=int, default = 2, help='nubmer of input channels')
+    parser.add_argument('--input_channels', dest='output_channels', type=int, default = 1, help='nubmer of input channels')
 
     parser.add_argument('--augment', '-a', dest='augment', type=data.ParseBoolean, default = False, help='apply data augmentation: true, false')
     

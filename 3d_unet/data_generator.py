@@ -20,7 +20,7 @@ import pydicom
 from random import shuffle
 import threading
 import pickle 
-import DataAugmentation3D as augement3d
+import DataAugmentation3D as augment3d
 
 
 class DCMDataLoader(object):
@@ -40,17 +40,16 @@ class DCMDataLoader(object):
         #self.depth = depth #stack of slices??
 
         #training params
-        self.batch_size = args.batch_size
-        #self.output_channels = output_channels
+        #self.batch_size = args.batch_size
+        self.input_channels = args.input_channels
+        self.output_channels = args.output_channels
         self.augment = args.augment 
         
-        self.n_batches = len(self.summary['train']) 
-        self.n_batches = self.batch_size
+        self.batch_size = len(self.summary['train']) 
         
-        return self.load_train_data(self.summary)
+        #return self.load_train_data(self.summary)
 
-
-    # Transform DICOMS into numpy
+    #Transform DICOMS into numpy
     def load_dicom(self, path):
         slices = [pydicom.read_file(i) for i in glob.glob("{}/*.ima".format(path), recursive = True)]
         slices.sort(key=lambda x: float(x.ImagePositionPatient[2]))
@@ -60,9 +59,9 @@ class DCMDataLoader(object):
         image = np.stack([s.pixel_array for s in slices])
         return np.array(image, dtype = np.float32)
        
-    def load_train_data(self, summary):
+    def load_data(self, summary):
         patients = self.summary['train']
-        
+    #Load an reshape all patient data
         for patient in patients:
         
             ld_path = '%s/%s/%s/%s' % (self.data_path, self.ld_path, patient, self.state_name)
@@ -73,13 +72,30 @@ class DCMDataLoader(object):
             
             print(f'Load complete: {len(ld_data)} LD and {len(hd_data)} HD dcm found for patient {patient}')
             
-            # if augment:
-            #     call augment3d
-                
-            #return ld_data, hd_data
-            print(ld_data, hd_data)
-            
+            ld_ = np.memmap(ld_data, dtype='double', mode='r')
+            ld_ = ld_.reshape(128,128,-1,2)
+            hd_ = np.memmap(hd_data, dtype='double', mode='r')
+            hd_ = hd_.reshape(128,128,-1)
 
+        return ld_, hd_
+
+    def load_train_data(self):
+        X = np.empty((self.batch_size,) + self.img_size + (self.input_channels,))
+        y = np.empty((self.batch_size,) + self.img_size + (self.output_channels))
+        
+        for i in range(self.batch_size):
+            ld_, hd_ = self.load_data(self.summary)
+
+            X[i,...] = ld_
+            y[i,...] = hd_.reshape(self.img_res + (self.output_channels))
+                       
+        if self.augment:
+            X, y = self.augment3D.random_transform_batch(X,y)
+            return X, y
+        else:
+            return X, y
+
+#main.py parsers 
 def ParseBoolean(b):
     b = b.lower()
     if b == 'true':
