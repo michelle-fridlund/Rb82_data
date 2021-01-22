@@ -57,10 +57,10 @@ class DCMDataLoader(object):
     
     def dcm2numpy(self, slices):
         image = np.stack([s.pixel_array for s in slices])
-        return np.array(image, dtype = np.float32)
+        return np.array(image, dtype = np.float16)
        
-    def load_data(self, summary):
-        patients = self.summary['train']
+    def load_data(self, mode):
+        patients = self.summary[mode]
     #Load an reshape all patient data
         for patient in patients:
         
@@ -79,21 +79,22 @@ class DCMDataLoader(object):
 
         return ld_, hd_
 
-    def load_train_data(self):
+    def load_train_data(self, args, mode):
         X = np.empty((self.batch_size,) + self.img_size + (self.input_channels,))
         y = np.empty((self.batch_size,) + self.img_size + (self.output_channels))
-        
-        for i in range(self.batch_size):
-            ld_, hd_ = self.load_data(self.summary)
 
+        for i in range(self.batch_size):
+            ld_, hd_ = self.load_data(mode)
+    
             X[i,...] = ld_
             y[i,...] = hd_.reshape(self.img_res + (self.output_channels))
-                       
-        if self.augment:
-            X, y = self.augment3D.random_transform_batch(X,y)
-            return X, y
-        else:
-            return X, y
+                           
+            if mode == 'train' and self.augment:
+                X, y = self.augment3D.random_transform_batch(X,y)
+                return X, y
+            else:
+                return X, y
+
 
 #main.py parsers 
 def ParseBoolean(b):
