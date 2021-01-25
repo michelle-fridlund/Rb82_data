@@ -1,3 +1,4 @@
 /data
 tmp_params.txt
-/3d_unet/__pycache__
+__pycache__
+/3d_unet/checkpoint
