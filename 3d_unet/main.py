@@ -24,7 +24,7 @@ if __name__ == "__main__":
                         default='/homes/michellef/my_projects/Rb82/data/Dicoms_OCT8', help="dicom file directory")
     parser.add_argument('--ld_path', dest='ld_path', default='50p_STAT', help='low dose PET folder name')
     parser.add_argument('--hd_path', dest='hd_path', default='100p_STAT', help='high dose PET folder name')
-    parser.add_argument('--state', dest='state_name', default='REST', type=data.Capitalise, help='REST or STRESS')
+    #parser.add_argument('--state', dest='state_name', default='REST', type=data.Capitalise, help='REST or STRESS')
 
     # Image parameters
     parser.add_argument('--patch_size', dest='patch_size', type=int, default=16, help='number of slices in a patch')

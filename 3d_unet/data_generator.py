@@ -19,7 +19,7 @@ import pydicom
 from random import shuffle
 import threading
 import pickle 
-import DataAugmentation3D as augment3d
+import DataAugmentation3D
 
 
 class DCMDataLoader(object):
@@ -29,7 +29,7 @@ class DCMDataLoader(object):
         self.data_path = args.data_path
         self.ld_path = args.ld_path
         self.hd_path = args.hd_path
-        self.state_name = args.state_name
+        #self.state_name = args.state_name
         
         #pickle file
         self.summary = pickle.load(open('%s/data.pickle' % self.data_path, 'rb'))
@@ -42,10 +42,24 @@ class DCMDataLoader(object):
         self.output_channels = args.output_channels
         self.batch_size = args.batch_size
         
+        #data augmentation
         self.augment = args.augment 
+        self.augmentation_params = {'rotation range': [5,5,5],
+                                    'shift_range': [0.05,0.05,0.05],
+                                    'shear_range': [2,2,0],
+                                    'zoom_lower' : [0.9,0.9,0.9],
+                                    'zoom_upper' : [1.2,1.2,1.2],
+                                    'zoom_independent' : True,
+                                    'flip_axis' : [1, 2],          
+                                    #'X_shift_voxel' :[2, 2, 0],
+                                    #'X_add_noise' : 0.1,
+                                    'fill_mode' : 'reflect'
+                                   }
+        self.augment3d = DataAugmentation3D(**self.augmentation_params) 
         
         self.n_batches = len(self.summary['train']) 
         self.n_batches /= self.batch_size
+        
         
 
     #Transform DICOMS into numpy
@@ -64,8 +78,8 @@ class DCMDataLoader(object):
     #Load and reshape all patient data
         for patient in patients:
         
-            ld_path = '%s/%s/%s/%s' % (self.data_path, self.ld_path, patient, self.state_name)
-            hd_path = '%s/%s/%s/%s' % (self.data_path, self.hd_path, patient, self.state_name)
+            ld_path = '%s/%s/%s' % (self.data_path, self.ld_path, patient)
+            hd_path = '%s/%s/%s' % (self.data_path, self.hd_path, patient)
             
             ld_data = self.dcm2numpy(self.load_dicom(ld_path))
             hd_data = self.dcm2numpy(self.load_dicom(hd_path))
@@ -75,6 +89,10 @@ class DCMDataLoader(object):
             ld_ = ld_data.reshape(128,128,111,1)
             hd_ = hd_data.reshape(128,128,111,1)
             
+            if mode == 'train' and self.augment:
+                ld_, hd_ = self.augment3D.random_transform_batch(ld_,hd_)
+            
+            #TODO:ADD AUGMENT
             # --- Determine slice
             if z == None:
                 z = np.random.randint(8,111-8,1)[0]

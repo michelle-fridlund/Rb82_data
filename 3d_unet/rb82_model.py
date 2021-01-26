@@ -44,6 +44,7 @@ class NetworkModel(object):
         self.input_channels = args.input_channels
         self.output_channels = args.output_channels
         self.batch_size = args.batch_size
+        
 
         self.n_batches = len(self.summary['train'])
         self.n_batches /= self.batch_size
@@ -115,7 +116,7 @@ class NetworkModel(object):
                                  histogram_freq=0, write_graph=True, write_images=True, profile_batch=0)
 
         callbacks_list = [checkpoint, tbCallBack]
-
+        #Im size - sample size.
         # Train model on dataset
         self.model.fit(self.data_train_gen,
                        steps_per_epoch=self.n_batches *

@@ -73,7 +73,6 @@ def prepare_3D_unet(x,y,z,d,initialize_model=None,classification=False,lr=0.0001
         else:
             exit('did not find model %s' % initialize_model)
 
-#    model.compile(optimizer=Adam(lr=lr), loss=loss, metrics=[rmse,dice,'mean_absolute_error','acc'])
     model.compile(optimizer=Adam(lr=lr), loss=loss, metrics=['mean_absolute_error','acc'])
     return model
 
