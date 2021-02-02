@@ -15,7 +15,7 @@ import glob
 import tensorflow as tf
 import numpy as np
 from matplotlib import pyplot as plt
-import pydicom
+import nibabel as nib
 from random import shuffle
 import threading
 import pickle 
@@ -33,6 +33,9 @@ class DCMDataLoader(object):
         
         #pickle file
         self.summary = pickle.load(open('%s/data.pickle' % self.data_path, 'rb'))
+        self.train_or_test = args.train_or_test
+        self.fold = 0
+        self.mode = '{}_{}'.format(self.train_or_test, self.fold)
         #image params
         self.image_size = args.image_size
         self.patch_size = args.patch_size
@@ -57,27 +60,25 @@ class DCMDataLoader(object):
                                    }
         self.augment3d = DataAugmentation3D(**self.augmentation_params) 
         
-        self.n_batches = len(self.summary['train']) 
+        self.n_batches = len(self.summary['train']) if 'train' in self.summary else len(self.summary['train_0'])
         self.n_batches /= self.batch_size
         
         
-
     #Transform DICOMS into numpy
-    def load_dicom(self, path):
-        slices = [pydicom.read_file(i) for i in glob.glob("{}/*.ima".format(path), recursive = True)]
-        slices.sort(key=lambda x: float(x.ImagePositionPatient[2]))
-        return slices
+    def load_nifti(self, path):
+        nifti = [nib.load(i) for i in glob.glob("{}/*.nii.gz".format(path), recursive = True)]
+        return nifti
     #Return stack of all slices
-    def dcm2numpy(self, slices):
-        image = np.stack([s.pixel_array for s in slices])
-        return np.array(image, dtype = np.float16)
+    def nifti2numpy(self, nifti):
+        pixels = [nifti.get_fdata() for n in nifti]
+        return np.array(pixels, dtype = np.float16)
     
     def augment_data(self):
         X = np.empty((self.batch_size,) + (self.image_size, self.image_size, self.patch_size) + (self.input_channels,))
         y = np.empty((self.batch_size,) + (self.image_size, self.image_size, self.patch_size) + (self.output_channels,))
 
         for i in range(self.batch_size):
-            ld_, hd_ = self.load_data(self.summary, 'train')
+            ld_, hd_ = self.load_data(self.summary, 'train_0')
             X[i,...] = self.ld_
             y[i,...] = self.hd_.reshape((self.image_size, self.image_size, self.patch_size) + (self.output_channels,))
 
@@ -95,8 +96,8 @@ class DCMDataLoader(object):
             ld_path = '%s/%s/%s' % (self.data_path, self.ld_path, patient)
             hd_path = '%s/%s/%s' % (self.data_path, self.hd_path, patient)
             
-            ld_data = self.dcm2numpy(self.load_dicom(ld_path))
-            hd_data = self.dcm2numpy(self.load_dicom(hd_path))
+            ld_data = self.nifty2numpy(self.load_nifti(ld_path))
+            hd_data = self.nifty2numpy(self.load_nifti(hd_path))
             
             #print(f'Load complete: {len(ld_data)} LD and {len(hd_data)} HD dcm found for patient {patient}')
             

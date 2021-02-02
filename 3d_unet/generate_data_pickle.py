@@ -46,4 +46,4 @@ def build_pickle(data_path):
 
 if __name__=="__main__":
     write_summary(data_path)
-    #build_pickle(data_path)
+    build_pickle(data_path)
