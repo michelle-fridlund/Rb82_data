@@ -32,7 +32,11 @@ class NetworkModel(object):
         # pickle file
         self.summary = pickle.load(
             open('%s/data.pickle' % self.data_path, 'rb'))
-
+        
+        self.fold = args.kfold
+        self.train_pts = 'train_{}'.format(self.kfold)
+        self.valid_pts = 'valid_{}'.format(self.kfold)
+        
         # image params
         self.image_size = args.image_size
         self.patch_size = args.patch_size
@@ -46,7 +50,7 @@ class NetworkModel(object):
         self.batch_size = args.batch_size
         
 
-        self.n_batches = len(self.summary['train'])
+        self.n_batches = len(self.summary['train']) if 'train' in self.summary else len(self.summary['train_0'])
         self.n_batches /= self.batch_size
 
         #self.callbacks_list = self.setup_callbacks()
@@ -79,10 +83,10 @@ class NetworkModel(object):
         return X, y
 
     def generator_train(self):
-        yield self.load_data('train')
+        yield self.load_data(self.train_pts)
 
     def generator_validate(self):
-        yield self.load_data('valid')
+        yield self.load_data(self.valid_pts)
 
     def model_train(self, model_outname, x, y, z, d, data_path, epoch, batch_size,
                     lr, verbose=1, train_pts=None, validate_pts=None, initial_epoch=0,

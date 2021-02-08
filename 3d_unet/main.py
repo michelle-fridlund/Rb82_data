@@ -39,12 +39,18 @@ if __name__ == "__main__":
     parser.add_argument('--batch_size', dest='batch_size', type=int, default=1, help='batch size')
 
     parser.add_argument('--augment', '-a', dest='augment', type=data.ParseBoolean,
-                        default=False, help='apply data augmentation: true, false')
+                        default=True, help='apply data augmentation: true, false')
 
     parser.add_argument('--train_or_test', dest='train_or_test', default='train', help='train or test')
+    parser.add_argument('--kfold', dest='kfold', default='0', help='number of folds')
 
     args = parser.parse_args()
 
-    model = rb82.NetworkModel(args)
-    model.train()
+    mode = 'train_{}'.format(args.kfold)
+    print(mode)
+    loader = data.DCMDataLoader(args, mode)
+    ld, hd = loader.load_train_data(mode)
+    print('OK')
+    #model = rb82.NetworkModel(args)
+    #model.train()
     #model.train(args) if args.train_or_test == 'train' else model.test(args)

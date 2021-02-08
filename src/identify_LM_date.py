@@ -74,7 +74,6 @@ def find_ptd(dir_path):
                     os.remove(new_path/'dump.txt')
     return my_dates
 
-
 #Goes into all CT foldes, writes scan date from each DICOM header into a single file
 def check_dates(dir_path):
     for (dirpath, dirnames, filenames) in os.walk(dir_path): 
@@ -89,6 +88,7 @@ def check_dates(dir_path):
                       --search StudyDate | (head -c 30; echo '{d_name}') \
                       >> /homes/michellef/anon.txt; break 1; done")
     print('Done!')
+    
 def find_ct(dir_path):
     check_dates(dir_path)
     anon_patients = {}
@@ -103,7 +103,6 @@ def find_ct(dir_path):
     os.remove('/homes/michellef/anon.txt')
     print(anon_patients)
 
-
 def get_items(my_dict, **tag_):
     my_items = []
     for k,v in my_dict.items():
@@ -113,11 +112,11 @@ def get_items(my_dict, **tag_):
             my_items.append(v)
     return my_items
 
+
 def concatenation(my_strings,my_numbers):
     result1 = list(map(lambda x, y: [x, y], my_strings, my_numbers))
     #celsius_dict = dict(zip(sorted_ptd.keys(), celsius))
     return result1
-
 
 #Sort the two dictionaries, compare dates for same patients
 def get_info(dir_path):
