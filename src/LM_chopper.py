@@ -80,8 +80,11 @@ def delete_files(original_path):
                 or '/STRESS' in str(dirname) and 'IMA' not in str(dirname) and 'CT' not in str(dirname): 
                     new_path = Path(os.path.join(original_path, dirname))
                     ptds = find_LM(new_path, number = '')
+                    for p in ptds:
+                        file = os.path.basename(str(p))
+                        print(file)
                     #print(ptds[2]) #PLEASE MAKE SURE THE FILES ARE CORRECT FIRST!
-                    os.remove(ptds[2])
+                    #os.remove(ptds[2])
                     #os.chdir(str(new_path))
                     #os.remove('TempDicomHeader.IMA')
 
@@ -112,9 +115,9 @@ def copy_files(dir_path, dst):
 #TODO: Add arguments 
 
 ##Simulated data path
-dir_path = '/homes/michellef/my_projects/Rb82/data/PET_LMChopper_OCT8/2017'
+dir_path = '/homes/michellef/my_projects/Rb82/data/PET_LMChopper_OCT8/2020'
 ##Temporary data path 
-dst = '/homes/michellef/my_projects/Rb82/data/PET_LMChopper_OCT8/2017_25p'
+dst = '/homes/michellef/my_projects/Rb82/data/PET_LMChopper_OCT8/2020_10p'
 
 #ALSO USE THIS FOR DELETING ANY GIVEN DOSE LEVEL
 delete_files(dst) #Delete original LM file

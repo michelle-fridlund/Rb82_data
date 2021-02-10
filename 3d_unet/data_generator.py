@@ -63,13 +63,17 @@ class DCMDataLoader(object):
         self.n_batches = len(self.summary['train']) if 'train' in self.summary else len(self.summary['train_0'])
         self.n_batches /= self.batch_size
         
-    def nifti2numpy(self, nifti):
-        return np.array(nifti.get_fdata(), dtype = np.float16)
-    
+    # def generate_(self):
+    #     self.rest, self.stress = self.load_nifti(path)
+    #     yield rest,stress
+            
     #Transform DICOMS into numpy
     def load_nifti(self, path):
         nifti = [nib.load(i) for i in glob.glob("{}/*.nii.gz".format(path), recursive = True)]
-        return list(map(self.nifti2numpy, nifti))
+        return tuple(map(self.nifti2numpy, nifti))
+        
+    def nifti2numpy(self, nifti):
+        return np.array(nifti.get_fdata(), dtype = np.float16)
    
     def augment_data(self):
         X = np.empty((self.batch_size,) + (self.image_size, self.image_size, self.patch_size) + (self.input_channels,))
@@ -91,17 +95,20 @@ class DCMDataLoader(object):
     #Load and reshape all patient data
         for patient in patients:
         
-            ld_path = '%s/%s/%s' % (self.data_path, self.ld_path, patient)
-            hd_path = '%s/%s/%s' % (self.data_path, self.hd_path, patient)
+            ld_ = '%s/%s/%s' % (self.data_path, self.ld_path, patient)
+            hd_ = '%s/%s/%s' % (self.data_path, self.hd_path, patient)
             
-            ld_data = self.load_nifti(ld_path)
-            hd_data = self.load_nifti(hd_path)
-            print(isinstance(ld_data, np.ndarray))
-            print(len(ld_data))
-            print(type(ld_data))
-            for l in ld_data:
-                print(l.shape())
-            #print(f'Load complete: {len(ld_data)}, {type(ld_data)} LD and {len(hd_data)} HD dcm found for patient {patient}')
+            # for (rest,stress) in self.generate_():
+            #     ld_data = self.generate_(ld_path)
+            #     hd_data = self.load_nifti(hd_path)
+            
+            ld_data = self.load_nifti(ld_)
+            hd_data = self.load_nifti(hd_)
+            (stress, rest) = self.ld_data
+            #for l, h in zip(ld_data, hd_data):
+                
+                
+            print(f'Load complete: {len(ld_data)}, {type(ld_data)} LD and {len(hd_data)} HD dcm found for patient {patient}')
 
             # ld_data = self.nifti2numpy(self.load_nifti(ld_path))
             # hd_data = self.nifti2numpy(self.load_nifti(hd_path))
