@@ -93,14 +93,14 @@ def copy_files(dir_path, dst):
     my_ptds = {}
     for (dirpath, dirnames, filenames) in os.walk(dir_path): 
             dirname = str(Path(dirpath).relative_to(dir_path)) 
-            if '/STRESS' in str(dirname): #can also add STRESS
+            if '/REST' in str(dirname): #can also add STRESS
                     new_path = Path(os.path.join(dir_path, dirname))
                     ptds = find_LM(new_path, number = '')
                     #Get simulated LD -->
                     #5p = [0], 10p = [1], 25p = [2], 50p = [3]
                     #my_ptds[dirname] = str(ptds[3])
                     if len(ptds) == 4:
-                        my_ptds[dirname] = str(ptds[1])
+                        my_ptds[dirname] = str(ptds[0])
                     else: 
                         print(f'{dirname} has {len(ptds)} files!!!')
                         pass
@@ -115,9 +115,9 @@ def copy_files(dir_path, dst):
 #TODO: Add arguments 
 
 ##Simulated data path
-dir_path = '/homes/michellef/my_projects/Rb82/data/PET_LMChopper_OCT8/2020'
+dir_path = '/homes/michellef/my_projects/Rb82/data/PET_LMChopper_OCT8/2016'
 ##Temporary data path 
-dst = '/homes/michellef/my_projects/Rb82/data/PET_LMChopper_OCT8/2020_10p'
+dst = '/homes/michellef/my_projects/Rb82/data/PET_LMChopper_OCT8/2016_5p'
 
 #ALSO USE THIS FOR DELETING ANY GIVEN DOSE LEVEL
 delete_files(dst) #Delete original LM file

@@ -9,8 +9,8 @@ data. Extended for 3D objects augmentation.
 import keras.backend as K
 import numpy as np
 import scipy.ndimage
-from keras.utils.data_utils import Sequence
-from scipy import linalg
+# from keras.utils.data_utils import Sequence
+# from scipy import linalg
 from six.moves import range
 
 def random_rotation(x, rgs, channel_axis=0,

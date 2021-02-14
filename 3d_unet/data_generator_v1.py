@@ -25,7 +25,7 @@ import DataAugmentation3D
 class DCMDataLoader(object):
     
     def __init__(self, args, mode):
-        #paths to dicoms files
+        #paths to dicoms filesL
         self.data_path = args.data_path
         self.ld_path = args.ld_path
         self.hd_path = args.hd_path

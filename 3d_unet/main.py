@@ -9,7 +9,7 @@ Edited on Jan 19 2020 by michellef
 """
 
 import argparse
-import rb82_model as rb82
+# import rb82_model as rb82
 import data_generator as data
 import matplotlib as mpl
 mpl.use('Agg')
@@ -52,5 +52,5 @@ if __name__ == "__main__":
     ld, hd = loader.load_train_data(mode)
     print('OK')
     #model = rb82.NetworkModel(args)
-    #model.train()
+    # model.train()
     #model.train(args) if args.train_or_test == 'train' else model.test(args)
