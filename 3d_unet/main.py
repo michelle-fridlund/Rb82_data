@@ -9,7 +9,7 @@ Edited on Jan 19 2020 by michellef
 """
 
 import argparse
-# import rb82_model as rb82
+import rb82_model as rb82
 import data_generator as data
 import matplotlib as mpl
 mpl.use('Agg')
@@ -42,17 +42,11 @@ if __name__ == "__main__":
                         default=True, help='apply data augmentation: true, false')
 
     parser.add_argument('--train_or_test', dest='train_or_test', default='train', help='train or test')
-    parser.add_argument('--kfold', dest='kfold', default='0', help='number of folds')
+    parser.add_argument('--kfold', dest='kfold', default='0', help='fold number')
 
     args = parser.parse_args()
 
     mode = 'train_{}'.format(args.kfold)
-    print(mode)
-    loader = data.DCMDataLoader(args, mode)
-    stack_dict = loader.load_train_data(mode)
-    print(stack_dict.keys())
-    #(ld_stack, hd_stack) = stack_dict.get('2131321', (None, None))
-    #ld, hd = loader.load_train_data(mode)
-    #model = rb82.NetworkModel(args)
-    # model.train()
+    model = rb82.NetworkModel(args)
+    model.train()
     #model.train(args) if args.train_or_test == 'train' else model.test(args)

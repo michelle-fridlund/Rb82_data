@@ -32,11 +32,11 @@ class NetworkModel(object):
         # pickle file
         self.summary = pickle.load(
             open('%s/data.pickle' % self.data_path, 'rb'))
-        
-        self.fold = args.kfold
+
+        self.kfold = args.kfold
         self.train_pts = 'train_{}'.format(self.kfold)
         self.valid_pts = 'valid_{}'.format(self.kfold)
-        
+
         # image params
         self.image_size = args.image_size
         self.patch_size = args.patch_size
@@ -48,7 +48,6 @@ class NetworkModel(object):
         self.input_channels = args.input_channels
         self.output_channels = args.output_channels
         self.batch_size = args.batch_size
-        
 
         self.n_batches = len(self.summary['train']) if 'train' in self.summary else len(self.summary['train_0'])
         self.n_batches /= self.batch_size
@@ -75,18 +74,20 @@ class NetworkModel(object):
     def load_data(self, mode):
         args = self.args
         loader = data.DCMDataLoader(args, mode)
-        ld, hd = loader.load_train_data(args, mode)
+        stack_dict = loader.load_train_data(mode)
 
-        X = ld[-1, :, :, :]
-        y = hd[-1, :, :, :]
-        # print(X.shape,y.shape)
-        return X, y
+        for value in stack_dict.values():
+            for pair in value:
+                (ld, hd) = pair
+                x = ld[-1, :, :, :]
+                y = hd[-1, :, :, :]
+                yield x, y
 
     def generator_train(self):
-        yield self.load_data(self.train_pts)
+        return self.load_data(self.train_pts)
 
     def generator_validate(self):
-        yield self.load_data(self.valid_pts)
+        return self.load_data(self.valid_pts)
 
     def model_train(self, model_outname, x, y, z, d, data_path, epoch, batch_size,
                     lr, verbose=1, train_pts=None, validate_pts=None, initial_epoch=0,
@@ -120,7 +121,7 @@ class NetworkModel(object):
                                  histogram_freq=0, write_graph=True, write_images=True, profile_batch=0)
 
         callbacks_list = [checkpoint, tbCallBack]
-        #Im size - sample size.
+        # Im size - sample size.
         # Train model on dataset
         self.model.fit(self.data_train_gen,
                        steps_per_epoch=self.n_batches*(self.image_size**2//self.patch_size**2)//self.batch_size,
@@ -139,7 +140,7 @@ class NetworkModel(object):
     def train(self):
 
         self.model_outname = self.model_name+"_e" + \
-            str(self.epoch)+"_bz"+str(self.batch_size)+"_lr"+str(self.lr)
+            str(self.epoch)+"_bz"+str(self.batch_size)+"_lr"+str(self.lr)+"_k"+str(self.kfold)
 
         if os.path.exists(self.model_outname+".h5"):
             print("Model %s exists" % self.model_outname)

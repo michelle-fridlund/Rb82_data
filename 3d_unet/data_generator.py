@@ -64,7 +64,6 @@ class DCMDataLoader(object):
         self.n_batches /= self.batch_size
 
     # Create a dict with filename as a key and numpy array as a value
-
     def load_nifti(self, path):
         return {os.path.basename(i): self.nifti2numpy(nib.load(i)) for i in glob.glob("{}/*.nii.gz".format(path), recursive=True)}
 
@@ -82,7 +81,6 @@ class DCMDataLoader(object):
                      + (self.output_channels,))
 
         for i in range(self.batch_size):
-            #ld_, hd_ = self.load_data(self.summary, self.mode)
             x[i, ...] = ld_
             y[i, ...] = hd_.reshape((self.image_size, self.image_size, self.patch_size)
                                     + (self.output_channels,))
@@ -92,11 +90,11 @@ class DCMDataLoader(object):
         return x, y
 
     def load_train_data(self, mode):
-
         patients = self.summary[mode]
         stack_dict = {}
         # Load and reshape all patient data
         for patient in patients:
+            stack_dict[patient] = []
             ld_data = self.load_nifti('%s/%s/%s' % (self.data_path, self.ld_path, patient))
             hd_data = self.load_nifti('%s/%s/%s' % (self.data_path, self.hd_path, patient))
 
@@ -126,8 +124,8 @@ class DCMDataLoader(object):
 
                 ld_ = lowres.reshape(128, 128, 111, 1)
                 hd_ = hires.reshape(128, 128, 111, 1)
-                
-                #Determine slice
+
+                # Determine slice
                 z = np.random.randint(8, 111-8, 1)[0]
                 ld_stack = ld_[:, :, z-8:z+8, :]
                 hd_stack = hd_[:, :, z-8:z+8, :]
@@ -135,11 +133,9 @@ class DCMDataLoader(object):
                 if self.train_or_test == 'train' and self.augment:
                     ld_stack, hd_stack = self.augment_data(ld_stack, hd_stack)
 
-                stack_dict[patient] = (ld_stack, hd_stack)
+                stack_dict[patient].append((ld_stack, hd_stack))
 
         return stack_dict
-
-        #print(f'{ld_stack.shape} {hd_stack.shape} {self.batch_size}')
 
 
 # main.py parsers
