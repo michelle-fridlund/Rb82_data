@@ -29,7 +29,7 @@ class DCMDataLoader(object):
         self.data_path = args.data_path
         self.ld_path = args.ld_path
         self.hd_path = args.hd_path
-        #self.state_name = args.state_name
+        # self.state_name = args.state_name
 
         # pickle file
         self.summary = pickle.load(open('%s/data.pickle' % self.data_path, 'rb'))
@@ -63,9 +63,6 @@ class DCMDataLoader(object):
         self.n_batches = len(self.summary['train']) if 'train' in self.summary else len(self.summary['train_0'])
         self.n_batches /= self.batch_size
 
-    # def generate_(self):
-    #     self.rest, self.stress = self.load_nifti(path)
-    #     yield rest,stress
 
     # Create a dict with filename as a key and numpy array as a value
     def load_nifti(self, path):
@@ -79,15 +76,15 @@ class DCMDataLoader(object):
             return None
 
     def augment_data(self):
-        x = np.empty((self.batch_size,) + (self.image_size, self.image_size, self.patch_size) \
+        x = np.empty((self.batch_size,) + (self.image_size, self.image_size, self.patch_size)
                      + (self.input_channels,))
-        y = np.empty((self.batch_size,) + (self.image_size, self.image_size, self.patch_size) \
+        y = np.empty((self.batch_size,) + (self.image_size, self.image_size, self.patch_size)
                      + (self.output_channels,))
 
         for i in range(self.batch_size):
-            ld_, hd_ = self.load_data(self.summary, self.mode)
+            #ld_, hd_ = self.load_data(self.summary, self.mode)
             x[i, ...] = self.ld_
-            y[i, ...] = self.hd_.reshape((self.image_size, self.image_size, self.patch_size) \
+            y[i, ...] = self.hd_.reshape((self.image_size, self.image_size, self.patch_size)
                                          + (self.output_channels,))
 
             x, y = self.augment3D.random_transform_batch(x, y)
@@ -121,28 +118,28 @@ class DCMDataLoader(object):
                     print(f'A nifti pair for patient {patient} is missing')
                     continue
 
-                print()  # Blank line
-                print(key)
-                print(lowres.shape)
-                print(hires.shape)
+                # print()  # Blank line
+                # print(key)
+                # print(lowres.shape)
+                # print(hires.shape)
 
-            print(f'Load complete: {len(ld_data)}, {type(ld_data)} LD and {len(hd_data)} HD dcm found for patient {patient}')
+            # print(f'Load complete: {len(ld_data)}, {type(ld_data)} LD and {len(hd_data)} HD dcm found for patient {patient}')
 
-            # self.ld_ = ld_data.reshape(128,128,111,1)
-            # self.hd_ = hd_data.reshape(128,128,111,1)
+                self.ld_ = lowres.reshape(128, 128, -1, 1)
+                self.hd_ = hires.reshape(128, 128, -1, 1)
 
-            # if self.train_or_test == 'train' and self.augment:
-            #     self.ld_, self.hd_ = self.augment_data()
+                if self.train_or_test == 'train' and self.augment:
+                    self.ld_, self.hd_ = self.augment_data()
 
-            # # --- Determine slice
-            # if z == None:
-            #     z = np.random.randint(8,111-8,1)[0]
+                # --- Determine slice
+                if z == None:
+                    z = np.random.randint(8, 111-8, 1)[0]
 
-            #     ld_stack = self.ld_[:,:,z-8:z+8,:]
-            #     hd_stack = self.hd_[:,:,z-8:z+8,:]
+                    ld_stack = self.ld_[:, :, z-8:z+8, :]
+                    hd_stack = self.hd_[:, :, z-8:z+8, :]
 
-            # return ld_stack, hd_stack
-            #print(f'{ld_.shape} {hd_.shape} {self.batch_size}')
+        return ld_stack, hd_stack
+        print(f'{ld_stack.shape} {hd_stack.shape} {self.batch_size}')
 
 
 # main.py parsers

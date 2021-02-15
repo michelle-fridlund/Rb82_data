@@ -50,7 +50,7 @@ if __name__ == "__main__":
     print(mode)
     loader = data.DCMDataLoader(args, mode)
     ld, hd = loader.load_train_data(mode)
-    print('OK')
+    print('len(ld)')
     #model = rb82.NetworkModel(args)
     # model.train()
     #model.train(args) if args.train_or_test == 'train' else model.test(args)
