@@ -123,8 +123,7 @@ class NetworkModel(object):
         #Im size - sample size.
         # Train model on dataset
         self.model.fit(self.data_train_gen,
-                       steps_per_epoch=self.n_batches *
-                       (self.image_size-self.patch_size),
+                       steps_per_epoch=self.n_batches*(self.image_size**2//self.patch_size**2)//self.batch_size,
                        validation_data=self.data_valid_gen,
                        validation_steps=100,
                        epochs=self.epoch,

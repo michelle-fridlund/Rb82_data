@@ -63,8 +63,8 @@ class DCMDataLoader(object):
         self.n_batches = len(self.summary['train']) if 'train' in self.summary else len(self.summary['train_0'])
         self.n_batches /= self.batch_size
 
-
     # Create a dict with filename as a key and numpy array as a value
+
     def load_nifti(self, path):
         return {os.path.basename(i): self.nifti2numpy(nib.load(i)) for i in glob.glob("{}/*.nii.gz".format(path), recursive=True)}
 
@@ -75,7 +75,7 @@ class DCMDataLoader(object):
         except:
             return None
 
-    def augment_data(self):
+    def augment_data(self, ld_, hd_):
         x = np.empty((self.batch_size,) + (self.image_size, self.image_size, self.patch_size)
                      + (self.input_channels,))
         y = np.empty((self.batch_size,) + (self.image_size, self.image_size, self.patch_size)
@@ -83,17 +83,18 @@ class DCMDataLoader(object):
 
         for i in range(self.batch_size):
             #ld_, hd_ = self.load_data(self.summary, self.mode)
-            x[i, ...] = self.ld_
-            y[i, ...] = self.hd_.reshape((self.image_size, self.image_size, self.patch_size)
-                                         + (self.output_channels,))
+            x[i, ...] = ld_
+            y[i, ...] = hd_.reshape((self.image_size, self.image_size, self.patch_size)
+                                    + (self.output_channels,))
 
             x, y = self.augment3D.random_transform_batch(x, y)
 
         return x, y
 
-    def load_train_data(self, mode, z=None):
+    def load_train_data(self, mode):
 
         patients = self.summary[mode]
+        stack_dict = {}
         # Load and reshape all patient data
         for patient in patients:
             ld_data = self.load_nifti('%s/%s/%s' % (self.data_path, self.ld_path, patient))
@@ -123,23 +124,22 @@ class DCMDataLoader(object):
                 # print(lowres.shape)
                 # print(hires.shape)
 
-            # print(f'Load complete: {len(ld_data)}, {type(ld_data)} LD and {len(hd_data)} HD dcm found for patient {patient}')
-
-                self.ld_ = lowres.reshape(128, 128, -1, 1)
-                self.hd_ = hires.reshape(128, 128, -1, 1)
+                ld_ = lowres.reshape(128, 128, 111, 1)
+                hd_ = hires.reshape(128, 128, 111, 1)
+                
+                #Determine slice
+                z = np.random.randint(8, 111-8, 1)[0]
+                ld_stack = ld_[:, :, z-8:z+8, :]
+                hd_stack = hd_[:, :, z-8:z+8, :]
 
                 if self.train_or_test == 'train' and self.augment:
-                    self.ld_, self.hd_ = self.augment_data()
+                    ld_stack, hd_stack = self.augment_data(ld_stack, hd_stack)
 
-                # --- Determine slice
-                if z == None:
-                    z = np.random.randint(8, 111-8, 1)[0]
+                stack_dict[patient] = (ld_stack, hd_stack)
 
-                    ld_stack = self.ld_[:, :, z-8:z+8, :]
-                    hd_stack = self.hd_[:, :, z-8:z+8, :]
+        return stack_dict
 
-        return ld_stack, hd_stack
-        print(f'{ld_stack.shape} {hd_stack.shape} {self.batch_size}')
+        #print(f'{ld_stack.shape} {hd_stack.shape} {self.batch_size}')
 
 
 # main.py parsers

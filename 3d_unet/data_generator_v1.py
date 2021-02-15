@@ -100,7 +100,7 @@ class DCMDataLoader(object):
             
             #print(f'Load complete: {len(ld_data)} LD and {len(hd_data)} HD dcm found for patient {patient}')
             
-            self.ld_ = ld_data.reshape(128,128,111,1)
+            self.ld_ = ld_data.reshape(128,128,111,2)
             self.hd_ = hd_data.reshape(128,128,111,1)
             
             if mode == 'train' and self.augment:
