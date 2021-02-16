@@ -8,15 +8,14 @@ michellef
 """
 
 import net_v1 as net
-import numpy as np
 import data_generator as data
 import matplotlib as mpl
 from tensorflow.keras.callbacks import ModelCheckpoint, TensorBoard
+from tensorflow.keras.models import load_model
 import tensorflow as tf
-from keras.models import load_model, model_from_json
-import glob
 import pickle
 import os
+import glob
 import warnings
 warnings.filterwarnings('ignore')
 mpl.use('Agg')
@@ -36,13 +35,13 @@ class NetworkModel(object):
         self.kfold = args.kfold
         self.train_pts = 'train_{}'.format(self.kfold)
         self.valid_pts = 'valid_{}'.format(self.kfold)
+        self.test_pts = 'test'
 
         # image params
         self.image_size = args.image_size
         self.patch_size = args.patch_size
 
         # training params
-        self.model_name = args.model_name
         self.lr = args.lr
         self.epoch = args.epoch
         self.input_channels = args.input_channels
@@ -52,31 +51,21 @@ class NetworkModel(object):
         self.n_batches = len(self.summary['train']) if 'train' in self.summary else len(self.summary['train_0'])
         self.n_batches /= self.batch_size
 
-        #self.callbacks_list = self.setup_callbacks()
+        self.model_outname = str(args.model_name) + "_e" + \
+            str(self.epoch) + "_bz" + str(self.batch_size) + "_lr" + \
+            str(self.lr)+"_k" + str(self.kfold)
 
     def mkdir_(self, output):
         if not os.path.exists(output):
             os.makedirs(output)
 
-    # def setup_callbacks(self):
-    #     # Checkpoints
-    #     os.makedirs('checkpoint/{}'.format(self.config['model_name']), exist_ok=True)
-    #     checkpoint_file=os.path.join('checkpoint',self.config["model_name"],'e{epoch:02d}_{val_loss:.2f}.h5')
-    #     checkpoint = ModelCheckpoint(checkpoint_file, monitor='val_loss', verbose=1, save_best_only=False, mode='min',period=self.config["checkpoint_save_rate"])
-
-    #     # Tensorboard
-    #     os.makedirs('logs', exist_ok=True)
-    #     TB_file=os.path.join('logs',self.config["model_name"])
-    #     TB = TensorBoard(log_dir = TB_file)
-
-    #     return [checkpoint, TB]
-
     def load_data(self, mode):
         args = self.args
         loader = data.DCMDataLoader(args, mode)
-        stack_dict = loader.load_train_data(mode)
-
-        for value in stack_dict.values():
+        return loader.load_train_data(mode)
+    
+    def yield_data(self, stack):
+        for value in stack.values():
             for pair in value:
                 (ld, hd) = pair
                 x = ld[-1, :, :, :]
@@ -84,10 +73,12 @@ class NetworkModel(object):
                 yield x, y
 
     def generator_train(self):
-        return self.load_data(self.train_pts)
+        stack = self.load_data(self.train_pts)
+        return self.yield_data(stack)
 
     def generator_validate(self):
-        return self.load_data(self.valid_pts)
+        stack = self.load_data(self.valid_pts)
+        return self.yield_data(stack)
 
     def model_train(self, model_outname, x, y, z, d, data_path, epoch, batch_size,
                     lr, verbose=1, train_pts=None, validate_pts=None, initial_epoch=0,
@@ -109,19 +100,16 @@ class NetworkModel(object):
         self.model = net.prepare_3D_unet(
             x, y, z, d, initialize_model=initial_model, lr=lr, loss=loss)
 
-        self.mkdir_('checkpoint')
+        self.mkdir_('checkpoint/TB/{}'.format(model_outname))
         filepath = os.path.join(
             'checkpoint', model_outname + "_e{epoch:03d}.h5")
         checkpoint = ModelCheckpoint(
             filepath, verbose=1, save_freq='epoch')  # use save_freq
-        self.mkdir_('checkpoint/TB')
-        self.mkdir_('checkpoint/TB/{}'.format(model_outname))
 
         tbCallBack = TensorBoard(log_dir='checkpoint/TB/{}'.format(model_outname),
                                  histogram_freq=0, write_graph=True, write_images=True, profile_batch=0)
-
         callbacks_list = [checkpoint, tbCallBack]
-        # Im size - sample size.
+
         # Train model on dataset
         self.model.fit(self.data_train_gen,
                        steps_per_epoch=self.n_batches*(self.image_size**2//self.patch_size**2)//self.batch_size,
@@ -139,9 +127,6 @@ class NetworkModel(object):
     # def train(self,args,LOG=None,MULTIGPU=False):
     def train(self):
 
-        self.model_outname = self.model_name+"_e" + \
-            str(self.epoch)+"_bz"+str(self.batch_size)+"_lr"+str(self.lr)+"_k"+str(self.kfold)
-
         if os.path.exists(self.model_outname+".h5"):
             print("Model %s exists" % self.model_outname)
 
@@ -149,14 +134,14 @@ class NetworkModel(object):
         self.model_train(self.model_outname, 128, 128, 16, 2,
                          self.data_path, self.epoch, self.batch_size, self.lr)
 
-    # def do_test(self, args, x=args.image_size,y=dims_inplane,z=stack_of_slices,d=2,LOG=None):
+    # def test(self, args, x=args.image_size,y=dims_inplane,z=stack_of_slices,d=2,LOG=None):
+    def test(self):
+        if os.path.exists(f'{self.model_outname}.h5'):
+            model_name = self.model_outname+'.h5'
+        else:
+            model_name_cps = glob.glob(f'checkpoint/{model_name}*.h5')
+            model_name = model_name_cps[-1]
 
-    #     if os.path.exists(f'{self.model_outname}.h5'):
-    #         model_name = self.model_outname+'.h5'
-    #     else:
-    #         model_name_cps = glob.glob(f'checkpoint/{model_name}*.h5')
-    #         model_name = model_name_cps[-1]
+        model = load_model(model_name)
 
-    #     model = load_model(model_name)
-
-    #     #model_predict(model,model_name,x,y,z,d,LOG=LOG,orientation='axial')
+        # model_predict(model,model_name,x,y,z,d,LOG=LOG,orientation='axial')

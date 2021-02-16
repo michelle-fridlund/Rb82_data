@@ -125,15 +125,18 @@ class DCMDataLoader(object):
                 ld_ = lowres.reshape(128, 128, 111, 1)
                 hd_ = hires.reshape(128, 128, 111, 1)
 
-                # Determine slice
-                z = np.random.randint(8, 111-8, 1)[0]
-                ld_stack = ld_[:, :, z-8:z+8, :]
-                hd_stack = hd_[:, :, z-8:z+8, :]
+                if self.train_or_test == 'train':
+                    # Determine slice
+                    z = np.random.randint(8, 111-8, 1)[0]
+                    ld_stack = ld_[:, :, z-8:z+8, :]
+                    hd_stack = hd_[:, :, z-8:z+8, :]
 
-                if self.train_or_test == 'train' and self.augment:
-                    ld_stack, hd_stack = self.augment_data(ld_stack, hd_stack)
+                    if self.augment:
+                        ld_stack, hd_stack = self.augment_data(ld_stack, hd_stack)
 
-                stack_dict[patient].append((ld_stack, hd_stack))
+                    stack_dict[patient].append((ld_stack, hd_stack))
+                else:
+                    stack_dict[patient].append((ld_, hd_))
 
         return stack_dict
 

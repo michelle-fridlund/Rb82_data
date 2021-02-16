@@ -1,11 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Thu May 24 11:24:33 2018
+Created on Jan 19 2020 by michellef
 
-Edited on Jan 19 2020 by michellef
-
-@author: claesnl
 """
 
 import argparse
@@ -49,4 +46,4 @@ if __name__ == "__main__":
     mode = 'train_{}'.format(args.kfold)
     model = rb82.NetworkModel(args)
     model.train()
-    #model.train(args) if args.train_or_test == 'train' else model.test(args)
+    #model.train() if args.train_or_test == 'train' else model.test()
