@@ -38,12 +38,12 @@ if __name__ == "__main__":
     parser.add_argument('--augment', '-a', dest='augment', type=data.ParseBoolean,
                         default=True, help='apply data augmentation: true, false')
 
-    parser.add_argument('--train_or_test', dest='train_or_test', default='train', help='train or test')
+    parser.add_argument('--phase', dest='phase', default='train', help='train or test')
     parser.add_argument('--kfold', dest='kfold', default='0', help='fold number')
 
     args = parser.parse_args()
 
     mode = 'train_{}'.format(args.kfold)
     model = rb82.NetworkModel(args)
-    model.train()
-    #model.train() if args.train_or_test == 'train' else model.test()
+    #model.train()
+    model.train() if args.phase == 'train' else model.test()

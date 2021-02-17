@@ -29,15 +29,14 @@ class DCMDataLoader(object):
         self.data_path = args.data_path
         self.ld_path = args.ld_path
         self.hd_path = args.hd_path
-        # self.state_name = args.state_name
 
         # pickle file
         self.summary = pickle.load(open('%s/data.pickle' % self.data_path, 'rb'))
-        self.train_or_test = args.train_or_test
 
         # image params
         self.image_size = args.image_size
         self.patch_size = args.patch_size
+        self.phase = args.phase
 
         # training params
         self.input_channels = args.input_channels
@@ -94,7 +93,7 @@ class DCMDataLoader(object):
         stack_dict = {}
         # Load and reshape all patient data
         for patient in patients:
-            stack_dict[patient] = []
+            stack_dict[patient] = {}
             ld_data = self.load_nifti('%s/%s/%s' % (self.data_path, self.ld_path, patient))
             hd_data = self.load_nifti('%s/%s/%s' % (self.data_path, self.hd_path, patient))
 
@@ -110,6 +109,13 @@ class DCMDataLoader(object):
                 lowres = value
                 hires = hd_data.get(key, None)
 
+                # rest or stress
+                patient_state = 'UNKNOWN'
+                if 'rest' in key.lower():
+                    patient_state = 'REST'
+                elif 'stress' in key.lower():
+                    patient_state = 'STRESS'
+
                 try:
                     if not isinstance(hires, np.ndarray) or not isinstance(lowres, np.ndarray):
                         raise MissingNiftiData()
@@ -118,6 +124,7 @@ class DCMDataLoader(object):
                     continue
 
                 # print()  # Blank line
+                # print(patient_state)
                 # print(key)
                 # print(lowres.shape)
                 # print(hires.shape)
@@ -125,18 +132,21 @@ class DCMDataLoader(object):
                 ld_ = lowres.reshape(128, 128, 111, 1)
                 hd_ = hires.reshape(128, 128, 111, 1)
 
-                if self.train_or_test == 'train':
+                if self.phase == 'train':
                     # Determine slice
                     z = np.random.randint(8, 111-8, 1)[0]
-                    ld_stack = ld_[:, :, z-8:z+8, :]
-                    hd_stack = hd_[:, :, z-8:z+8, :]
+                    ld_ = ld_[:, :, z-8:z+8, :]
+                    hd_ = hd_[:, :, z-8:z+8, :]
 
                     if self.augment:
-                        ld_stack, hd_stack = self.augment_data(ld_stack, hd_stack)
+                        ld_, hd_ = self.augment_data(ld_, hd_)
 
-                    stack_dict[patient].append((ld_stack, hd_stack))
-                else:
-                    stack_dict[patient].append((ld_, hd_))
+                if stack_dict.get(patient, {}).get(patient_state):
+                    print(f'There are more nifti files for patient {patient} than needed. Skipping this patient...')
+                    stack_dict.pop(patient, None)
+                    break
+
+                stack_dict[patient][patient_state] = (ld_, hd_)
 
         return stack_dict
 
