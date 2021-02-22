@@ -43,7 +43,5 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    mode = 'train_{}'.format(args.kfold)
     model = rb82.NetworkModel(args)
-    #model.train()
-    model.train() if args.phase == 'train' else model.test()
+    model.train() if args.phase == 'train' else model.model_test()

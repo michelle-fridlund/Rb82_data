@@ -126,7 +126,20 @@ class NetworkModel(object):
         # Save model
         self.model.save(model_outname+".h5")
         print("Saved model to disk")
-
+        
+    def model_test(self):
+        stack = self.load_data(self.test_pts)
+        print(stack)
+        return
+        for value in stack.values():
+            for state, pair in value.items():
+                if state == 'UNKNOWN':
+                    print('Patient state for selected pair is unknown, skipping...')
+                    continue
+                (ld, hd) = pair
+                x = ld[-1, :, :, :]
+                print(x)
+                    
     # def train(self,args,LOG=None,MULTIGPU=False):
     def train(self):
 
@@ -136,15 +149,19 @@ class NetworkModel(object):
         # Initialise training
         self.model_train(self.model_outname, 128, 128, 16, 2,
                          self.data_path, self.epoch, self.batch_size, self.lr)
-    # TODO: Implement continue train through loading different initial epoch
+        
+    # TODO: Implement resume training / transfer learning 
 
     # def test(self, args, x=args.image_size,y=dims_inplane,z=stack_of_slices,d=2,LOG=None):
     def test(self):
-        checkpoint_models = glob.glob('checkpoint/{}*.h5'.format(self.model_outname))
-        if not checkpoint_models:
-            print('No pretrained models found')
-            exit(-1)
-        model_name = checkpoint_models[-1]
+        if os.path.exists(f'{self.model_outname}.h5'):
+            model_name = self.model_outname + '.h5'
+        else:
+            checkpoint_models = glob.glob('checkpoint/{}*.h5'.format(self.model_outname))
+            if not checkpoint_models:
+                print('No pretrained models found')
+                exit(-1)
+            model_name = checkpoint_models[-1]
         print(model_name)
         #model = load_model(model_name)
 

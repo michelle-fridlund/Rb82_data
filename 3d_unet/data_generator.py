@@ -89,7 +89,7 @@ class DCMDataLoader(object):
         return x, y
 
     def load_train_data(self, mode):
-        patients = self.summary[mode]
+        patients = self.summary[mode][0] if mode == 'test' else self.summary[mode]
         stack_dict = {}
         # Load and reshape all patient data
         for patient in patients:
