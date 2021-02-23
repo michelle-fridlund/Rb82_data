@@ -145,7 +145,6 @@ class NetworkModel(object):
         # Load train data
         stack = self.load_data(self.test_pts)
         for key, value in stack.items():
-            print(key)
             for state, pair in value.items():
                 if state == 'UNKNOWN':
                     print('Patient state for selected pair is unknown, skipping...')

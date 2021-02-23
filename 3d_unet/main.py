@@ -40,7 +40,7 @@ if __name__ == "__main__":
 
     parser.add_argument('--phase', dest='phase', default='train', help='train or test')
     parser.add_argument('--kfold', dest='kfold', type=int, default='0', help='fold number')
-    parser.add_argument('--max-patients', dest='maxp', type=int, help='maximum number of patient to process')
+    parser.add_argument('--maxp', dest='maxp', type=int, help='maximum number of patient to process')
 
     args = parser.parse_args()
 

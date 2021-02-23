@@ -87,10 +87,15 @@ class DCMDataLoader(object):
         return x, y
 
     def load_train_data(self, mode):
+        print('Loading nifti files...')
+
         patients = self.summary[mode]
         stack_dict = {}
         # Load and reshape all patient data
         for patient in patients:
+            # Print progress
+            print('.', end='', flush=True)
+
             stack_dict[patient] = {}
             ld_data = self.load_nifti('%s/%s/%s' % (self.data_path, self.ld_path, patient))
             hd_data = self.load_nifti('%s/%s/%s' % (self.data_path, self.hd_path, patient))
@@ -121,9 +126,9 @@ class DCMDataLoader(object):
                     print(f'A nifti pair for patient {patient} is missing')
                     continue
 
-                print()  # Blank line
-                print(patient_state)
-                print(key)
+                # print()  # Blank line
+                # print(patient_state)
+                # print(key)
                 # print(lowres.shape)
                 # print(hires.shape)
 
@@ -146,6 +151,8 @@ class DCMDataLoader(object):
 
                 stack_dict[patient][patient_state] = (ld_, hd_)
 
+        print()
+        print('Finished loading nifti files')
         return stack_dict
 
 
