@@ -7,8 +7,6 @@ Upload 3D PET data
 ##############################################################################
 """
 
-import pickle
-from DataAugmentation3D import DataAugmentation3D
 import nibabel as nib
 import numpy as np
 import glob
@@ -24,14 +22,15 @@ class MissingNiftiData(Exception):
 
 class DCMDataLoader(object):
 
-    def __init__(self, args, mode):
+    def __init__(self, args, summary, mode):
+
+        # List of patients (loaded in model)
+        self.summary = summary
+
         # paths to dicoms files
         self.data_path = args.data_path
         self.ld_path = args.ld_path
         self.hd_path = args.hd_path
-
-        # pickle file
-        self.summary = pickle.load(open('%s/data.pickle' % self.data_path, 'rb'))
 
         # image params
         self.image_size = args.image_size
@@ -57,12 +56,8 @@ class DCMDataLoader(object):
             'fill_mode': 'reflect'
         }
 
-        self.augment3D = DataAugmentation3D(**self.augmentation_params)
-
-        self.n_batches = len(self.summary['train']) if 'train' in self.summary else len(self.summary['train_0'])
-        self.n_batches /= self.batch_size
-
     # Create a dict with filename as a key and numpy array as a value
+
     def load_nifti(self, path):
         return {os.path.basename(i): self.nifti2numpy(nib.load(i)) for i in glob.glob("{}/*.nii.gz".format(path), recursive=True)}
 
@@ -74,6 +69,9 @@ class DCMDataLoader(object):
             return None
 
     def augment_data(self, ld_, hd_):
+        from DataAugmentation3D import DataAugmentation3D
+        augment3D = DataAugmentation3D(**self.augmentation_params)
+
         x = np.empty((self.batch_size,) + (self.image_size, self.image_size, self.patch_size)
                      + (self.input_channels,))
         y = np.empty((self.batch_size,) + (self.image_size, self.image_size, self.patch_size)
@@ -84,12 +82,12 @@ class DCMDataLoader(object):
             y[i, ...] = hd_.reshape((self.image_size, self.image_size, self.patch_size)
                                     + (self.output_channels,))
 
-            x, y = self.augment3D.random_transform_batch(x, y)
+            x, y = augment3D.random_transform_batch(x, y)
 
         return x, y
 
     def load_train_data(self, mode):
-        patients = self.summary[mode][0] if mode == 'test' else self.summary[mode]
+        patients = self.summary[mode]
         stack_dict = {}
         # Load and reshape all patient data
         for patient in patients:
@@ -123,9 +121,9 @@ class DCMDataLoader(object):
                     print(f'A nifti pair for patient {patient} is missing')
                     continue
 
-                # print()  # Blank line
-                # print(patient_state)
-                # print(key)
+                print()  # Blank line
+                print(patient_state)
+                print(key)
                 # print(lowres.shape)
                 # print(hires.shape)
 

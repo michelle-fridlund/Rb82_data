@@ -9,8 +9,8 @@ Created on Thu May 24 10:57:19 2018
 from tensorflow.keras.models import Model
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.layers import Conv3D, Conv3DTranspose, Dropout, Input
-from tensorflow.keras.layers import Activation, BatchNormalization, concatenate, add
-from tensorflow.keras import backend as K, regularizers
+from tensorflow.keras.layers import Activation, BatchNormalization, concatenate
+# from tensorflow.keras import backend as K, regularizers
 import os
 
 def conv_block(layer,fsize,dropout,downsample=True):

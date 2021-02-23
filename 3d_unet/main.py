@@ -39,9 +39,10 @@ if __name__ == "__main__":
                         default=True, help='apply data augmentation: true, false')
 
     parser.add_argument('--phase', dest='phase', default='train', help='train or test')
-    parser.add_argument('--kfold', dest='kfold', default='0', help='fold number')
+    parser.add_argument('--kfold', dest='kfold', type=int, default='0', help='fold number')
+    parser.add_argument('--max-patients', dest='maxp', type=int, help='maximum number of patient to process')
 
     args = parser.parse_args()
 
     model = rb82.NetworkModel(args)
-    model.train() if args.phase == 'train' else model.model_test()
+    model.train() if args.phase == 'train' else model.model_predict()
