@@ -80,7 +80,7 @@ def LM_chopper(data_path, new_path):
 def prep_chopper(dir_path):
     l = find_files(dir_path)
     for k, v in l.items():
-        new_path = os.path.join('/homes/michellef/Rb82/data/PET_LMChopper_OCT8', k)
+        new_path = os.path.join('/homes/michellef/my_projects/rb82_data/PET_LMChopper_OCT8', k)
         LM_chopper(v, new_path)
 
 
@@ -94,7 +94,7 @@ def delete_files(original_path):
             for p in ptds:
                 file = os.path.basename(str(p))
                 print(file)
-            # print(ptds[2]) #PLEASE MAKE SURE THE FILES ARE CORRECT FIRST!
+            # print(ptds) #PLEASE MAKE SURE THE FILES ARE CORRECT FIRST!
             # os.remove(ptds[2])
             # os.chdir(str(new_path))
             # os.remove('TempDicomHeader.IMA')
@@ -106,14 +106,14 @@ def copy_files(dir_path, dst):
     my_ptds = {}
     for (dirpath, dirnames, filenames) in os.walk(dir_path):
         dirname = str(Path(dirpath).relative_to(dir_path))
-        if '/REST' in str(dirname):  # can also add STRESS
+        if '/STRESS' in str(dirname):  # can also add STRESS
             new_path = Path(os.path.join(dir_path, dirname))
             ptds = find_LM(new_path, number='')
             # Get simulated LD -->
             # 5p = [0], 10p = [1], 25p = [2], 50p = [3]
             #my_ptds[dirname] = str(ptds[3])
             if len(ptds) == 4:
-                my_ptds[dirname] = str(ptds[0])
+                my_ptds[dirname] = str(ptds[1])
             else:
                 print(f'{dirname} has {len(ptds)} files!!!')
                 pass
@@ -139,9 +139,9 @@ if __name__ == "__main__":
     mode = str(args.mode)
 
     # Simulated data path
-    dir_path = '/homes/michellef/my_projects/Rb82/data/PET_LMChopper_OCT8/2020'
+    dir_path = '/homes/michellef/my_projects/rb82_data/PET_LMChopper_OCT8/2018'
     # Temporary data path
-    dst = '/homes/michellef/my_projects/Rb82/data/PET_LMChopper_OCT8/2020_5p'
+    dst = '/homes/michellef/my_projects/rb82_data/PET_LMChopper_OCT8/2018_10p'
 
     # ALSO USE THIS FOR DELETING ANY GIVEN DOSE LEVEL
     if mode == 'delete':
