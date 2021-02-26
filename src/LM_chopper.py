@@ -91,10 +91,10 @@ def delete_files(original_path):
                 or '/STRESS' in str(dirname) and 'IMA' not in str(dirname) and 'CT' not in str(dirname):
             new_path = Path(os.path.join(original_path, dirname))
             ptds = find_LM(new_path, number='')
-            for p in ptds:
-                file = os.path.basename(str(p))
-                print(file)
-            # print(ptds[2]) #PLEASE MAKE SURE THE FILES ARE CORRECT FIRST!
+            # for p in ptds:
+            #     file = os.path.basename(str(p))
+            #     print(file)
+            print(ptds[2]) #PLEASE MAKE SURE THE FILES ARE CORRECT FIRST!
             # os.remove(ptds[2])
             # os.chdir(str(new_path))
             # os.remove('TempDicomHeader.IMA')
@@ -139,9 +139,9 @@ if __name__ == "__main__":
     mode = str(args.mode)
 
     # Simulated data path
-    dir_path = '/homes/michellef/my_projects/Rb82/data/PET_LMChopper_OCT8/2020'
+    dir_path = '/homes/michellef/my_projects/Rb82/data/PET_LMChopper_OCT8/2016'
     # Temporary data path
-    dst = '/homes/michellef/my_projects/Rb82/data/PET_LMChopper_OCT8/2020_5p'
+    dst = '/homes/michellef/my_projects/Rb82/data/PET_LMChopper_OCT8/2016_5p'
 
     # ALSO USE THIS FOR DELETING ANY GIVEN DOSE LEVEL
     if mode == 'delete':
