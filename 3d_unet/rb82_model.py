@@ -7,7 +7,6 @@ michellef
 ##############################################################################
 """
 
-# import numpy as np
 import data_generator as data
 import matplotlib as mpl
 import numpy as np
@@ -16,6 +15,8 @@ import pickle
 import os
 import glob
 import warnings
+#import h5py
+from pathlib import Path
 warnings.filterwarnings('ignore')
 mpl.use('Agg')
 TF_CPP_MIN_LOG_LEVEL = 2
@@ -144,50 +145,54 @@ class NetworkModel(object):
                 print('No pretrained models found')
                 exit(-1)
             model_name = checkpoint_models[-1]
-            print(model_name)
-            return model_name
+        return model_name
 
-    def model_predict(self):
-        from tensorflow.keras.models import load_model
+    def predict(self):
+        # from tensorflow.keras.models import load_model
 
-        # Load pretrained model
-        model_name = self.get_model
-        model = load_model(model_name)
-
+        # # Load pretrained model
+        # model_name = self.get_model()
+        # print(f'!LOADING MODEL: {model_name}!')
+        # model = load_model(model_name)
+        
         # Load test data
         stack = self.load_data(self.test_pts)
         for key, value in stack.items():
-            img = self.load_nifti('%s/%s/%s' % (self.data_path, self.ld_path, key))
+            # img = self.load_nifti('%s/%s/%s' % (self.data_path, self.ld_path, key))
             for state, pair in value.items():
                 if state == 'UNKNOWN':
                     print('Patient state for selected pair is unknown, skipping...')
                     continue
                 (ld, hd) = pair
-                ld_data = ld[-1, :, :, :]
-
-                predicted = np.empty((111, 128, 128))
-                x = 128
-                y = 128
-                z = 16
-                d = 2
+                # ld_data = ld[-1, :, :, :, :]
+                ld_data = ld.reshape(128, 128 , -1, 2)
+                ld_data = ld_data[-1, ...]
+                print(ld.shape)
+                # #Inference            
+                # predicted = np.empty((111, 128, 128))
+                # x = 128
+                # y = 128
+                # z = 16
+                # d = 2
                 
-                for z_index in range(int(z/2), 111-int(z/2)):
-                    predicted_stack = model.predict(ld_data[:, :, z_index-int(z/2):z_index+int(z/2), :].reshape(1, x, y, z, d))
-                    if z_index == int(z/2):
-                        for ind in range(int(z/2)):
-                            predicted[ind, :, :] = predicted_stack[0, :, :, ind].reshape(128, 128)
-                    if z_index == 111-int(z/2)-1:
-                        for ind in range(int(z/2)):
-                            predicted[z_index+ind, :, :] = predicted_stack[0, :, :, int(z/2)+ind].reshape(128, 128)
-                    predicted[z_index, :, :] = predicted_stack[0, :, :, int(z/2)].reshape(128, 128)
-                predicted_full = predicted
-                predicted_full += np.swapaxes(np.swapaxes(ld_data[:, :, :, 0], 2, 1), 1, 0)
-                #Save NIFTI
-                predicted_image = nib.Nifti1Image(predicted_full, img.affine, img.header)
+                # for z_index in range(int(z/2), 111-int(z/2)):
+                #     predicted_stack = model.predict(ld_data[:, :, z_index-int(z/2):z_index+int(z/2), :].reshape(1, x, y, z, d))
+                #     if z_index == int(z/2):
+                #         for ind in range(int(z/2)):
+                #             predicted[ind, :, :] = predicted_stack[0, :, :, ind].reshape(128, 128)
+                #     if z_index == 111-int(z/2)-1:
+                #         for ind in range(int(z/2)):
+                #             predicted[z_index+ind, :, :] = predicted_stack[0, :, :, int(z/2)+ind].reshape(128, 128)
+                #     predicted[z_index, :, :] = predicted_stack[0, :, :, int(z/2)].reshape(128, 128)
+                # predicted_full = predicted
+                # predicted_full += np.swapaxes(np.swapaxes(ld_data[:, :, :, 0], 2, 1), 1, 0)
                 
-                self.mkdir_(f'{self.data_path}/{self.model_outname}_predicted')
-                save_dir = os.path.join(self.data_path, self.model_outname + '_predicted')
-                nib.save(predicted_image, f'{save_dir}/{key}/{key}_predicted.nii.gz')
+                # #Save NIFTI
+                # predicted_image = nib.Nifti1Image(predicted_full, img.affine, img.header)
+                
+                # self.mkdir_(f'{self.data_path}/{self.model_outname}_predicted')
+                # save_dir = os.path.join(self.data_path, self.model_outname + '_predicted')
+                # nib.save(predicted_image, f'{save_dir}/{key}/{key}_predicted.nii.gz')
 
     # def train(self,args,LOG=None,MULTIGPU=False):
     def train(self):

@@ -134,15 +134,14 @@ class DCMDataLoader(object):
 
                 ld_ = lowres.reshape(128, 128, 111, 1)
                 hd_ = hires.reshape(128, 128, 111, 1)
+                
+                # Determine slice
+                z = np.random.randint(8, 111-8, 1)[0]
+                ld_ = ld_[:, :, z-8:z+8, :]
+                hd_ = hd_[:, :, z-8:z+8, :]
 
-                if self.phase == 'train':
-                    # Determine slice
-                    z = np.random.randint(8, 111-8, 1)[0]
-                    ld_ = ld_[:, :, z-8:z+8, :]
-                    hd_ = hd_[:, :, z-8:z+8, :]
-
-                    if self.augment:
-                        ld_, hd_ = self.augment_data(ld_, hd_)
+                if self.phase == 'train' and self.augment:
+                    ld_, hd_ = self.augment_data(ld_, hd_)
 
                 if stack_dict.get(patient, {}).get(patient_state):
                     print(f'There are more nifti files for patient {patient} than needed. Skipping this patient...')
