@@ -68,22 +68,11 @@ class DCMDataLoader(object):
         except:
             return None
 
-    def augment_data(self, ld_, hd_):
+    def augment_data(self, x, y):
         from DataAugmentation3D import DataAugmentation3D
+
         augment3D = DataAugmentation3D(**self.augmentation_params)
-
-        x = np.empty((self.batch_size,) + (self.image_size, self.image_size, self.patch_size)
-                     + (self.input_channels,))
-        y = np.empty((self.batch_size,) + (self.image_size, self.image_size, self.patch_size)
-                     + (self.output_channels,))
-
-        for i in range(self.batch_size):
-            x[i, ...] = ld_
-            y[i, ...] = hd_.reshape((self.image_size, self.image_size, self.patch_size)
-                                    + (self.output_channels,))
-
-            x, y = augment3D.random_transform_batch(x, y)
-
+        x, y = augment3D.random_transform_batch(x, y)
         return x, y
 
     def load_train_data(self, mode):
@@ -140,8 +129,18 @@ class DCMDataLoader(object):
                 ld_ = ld_[:, :, z-8:z+8, :]
                 hd_ = hd_[:, :, z-8:z+8, :]
 
-                if self.phase == 'train' and self.augment:
-                    ld_, hd_ = self.augment_data(ld_, hd_)
+                x = np.empty((self.batch_size,) + (self.image_size, self.image_size, self.patch_size)
+                             + (self.input_channels,))
+                y = np.empty((self.batch_size,) + (self.image_size, self.image_size, self.patch_size)
+                             + (self.output_channels,))
+
+                for i in range(self.batch_size):
+                    x[i, ...] = ld_
+                    y[i, ...] = hd_.reshape((self.image_size, self.image_size, self.patch_size)
+                                            + (self.output_channels,))
+
+                    if self.phase == 'train' and self.augment:
+                        x, y = self.augment_data(x, y)
 
                 if stack_dict.get(patient, {}).get(patient_state):
                     print(f'There are more nifti files for patient {patient} than needed. Skipping this patient...')
