@@ -59,7 +59,7 @@ class DCMDataLoader(object):
     # Create a dict with filename as a key and numpy array as a value
 
     def load_nifti(self, path):
-        return {os.path.basename(i): self.nifti2numpy(nib.load(i)) for i in glob.glob("{}/*.nii.gz".format(path), recursive=True)}
+        return {os.path.basename(i): nib.load(i) for i in glob.glob("{}/*.nii.gz".format(path), recursive=True)}
 
     # Transform DICOMS into numpy
     def nifti2numpy(self, nifti):
@@ -86,20 +86,25 @@ class DCMDataLoader(object):
             print('.', end='', flush=True)
 
             stack_dict[patient] = {}
-            ld_data = self.load_nifti('%s/%s/%s' % (self.data_path, self.ld_path, patient))
-            hd_data = self.load_nifti('%s/%s/%s' % (self.data_path, self.hd_path, patient))
+            ld_data_raw = self.load_nifti('%s/%s/%s' % (self.data_path, self.ld_path, patient))
+            hd_data_raw = self.load_nifti('%s/%s/%s' % (self.data_path, self.hd_path, patient))
 
             try:
-                if not ld_data or not hd_data:
+                if not ld_data_raw or not hd_data_raw:
                     raise MissingNiftiData()
             except MissingNiftiData:
                 print(f'No nifti files for patient {patient} found')
                 continue
 
+            ld_data = {key: {'nifti': value, 'numpy': self.nifti2numpy(value)} for key, value in ld_data_raw.items()}
+            hd_data = {key: {'nifti': value, 'numpy': self.nifti2numpy(value)} for key, value in hd_data_raw.items()}
+
             for key, value in ld_data.items():
                 # Find low and high dose pairs by filenames
-                lowres = value
-                hires = hd_data.get(key, None)
+                lowres_data = value.get('nifti', None)
+                lowres_numpy = value.get('numpy', None)
+                hires_data = hd_data.get(key, {}).get('nifti', None)
+                hires_numpy = hd_data.get(key, {}).get('numpy', None)
 
                 # rest or stress
                 patient_state = 'UNKNOWN'
@@ -109,7 +114,7 @@ class DCMDataLoader(object):
                     patient_state = 'STRESS'
 
                 try:
-                    if not isinstance(hires, np.ndarray) or not isinstance(lowres, np.ndarray):
+                    if not isinstance(hires_numpy, np.ndarray) or not isinstance(lowres_numpy, np.ndarray):
                         raise MissingNiftiData()
                 except MissingNiftiData:
                     print(f'A nifti pair for patient {patient} is missing')
@@ -118,12 +123,12 @@ class DCMDataLoader(object):
                 # print()  # Blank line
                 # print(patient_state)
                 # print(key)
-                # print(lowres.shape)
-                # print(hires.shape)
+                # print(lowres_numpy.shape)
+                # print(hires_numpy.shape)
 
-                ld_ = lowres.reshape(128, 128, 111, 1)
-                hd_ = hires.reshape(128, 128, 111, 1)
-                
+                ld_ = lowres_numpy.reshape(128, 128, 111, 1)
+                hd_ = hires_numpy.reshape(128, 128, 111, 1)
+
                 # Determine slice
                 z = np.random.randint(8, 111-8, 1)[0]
                 ld_ = ld_[:, :, z-8:z+8, :]
@@ -147,7 +152,7 @@ class DCMDataLoader(object):
                     stack_dict.pop(patient, None)
                     break
 
-                stack_dict[patient][patient_state] = (ld_, hd_)
+                stack_dict[patient][patient_state] = ({'numpy': x, 'nifti': lowres_data}, {'numpy': y, 'nifti': hires_data})
 
         print()
         print('Finished loading nifti files')

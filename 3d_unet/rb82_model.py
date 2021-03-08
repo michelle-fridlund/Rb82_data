@@ -10,13 +10,11 @@ michellef
 import data_generator as data
 import matplotlib as mpl
 import numpy as np
-import nibabel as nib
 import pickle
 import os
 import glob
 import warnings
 #import h5py
-from pathlib import Path
 warnings.filterwarnings('ignore')
 mpl.use('Agg')
 TF_CPP_MIN_LOG_LEVEL = 2
@@ -62,9 +60,6 @@ class NetworkModel(object):
         if not os.path.exists(output):
             os.makedirs(output)
 
-    def load_nifti(self, path):
-        return [nib.load(i) for i in glob.glob("{}/*.nii.gz".format(path), recursive=True)]
-
     # Load numpy arrays
     def load_data(self, mode):
         args = self.args
@@ -78,7 +73,9 @@ class NetworkModel(object):
                 if state == 'UNKNOWN':
                     print('Patient state for selected pair is unknown, skipping...')
                     continue
-                (ld, hd) = pair
+                (ld_dict, hd_dict) = pair
+                ld = ld_dict['numpy']
+                hd = hd_dict['numpy']
                 x = ld[-1, :, :, :]
                 y = hd[-1, :, :, :]
                 yield x, y
@@ -158,17 +155,23 @@ class NetworkModel(object):
         # Load test data
         stack = self.load_data(self.test_pts)
         for key, value in stack.items():
-            # img = self.load_nifti('%s/%s/%s' % (self.data_path, self.ld_path, key))
             for state, pair in value.items():
                 if state == 'UNKNOWN':
                     print('Patient state for selected pair is unknown, skipping...')
                     continue
-                (ld, hd) = pair
-                # ld_data = ld[-1, :, :, :, :]
-                ld_data = ld.reshape(128, 128 , -1, 2)
-                ld_data = ld_data[-1, ...]
-                print(ld.shape)
-                # #Inference            
+
+                (ld_dict, hd_dict) = pair
+                ld = ld_dict['numpy']
+                ld_raw = ld_dict['nifti']
+
+                print(type(ld))
+                print(type(ld_raw))
+
+                # # ld_data = ld[-1, :, :, :]
+                # ld_data = ld.reshape(1, 128, 128, -1, 2)
+                # # print(ld_data.shape)
+                # print(f'Predicting patient {key}...')
+                # #Inference
                 # predicted = np.empty((111, 128, 128))
                 # x = 128
                 # y = 128
