@@ -7,13 +7,14 @@ michellef
 ##############################################################################
 """
 
-# import numpy as np
 import data_generator as data
 import matplotlib as mpl
+import numpy as np
 import pickle
 import os
 import glob
 import warnings
+import nibabel as nib
 warnings.filterwarnings('ignore')
 mpl.use('Agg')
 TF_CPP_MIN_LOG_LEVEL = 2
@@ -25,6 +26,7 @@ class NetworkModel(object):
         self.args = args
         # paths to dicoms files
         self.data_path = args.data_path
+        self.ld_path = args.ld_path
         # pickle file
         self.summary = pickle.load(open('%s/data.pickle' % self.data_path, 'rb'))
 
@@ -71,7 +73,9 @@ class NetworkModel(object):
                 if state == 'UNKNOWN':
                     print('Patient state for selected pair is unknown, skipping...')
                     continue
-                (ld, hd) = pair
+                (ld_dict, hd_dict) = pair
+                ld = ld_dict['numpy']
+                hd = hd_dict['numpy']
                 x = ld[-1, :, :, :]
                 y = hd[-1, :, :, :]
                 yield x, y
@@ -138,43 +142,57 @@ class NetworkModel(object):
                 print('No pretrained models found')
                 exit(-1)
             model_name = checkpoint_models[-1]
-            return model_name
+        return model_name
 
-    def model_predict(self):
-        #from tensorflow.keras.models import load_model
-        # Load train data
+    def predict(self):
+        from tensorflow.keras.models import load_model
+
+        # Load pretrained model
+        model_name = self.get_model()
+        print(f'!LOADING MODEL: {model_name}!')
+        model = load_model(model_name)
+
+        # Load test data
         stack = self.load_data(self.test_pts)
         for key, value in stack.items():
             for state, pair in value.items():
                 if state == 'UNKNOWN':
                     print('Patient state for selected pair is unknown, skipping...')
                     continue
-                (ld, hd) = pair
-        # #         x = ld[-1, :, :, :]
 
-        # # #Load pretrained model
-        # model_name = self.get_model
-        # model = load_model(model_name)
+                (ld_dict, hd_dict) = pair
+                ld = ld_dict['numpy']
+                ld_raw = ld_dict['nifti']  # corresponding nifti file
 
-        # predicted = np.empty((111, 128, 128))
-        # x = 128
-        # y = 128
-        # z = 16
-        # d = 2
+                # print(type(ld))
+                # print(type(ld_raw))
 
-        # for z_index in range(int(z/2), 111-int(z/2)):
-        #     predicted_stack = model.predict(x[:, :, z_index-int(z/2):z_index+int(z/2), :].reshape(1, x, y, z, d))
-        #     if z_index == int(z/2):
-        #         for ind in range(int(z/2)):
-        #             predicted[ind, :, :] = predicted_stack[0, :, :, ind].reshape(128, 128)
-        #     if z_index == 111-int(z/2)-1:
-        #         for ind in range(int(z/2)):
-        #             predicted[z_index+ind, :, :] = predicted_stack[0, :, :, int(z/2)+ind].reshape(128, 128)
-        #     predicted[z_index, :, :] = predicted_stack[0, :, :, int(z/2)].reshape(128, 128)
-        # predicted_full = predicted
-        # predicted_full += np.swapaxes(np.swapaxes(x[:, :, :, 0], 2, 1), 1, 0)
+                img = ld_raw
+                ld_data = ld.reshape(1, 128, 128, -1, 2)
 
-    # def train(self,args,LOG=None,MULTIGPU=False):
+                # Inference
+                print(f'Predicting patient {key}...')
+                predicted = np.empty((111, 128, 128))
+                z = 16
+
+                for z_index in range(int(z/2), 111-int(z/2)):
+                    predicted_stack = model.predict(ld_data)
+                    if z_index == int(z/2):
+                        for ind in range(int(z/2)):
+                            predicted[ind, :, :] = predicted_stack[0, :, :, ind].reshape(128, 128)
+                    if z_index == 111-int(z/2)-1:
+                        for ind in range(int(z/2)):
+                            predicted[z_index+ind, :, :] = predicted_stack[0, :, :, int(z/2)+ind].reshape(128, 128)
+                    predicted[z_index, :, :] = predicted_stack[0, :, :, int(z/2)].reshape(128, 128)
+                predicted_full = predicted
+
+                # Save NIFTI
+                predicted_image = nib.Nifti1Image(predicted_full, img.affine, img.header)
+                save_dir = f'{self.data_path}/{self.model_outname}_predicted/{key}'
+                self.mkdir_(save_dir)
+                nib.save(predicted_image, f'{save_dir}/{key}_{state.lower()}_predicted.nii.gz')
+        print('Done.')
+
     def train(self):
 
         if os.path.exists(self.model_outname+".h5"):
@@ -184,5 +202,4 @@ class NetworkModel(object):
         self.model_train(self.model_outname, 128, 128, 16, 2, self.epoch, self.epoch_step, self.batch_size, self.lr)
 
     # TODO: Implement resume training / transfer learning
-    # def test(self, args, x=args.image_size,y=dims_inplane,z=stack_of_slices,d=2,LOG=None):
-        # model_predict(model,model_name,x,y,z,d,LOG=LOG,orientation='axial')
+

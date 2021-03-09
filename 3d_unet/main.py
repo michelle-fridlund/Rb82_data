@@ -45,4 +45,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     model = rb82.NetworkModel(args)
-    model.train() if args.phase == 'train' else model.model_predict()
+    model.train() if args.phase == 'train' else model.predict()

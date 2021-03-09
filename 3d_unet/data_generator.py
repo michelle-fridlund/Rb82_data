@@ -59,7 +59,7 @@ class DCMDataLoader(object):
     # Create a dict with filename as a key and numpy array as a value
 
     def load_nifti(self, path):
-        return {os.path.basename(i): self.nifti2numpy(nib.load(i)) for i in glob.glob("{}/*.nii.gz".format(path), recursive=True)}
+        return {os.path.basename(i): nib.load(i) for i in glob.glob("{}/*.nii.gz".format(path), recursive=True)}
 
     # Transform DICOMS into numpy
     def nifti2numpy(self, nifti):
@@ -68,22 +68,11 @@ class DCMDataLoader(object):
         except:
             return None
 
-    def augment_data(self, ld_, hd_):
+    def augment_data(self, x, y):
         from DataAugmentation3D import DataAugmentation3D
+
         augment3D = DataAugmentation3D(**self.augmentation_params)
-
-        x = np.empty((self.batch_size,) + (self.image_size, self.image_size, self.patch_size)
-                     + (self.input_channels,))
-        y = np.empty((self.batch_size,) + (self.image_size, self.image_size, self.patch_size)
-                     + (self.output_channels,))
-
-        for i in range(self.batch_size):
-            x[i, ...] = ld_
-            y[i, ...] = hd_.reshape((self.image_size, self.image_size, self.patch_size)
-                                    + (self.output_channels,))
-
-            x, y = augment3D.random_transform_batch(x, y)
-
+        x, y = augment3D.random_transform_batch(x, y)
         return x, y
 
     def load_train_data(self, mode):
@@ -97,20 +86,25 @@ class DCMDataLoader(object):
             print('.', end='', flush=True)
 
             stack_dict[patient] = {}
-            ld_data = self.load_nifti('%s/%s/%s' % (self.data_path, self.ld_path, patient))
-            hd_data = self.load_nifti('%s/%s/%s' % (self.data_path, self.hd_path, patient))
+            ld_data_raw = self.load_nifti('%s/%s/%s' % (self.data_path, self.ld_path, patient))
+            hd_data_raw = self.load_nifti('%s/%s/%s' % (self.data_path, self.hd_path, patient))
 
             try:
-                if not ld_data or not hd_data:
+                if not ld_data_raw or not hd_data_raw:
                     raise MissingNiftiData()
             except MissingNiftiData:
                 print(f'No nifti files for patient {patient} found')
                 continue
 
+            ld_data = {key: {'nifti': value, 'numpy': self.nifti2numpy(value)} for key, value in ld_data_raw.items()}
+            hd_data = {key: {'nifti': value, 'numpy': self.nifti2numpy(value)} for key, value in hd_data_raw.items()}
+
             for key, value in ld_data.items():
                 # Find low and high dose pairs by filenames
-                lowres = value
-                hires = hd_data.get(key, None)
+                lowres_data = value.get('nifti', None)
+                lowres_numpy = value.get('numpy', None)
+                hires_data = hd_data.get(key, {}).get('nifti', None)
+                hires_numpy = hd_data.get(key, {}).get('numpy', None)
 
                 # rest or stress
                 patient_state = 'UNKNOWN'
@@ -120,7 +114,7 @@ class DCMDataLoader(object):
                     patient_state = 'STRESS'
 
                 try:
-                    if not isinstance(hires, np.ndarray) or not isinstance(lowres, np.ndarray):
+                    if not isinstance(hires_numpy, np.ndarray) or not isinstance(lowres_numpy, np.ndarray):
                         raise MissingNiftiData()
                 except MissingNiftiData:
                     print(f'A nifti pair for patient {patient} is missing')
@@ -129,27 +123,36 @@ class DCMDataLoader(object):
                 # print()  # Blank line
                 # print(patient_state)
                 # print(key)
-                # print(lowres.shape)
-                # print(hires.shape)
+                # print(lowres_numpy.shape)
+                # print(hires_numpy.shape)
 
-                ld_ = lowres.reshape(128, 128, 111, 1)
-                hd_ = hires.reshape(128, 128, 111, 1)
+                ld_ = lowres_numpy.reshape(128, 128, 111, 1)
+                hd_ = hires_numpy.reshape(128, 128, 111, 1)
 
-                if self.phase == 'train':
-                    # Determine slice
-                    z = np.random.randint(8, 111-8, 1)[0]
-                    ld_ = ld_[:, :, z-8:z+8, :]
-                    hd_ = hd_[:, :, z-8:z+8, :]
+                # Determine slice
+                z = np.random.randint(8, 111-8, 1)[0]
+                ld_ = ld_[:, :, z-8:z+8, :]
+                hd_ = hd_[:, :, z-8:z+8, :]
 
-                    if self.augment:
-                        ld_, hd_ = self.augment_data(ld_, hd_)
+                x = np.empty((self.batch_size,) + (self.image_size, self.image_size, self.patch_size)
+                             + (self.input_channels,))
+                y = np.empty((self.batch_size,) + (self.image_size, self.image_size, self.patch_size)
+                             + (self.output_channels,))
+
+                for i in range(self.batch_size):
+                    x[i, ...] = ld_
+                    y[i, ...] = hd_.reshape((self.image_size, self.image_size, self.patch_size)
+                                            + (self.output_channels,))
+
+                    if self.phase == 'train' and self.augment:
+                        x, y = self.augment_data(x, y)
 
                 if stack_dict.get(patient, {}).get(patient_state):
                     print(f'There are more nifti files for patient {patient} than needed. Skipping this patient...')
                     stack_dict.pop(patient, None)
                     break
 
-                stack_dict[patient][patient_state] = (ld_, hd_)
+                stack_dict[patient][patient_state] = ({'numpy': x, 'nifti': lowres_data}, {'numpy': y, 'nifti': hires_data})
 
         print()
         print('Finished loading nifti files')

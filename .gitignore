@@ -3,3 +3,4 @@ tmp_params.txt
 __pycache__
 /3d_unet/checkpoint
 .spyproject/
+*.h5
