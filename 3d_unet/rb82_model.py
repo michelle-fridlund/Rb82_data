@@ -188,10 +188,9 @@ class NetworkModel(object):
 
                 # Save NIFTI
                 predicted_image = nib.Nifti1Image(predicted_full, img.affine, img.header)
-
                 save_dir = f'{self.data_path}/{self.model_outname}_predicted/{key}'
                 self.mkdir_(save_dir)
-                nib.save(predicted_image, f'{save_dir}/{key}_predicted.nii.gz')
+                nib.save(predicted_image, f'{save_dir}/{key}_{state.lower()}_predicted.nii.gz')
         print('Done.')
 
     def train(self):
