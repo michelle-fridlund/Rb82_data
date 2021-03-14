@@ -91,33 +91,34 @@ def delete_files(original_path):
                 or '/STRESS' in str(dirname) and 'IMA' not in str(dirname) and 'CT' not in str(dirname):
             new_path = Path(os.path.join(original_path, dirname))
             ptds = find_LM(new_path, number='')
+            # print(ptds[2]) #PLEASE MAKE SURE THE FILES ARE CORRECT FIRST!
+            # os.remove(ptds[2])
             for p in ptds:
                 file = os.path.basename(str(p))
                 print(file)
-            # print(ptds) #PLEASE MAKE SURE THE FILES ARE CORRECT FIRST!
-            # os.remove(ptds[2])
             # os.chdir(str(new_path))
             # os.remove('TempDicomHeader.IMA')
 
 # Copy selected low dose into previously structured/copied folder
 
-
+#TODO: find paths in a separate function, map find LM to values
 def copy_files(dir_path, dst):
     my_ptds = {}
     for (dirpath, dirnames, filenames) in os.walk(dir_path):
         dirname = str(Path(dirpath).relative_to(dir_path))
-        if '/STRESS' in str(dirname):  # can also add STRESS
+        if '/REST' in str(dirname) and 'IMA' not in str(dirname) and 'CT' not in str(dirname) \
+                or '/STRESS' in str(dirname) and 'IMA' not in str(dirname) and 'CT' not in str(dirname):
             new_path = Path(os.path.join(dir_path, dirname))
             ptds = find_LM(new_path, number='')
             # Get simulated LD -->
             # 5p = [0], 10p = [1], 25p = [2], 50p = [3]
             #my_ptds[dirname] = str(ptds[3])
             if len(ptds) == 4:
-                my_ptds[dirname] = str(ptds[1])
+                my_ptds[dirname] = str(ptds[2])
             else:
                 print(f'{dirname} has {len(ptds)} files!!!')
                 pass
-    # print(my_ptds)
+    # print(my_ptds.keys())
     with Bar('Loading LISTMODE:', suffix='%(percent)d%%') as bar:
         for k, v in my_ptds.items():  # Add progress bar here
             save_path = os.path.join(dst, k)
@@ -139,9 +140,9 @@ if __name__ == "__main__":
     mode = str(args.mode)
 
     # Simulated data path
-    dir_path = '/homes/michellef/my_projects/rb82_data/PET_LMChopper_OCT8/2018'
+    dir_path = '/homes/michellef/my_projects/rb82_data/PET_LMChopper_OCT8/2019'
     # Temporary data path
-    dst = '/homes/michellef/my_projects/rb82_data/PET_LMChopper_OCT8/2018_10p'
+    dst = '/homes/michellef/my_projects/rb82_data/PET_LMChopper_OCT8/2019_25p'
 
     # ALSO USE THIS FOR DELETING ANY GIVEN DOSE LEVEL
     if mode == 'delete':
