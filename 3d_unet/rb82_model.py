@@ -68,6 +68,7 @@ class NetworkModel(object):
 
     # Data Generator for tensorfow
     def yield_data(self, stack):
+        import tensorflow as tf
         for value in stack.values():
             for state, pair in value.items():
                 if state == 'UNKNOWN':
@@ -78,6 +79,8 @@ class NetworkModel(object):
                 hd = hd_dict['numpy']
                 x = ld[-1, :, :, :]
                 y = hd[-1, :, :, :]
+                x = tf.cast(x, tf.float64)
+                y = tf.cast(y, tf.float64)
                 yield x, y
 
     def generator_train(self):
@@ -92,18 +95,18 @@ class NetworkModel(object):
                     lr, verbose=1, train_pts=None, validate_pts=None, initial_epoch=0,
                     initial_model=None, MULTIGPU=False, loss="mae"):
 
-        import net_v1 as net
+        import net_v2 as net
         import tensorflow as tf
         from tensorflow.keras.callbacks import ModelCheckpoint, TensorBoard
 
         # Generators
         data_train_gen = tf.data.Dataset.from_generator(self.generator_train,
                                                         output_types=(
-                                                            tf.float32, tf.float32),
+                                                            tf.float64, tf.float64),
                                                         output_shapes=(tf.TensorShape((128, 128, 16, 2)), tf.TensorShape((128, 128, 16, 1))))
         data_valid_gen = tf.data.Dataset.from_generator(self.generator_validate,
                                                         output_types=(
-                                                            tf.float32, tf.float32),
+                                                            tf.float64, tf.float64),
                                                         output_shapes=(tf.TensorShape((128, 128, 16, 2)), tf.TensorShape((128, 128, 16, 1))))
 
         data_valid_gen = data_valid_gen.repeat().batch(batch_size)
@@ -123,7 +126,7 @@ class NetworkModel(object):
         self.model.fit(data_train_gen,
                        steps_per_epoch=epoch_step,
                        validation_data=data_valid_gen,
-                       validation_steps=100,
+                       validation_steps=0,
                        epochs=epoch,
                        verbose=1,
                        callbacks=callbacks_list,
@@ -202,4 +205,3 @@ class NetworkModel(object):
         self.model_train(self.model_outname, 128, 128, 16, 2, self.epoch, self.epoch_step, self.batch_size, self.lr)
 
     # TODO: Implement resume training / transfer learning
-

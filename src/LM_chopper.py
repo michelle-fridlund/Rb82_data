@@ -29,9 +29,8 @@ def get_name(string, **name_):
     else:
         return (re.search('^(.*?)\/', string)).group(1)
 
+
 # Return the second .ptd file
-
-
 def find_LM(pt, **name_):
     p = Path(pt)
     ptds = []
@@ -45,6 +44,7 @@ def find_LM(pt, **name_):
     else:  # Custom
         return ptds
 
+
 # Find paths
 def get_paths(dir_path):
     paths = []
@@ -56,6 +56,7 @@ def get_paths(dir_path):
             paths.append(new_path)
     return paths
 
+
 def find_files(dir_path):
     LM_list = {}
     paths = get_paths(dir_path)
@@ -65,9 +66,8 @@ def find_files(dir_path):
         LM_list[name] = str(ptds)
     return LM_list
 
+
 # Prepare .bat executables for running LM chopper from petrecon
-
-
 def LM_chopper(data_path, new_path):
     name = get_name(data_path, regex='path')
     my_dir = name.replace("/", "\\")
@@ -95,7 +95,8 @@ def delete_files(_path):
         for p in ptds:
             file = os.path.basename(str(p))
             print(file)
-        # print(ptds) #PLEASE MAKE SURE THE FILES ARE CORRECT FIRST!
+
+        # print(ptds) # PLEASE MAKE SURE THE FILES ARE CORRECT FIRST!
         # os.remove(ptds[2])
         # os.chdir(str(new_path))
         # os.remove('TempDicomHeader.IMA')
@@ -113,20 +114,21 @@ def copy_files(dir_path, dst):
             ptds = find_LM(new_path, number='')
             # Get simulated LD -->
             # 5p = [0], 10p = [1], 25p = [2], 50p = [3]
-            #my_ptds[dirname] = str(ptds[3])
+            # my_ptds[dirname] = str(ptds[3])
             if len(ptds) == 4:
-                my_ptds[dirname] = str(ptds[1])
+                my_ptds[dirname] = str(ptds[2])
             else:
                 print(f'{dirname} has {len(ptds)} files!!!')
                 pass
-    print(my_ptds)
-    # with Bar('Loading LISTMODE:', suffix='%(percent)d%%') as bar:
-    #     for k, v in my_ptds.items():  # Add progress bar here
-    #         save_path = os.path.join(dst, k)
-    #         create_dir(save_path)
-    #         copyfile(v, os.path.join(save_path, os.path.basename(v)))
-    #         bar.next()
-    # print('Done!!!')
+
+   # print(my_ptds.keys())
+   with Bar('Loading LISTMODE:', suffix='%(percent)d%%') as bar:
+        for k, v in my_ptds.items():  # Add progress bar here
+            save_path = os.path.join(dst, k)
+            create_dir(save_path)
+            copyfile(v, os.path.join(save_path, os.path.basename(v)))
+            bar.next()
+    print('Done!!!')
 
 
 if __name__ == "__main__":
@@ -139,18 +141,23 @@ if __name__ == "__main__":
     # Read arguments from the command line
     args = parser.parse_args()
     mode = str(args.mode)
+    
+    # TODO: Use relative paths
+    # TODO: Read relative path from script arguments using an argument parser
 
     # Simulated data path
-    dir_path = '/homes/michellef/my_projects/rb82_data/PET_LMChopper_OCT8/2017'
+    dir_path = '/homes/michellef/my_projects/rb82_data/PET_LMChopper_OCT8/2019'
     # Temporary data path
-    dst = '/homes/michellef/my_projects/rb82_data/PET_LMChopper_OCT8/2017_25p'
+    dst = '/homes/michellef/my_projects/rb82_data/PET_LMChopper_OCT8/2019_25p'
 
-    # ALSO USE THIS FOR DELETING ANY GIVEN DOSE LEVEL
-    if mode == 'delete':
+   # ALSO USE THIS FOR DELETING ANY GIVEN DOSE LEVEL
+   if mode == 'delete':
         delete_files(dst)  # Delete original LM file
     # One at a time
     elif mode == 'copy':
         copy_files(dir_path, dst)
     # Use original listmode data path here
     else:
+        # TODO: Use relative path
+        # TODO: Read path from argument (maybe?)
         prep_chopper('/homes/michellef/my_projects/rb82_data/PET_OCT8_Anonymous_JSReconReady/')

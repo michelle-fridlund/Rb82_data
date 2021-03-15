@@ -29,7 +29,7 @@ if __name__ == "__main__":
 
     # Network training arguments
     parser.add_argument('--model_name', dest='model_name', default='Rb82_denoise', help='model name')
-    parser.add_argument('--learning_rate', '-l', dest='lr', type=float, default=0.0001, help='learning rate')
+    parser.add_argument('--learning_rate', '-l', dest='lr', type=float, default=0.00001, help='learning rate')
     parser.add_argument('--epoch', '-e', dest='epoch', type=int, default=100, help='number of training epochs')
     parser.add_argument('--input_channels', dest='input_channels', type=int, default=2, help='number of input channels')
     parser.add_argument('--output_channels', dest='output_channels', type=int, default=1, help='number of input channels')
@@ -46,3 +46,4 @@ if __name__ == "__main__":
 
     model = rb82.NetworkModel(args)
     model.train() if args.phase == 'train' else model.predict()
+    # model.load_data('train_{}'.format(args.kfold))

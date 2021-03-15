@@ -10,25 +10,29 @@ from tensorflow.keras.models import Model
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.layers import Conv3D, Conv3DTranspose, Dropout, Input
 from tensorflow.keras.layers import Activation, BatchNormalization, concatenate
+from keras import regularizers
 # from tensorflow.keras import backend as K, regularizers
 import os
 
 
 def conv_block(layer, fsize, dropout, downsample=True):
     for i in range(1, 3):
-        layer = Conv3D(fsize, (3, 3, 3), padding='same', strides=(1, 1, 1))(layer)
+        layer = Conv3D(fsize, (3, 3, 3), kernel_regularizer=regularizers.l2(1e-1),
+                       kernel_initializer='he_normal', padding='same', strides=(1, 1, 1))(layer)
         layer = BatchNormalization()(layer)
         layer = Activation('relu')(layer)
         layer = Dropout(dropout)(layer)
     if downsample:
-        downsample = Conv3D(fsize*2, (3, 3, 3), padding='same', strides=(2, 2, 2))(layer)
+        downsample = Conv3D(fsize*2, (3, 3, 3), kernel_regularizer=regularizers.l2(1e-1),
+                            kernel_initializer='he_normal', padding='same', strides=(2, 2, 2))(layer)
         downsample = BatchNormalization()(downsample)
         downsample = Activation('relu')(downsample)
     return layer, downsample
 
 
 def convt_block(layer, concat, fsize):
-    layer = Conv3DTranspose(fsize, (3, 3, 3), padding='same', strides=(2, 2, 2))(layer)
+    layer = Conv3DTranspose(fsize, (3, 3, 3), kernel_regularizer=regularizers.l2(1e-1),
+                            kernel_initializer='he_normal', padding='same', strides=(2, 2, 2))(layer)
     layer = BatchNormalization()(layer)
     layer = Activation('relu')(layer)
     layer = concatenate([layer, concat], axis=-1)
@@ -55,8 +59,9 @@ def construct_3D_unet_architecture(X):
     block9 = convt_block(block8, block1, 64)
     block10, _ = conv_block(block9, 64, .1, downsample=False)
 
-    # output = Conv3D(1,(3,3,3), padding='same',strides=(1,1,1), activation='relu')(block10)
-    output = Conv3D(1, (3, 3, 3), padding='same', strides=(1, 1, 1), activation='relu')(block10)
+    output = Conv3D(1, (3, 3, 3), kernel_regularizer=regularizers.l2(1e-1),
+                    kernel_initializer='he_normal', padding='same', strides=(1, 1, 1), activation='relu')(block10)
+
     return output
 
 

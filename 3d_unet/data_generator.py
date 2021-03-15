@@ -64,9 +64,15 @@ class DCMDataLoader(object):
     # Transform DICOMS into numpy
     def nifti2numpy(self, nifti):
         try:
-            return np.array(nifti.get_fdata(), dtype=np.float16)
+            d_type = nifti.header.get_data_dtype()
+            return np.array(nifti.get_fdata(), dtype=np.dtype(d_type))
         except:
             return None
+
+    # Normalise pixel values to [0, 1]
+    def normalise(self, pixels):
+        d_type = pixels.dtype
+        return np.array(pixels/65535, dtype=np.dtype(d_type))  # maximal PET value (int16)
 
     def augment_data(self, x, y):
         from DataAugmentation3D import DataAugmentation3D
@@ -126,8 +132,14 @@ class DCMDataLoader(object):
                 # print(lowres_numpy.shape)
                 # print(hires_numpy.shape)
 
-                ld_ = lowres_numpy.reshape(128, 128, 111, 1)
-                hd_ = hires_numpy.reshape(128, 128, 111, 1)
+                ld_ = (self.normalise(lowres_numpy)).reshape(128, 128, 111, 1)
+                hd_ = (self.normalise(hires_numpy)).reshape(128, 128, 111, 1)
+
+                # Check for NaN or inf in the data
+                if np.all(np.isnan(ld_)) or np.all(np.isnan(hd_)):
+                    print(f'NaN element in {patient}')
+                if np.all(np.isinf(ld_)) or np.all(np.isinf(hd_)):
+                    print(f'Inf element in {patient}')
 
                 # Determine slice
                 z = np.random.randint(8, 111-8, 1)[0]
