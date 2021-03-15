@@ -76,6 +76,7 @@ def save_data(data_path):
             print(f'  {c}. {k}')
             c +=1
             bar.next()
+    print('Done.')
         #np_arr = dcm2numpy(v)
         #np_ = np_arr.reshape(128,128,111)
         # output = get_name(v, regex = 'out')
