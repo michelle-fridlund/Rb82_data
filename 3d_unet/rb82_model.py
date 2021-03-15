@@ -14,7 +14,6 @@ import pickle
 import os
 import glob
 import warnings
-import nibabel as nib
 warnings.filterwarnings('ignore')
 mpl.use('Agg')
 TF_CPP_MIN_LOG_LEVEL = 2
@@ -95,7 +94,7 @@ class NetworkModel(object):
                     lr, verbose=1, train_pts=None, validate_pts=None, initial_epoch=0,
                     initial_model=None, MULTIGPU=False, loss="mae"):
 
-        import net_v2 as net
+        import network
         import tensorflow as tf
         from tensorflow.keras.callbacks import ModelCheckpoint, TensorBoard
 
@@ -112,7 +111,7 @@ class NetworkModel(object):
         data_valid_gen = data_valid_gen.repeat().batch(batch_size)
         data_train_gen = data_train_gen.repeat().batch(batch_size)
 
-        self.model = net.prepare_3D_unet(x, y, z, d, initialize_model=initial_model, lr=lr, loss=loss)
+        self.model = network.prepare_3D_unet(x, y, z, d, initialize_model=initial_model, lr=lr, loss=loss)
 
         self.mkdir_('checkpoint/TB/{}'.format(model_outname))
         filepath = os.path.join('checkpoint', model_outname + "_e{epoch:03d}.h5")
