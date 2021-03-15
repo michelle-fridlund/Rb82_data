@@ -7,29 +7,40 @@ Created on Tue Mar  9 14:23:48 2021
 @author: michellef
 """
 
+import numpy as np
 import argparse
+import os
 
-dose = '10p'
+dose = '25p'
+mode = 'STAT'
 
 patient = '0eef59dd-8192-4065-b3dc-05f6e00aa452'
+# patient = '0ef7e890-6586-4876-a630-a3af8e7fd736'
 filename = '3_rest-lm-00-psftof_000_000_ctmv_4i_21s.nii.gz'
-output = f'/homes/michellef/recon_im/{dose}_stat_rest_{patient}'
-im_path = f"/homes/michellef/my_projects/rb82_data/Dicoms_OCT8/{dose}_STAT/{patient}/{filename}"
 
-# patient = '0d64ef76-5f71-4485-b481-613f17beedfe_02'
-# filename = f'{patient}_rest_predicted.nii.gz'
-# output = f'/homes/michellef/recon_im/25p_stat_rest_predicted_{patient}'
-# im_path = f'/homes/michellef/my_projects/rb82_data/Dicoms_OCT8//Rb82_denoise_e100_bz1_lr0.0001_k0_predicted/{patient}/{filename}'
+output = f'/homes/michellef/recon_im/{dose}_{mode.lower()}_rest_{patient}_norm'
+im_path = f'/homes/michellef/my_projects/rb82_data/Dicoms_OCT8/{dose}_{mode}/{patient}/{filename}'
 
+
+def mkdir_(output):
+    if not os.path.exists(output):
+        os.makedirs(output)
+        
+# Normalise pixel values
+def normalise(pixels):
+    d_type = pixels.dtype
+    return np.array(pixels/65535, dtype=np.dtype(d_type))
 # matplotlib
 def load_nib(im_path):
-    import numpy as np
     import nibabel as nib
     import matplotlib.pyplot as plt
 
     img = nib.load(im_path)
-    img2 = np.array(img.get_fdata(), dtype='double')
+    d_type = img.header.get_data_dtype()
+    img2 = normalise(np.array(img.get_fdata(), dtype=np.dtype(d_type)))
     (a, b, c) = img2.shape
+    
+    mkdir_(output)
     # plot for all slices
     for i in range(0,c):
         plt.imshow(img2[:,:,i], cmap = 'plasma')
@@ -42,7 +53,7 @@ def load_nib(im_path):
 def load_ants(im_path):
     import ants
     img = ants.image_read(im_path)
-    ants.plot(img, filename=f'/homes/michellef/recon_im/{dose}_stat_rest_{patient}_colour.png', cmap='plasma')
+    ants.plot(img, filename=f'/homes/michellef/recon_im/{dose}_{mode.lower()}_rest_{patient}.png', cmap='plasma')
 
 
 if __name__ == "__main__":
