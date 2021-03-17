@@ -4,3 +4,5 @@ __pycache__
 /3d_unet/checkpoint
 .spyproject/
 *.h5
+*.stdout
+/old_runs

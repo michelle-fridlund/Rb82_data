@@ -69,6 +69,7 @@ class NetworkModel(object):
     # Data Generator for tensorfow
     def yield_data(self, stack):
         import tensorflow as tf
+        
         for value in stack.values():
             for state, pair in value.items():
                 if state == 'UNKNOWN':
@@ -126,7 +127,7 @@ class NetworkModel(object):
         self.model.fit(data_train_gen,
                        steps_per_epoch=epoch_step,
                        validation_data=data_valid_gen,
-                       validation_steps=0,
+                       validation_steps=50,
                        epochs=epoch,
                        verbose=1,
                        callbacks=callbacks_list,
@@ -148,6 +149,7 @@ class NetworkModel(object):
         return model_name
 
     def predict(self):
+        import nibabel as nib
         from tensorflow.keras.models import load_model
 
         # Load pretrained model

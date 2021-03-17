@@ -25,16 +25,7 @@ from pathlib import Path
 # output = f'/homes/michellef/my_projects/rb82_data/Dicoms_OCT8/Rb82_denoise_e100_bz1_lr0.0001_k0_predicted/{patient}/images'
 
 
-def reduce(s):
-    return s.lower()
-
-
-def capitalise(s):
-    return s.upper()
-
 # Create output directory
-
-
 def mkdir_(output):
     if not os.path.exists(output):
         os.makedirs(output)
@@ -54,9 +45,8 @@ def find_patients(dir_path):
             paths.append(new_path)
     return paths
 
+
 # Normalise pixel values
-
-
 def normalise(args, pixels):
     d_type = pixels.dtype
     if args.norm:
@@ -68,8 +58,6 @@ def normalise(args, pixels):
 
 
 # matplotlib
-
-
 def load_nib(args):
     # import nibabel as nib
     # import matplotlib.pyplot as plt
@@ -91,19 +79,19 @@ def load_nib(args):
 
     # specific patient
     # im_path = find_patients(str(args.data))
-    
+
     im_path = os.path.join(str(args.data), str(args.patient)) if args.patient else find_patients(str(args.data))
 
     if args.maxp:
         im_path = im_path[1:args.maxp+1]
 
     return im_path
+
+
 # antspyx for entire .nii.gz file
-
-
 def load_ants(im_path):
     import ants
-    img = ants.image_read(im_path)
+    # img = ants.image_read(im_path)
     # ants.plot(img, filename=f'/homes/michellef/recon_im/{dose}_{mode.lower()}_rest_{patient}.png', cmap='plasma')
 
 
