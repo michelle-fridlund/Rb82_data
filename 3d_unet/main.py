@@ -46,4 +46,3 @@ if __name__ == "__main__":
 
     model = rb82.NetworkModel(args)
     model.train() if args.phase == 'train' else model.predict()
-    # model.load_data('train_{}'.format(args.kfold))

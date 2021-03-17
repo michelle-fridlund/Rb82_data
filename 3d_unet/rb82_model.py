@@ -9,6 +9,7 @@ michellef
 
 import data_generator as data
 import matplotlib as mpl
+import nibabel as nib
 import numpy as np
 import pickle
 import os
@@ -174,18 +175,30 @@ class NetworkModel(object):
 
                 # Inference
                 print(f'Predicting patient {key}...')
-                predicted = np.empty((111, 128, 128))
+                # predicted = np.empty((111, 128, 128))
+                predicted = np.empty((128, 128, 111))
                 z = 16
 
+                # for z_index in range(int(z/2), 111-int(z/2)):
+                #     predicted_stack = model.predict(ld_data)
+                #     if z_index == int(z/2):
+                #         for ind in range(int(z/2)):
+                #             predicted[ind, :, :] = predicted_stack[0, :, :, ind].reshape(128, 128)
+                #     if z_index == 111-int(z/2)-1:
+                #         for ind in range(int(z/2)):
+                #             predicted[z_index+ind, :, :] = predicted_stack[0, :, :, int(z/2)+ind].reshape(128, 128)
+                #     predicted[z_index, :, :] = predicted_stack[0, :, :, int(z/2)].reshape(128, 128)
+                # predicted_full = predicted
+                
                 for z_index in range(int(z/2), 111-int(z/2)):
                     predicted_stack = model.predict(ld_data)
                     if z_index == int(z/2):
                         for ind in range(int(z/2)):
-                            predicted[ind, :, :] = predicted_stack[0, :, :, ind].reshape(128, 128)
+                            predicted[:, :, ind] = predicted_stack[0, :, :, ind].reshape(128, 128)
                     if z_index == 111-int(z/2)-1:
                         for ind in range(int(z/2)):
-                            predicted[z_index+ind, :, :] = predicted_stack[0, :, :, int(z/2)+ind].reshape(128, 128)
-                    predicted[z_index, :, :] = predicted_stack[0, :, :, int(z/2)].reshape(128, 128)
+                            predicted[:, :, z_index+ind] = predicted_stack[0, :, :, int(z/2)+ind].reshape(128, 128)
+                    predicted[:, :, z_index] = predicted_stack[0, :, :, int(z/2)].reshape(128, 128)
                 predicted_full = predicted
 
                 # Save NIFTI

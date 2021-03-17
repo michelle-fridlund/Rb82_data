@@ -82,7 +82,7 @@ class DCMDataLoader(object):
         return x, y
 
     def load_train_data(self, mode):
-        print('Loading nifti files...')
+        print('\nLoading nifti files...')
 
         patients = self.summary[mode]
         stack_dict = {}
