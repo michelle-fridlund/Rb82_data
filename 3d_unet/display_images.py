@@ -13,26 +13,42 @@ import argparse
 import nibabel as nib
 from pathlib import Path
 
-# patient = '0941d97c-f7b0-425b-b8b6-fa2e6f6ca595'
-# filename = '3_rest-lm-00-psftof_000_000_ctmv_4i_21s.nii.gz'
-# # filename = '0941d97c-f7b0-425b-b8b6-fa2e6f6ca595_rest_predicted.nii.gz'
+# Create parser
 
-# im_path = f'/homes/michellef/my_projects/rb82_data/Dicoms_OCT8/{dose}_{mode}/{patient}/{filename}'
-# # im_path = f'/homes/michellef/my_projects/rb82_data/Dicoms_OCT8/Rb82_denoise_e100_bz1_lr0.0001_k0_predicted/{patient}/{filename}'
 
-# # im_path = f'/homes/michellef/my_projects/rb82_data/Dicoms_OCT8/Rb82_denoise_e100_bz1_lr0.0001_k0_predicted/{patient}/{filename}'
-# # output = f'/homes/michellef/recon_im/{dose}_{mode.lower()}_stress_{patient}_norm_SUV'
-# output = f'/homes/michellef/my_projects/rb82_data/Dicoms_OCT8/Rb82_denoise_e100_bz1_lr0.0001_k0_predicted/{patient}/images'
-
+def parse_bool(b):
+    b = b.lower()
+    if b == 'true':
+        return True
+    elif b == 'false':
+        return False
+    else:
+        raise ValueError('Cannot parse string into boolean.')
 
 # Create output directory
+
+
 def mkdir_(output):
     if not os.path.exists(output):
         os.makedirs(output)
 
+# Define save directory
 
-def load_nifti(path):
-    return [print(i) for i in glob.glob("{}/*.nii.gz".format(path), recursive=True)]
+
+def output_dir(args, i):
+    # Create save dir from /homes/michellef/recon_im
+    if args.original == True:
+        rel_path = os.path.relpath(Path(i).with_suffix('').with_suffix(''), args.data)
+        type_ = os.path.basename(Path(args.data))
+        save_dir = f'/homes/michellef/recon_im/{type_}/{rel_path}'
+    # Create save dir from filename (network output)
+    else:
+        save_dir = Path(i).with_suffix('').with_suffix('')
+    return save_dir
+
+
+def find_nifti(path):
+    return [i for i in glob.glob("{}/*.nii.gz".format(path), recursive=True)]
 
 
 def find_patients(dir_path):
@@ -49,50 +65,73 @@ def find_patients(dir_path):
 # Normalise pixel values
 def normalise(args, pixels):
     d_type = pixels.dtype
-    if args.norm:
+    if args.norm == True and args.suv == False:
         return np.array(pixels/65535, dtype=np.dtype(d_type))  # ~ [0,1]
-    if args.norm and args.suv:
-        return np.array(pixels*80000/(65535*1149), dtype=np.dtype(d_type))  # SUV nromalised
+    if args.suv == True and args.norm == False:
+        return np.array(pixels*80000/(1149), dtype=np.dtype(d_type))  # SUV nromalised
+    if args.norm == True and args.suv == True:
+        return np.array(pixels*80000/(65535*1149), dtype=np.dtype(d_type))
     else:
         return np.array(pixels, dtype=np.dtype(d_type))
 
 
-# matplotlib
-def load_nib(args):
-    # import nibabel as nib
-    # import matplotlib.pyplot as plt
+def load_patients(args):
+    images = []
+    # Specific patient
+    im_path = [os.path.join(str(args.data), str(args.patient))] if args.patient else find_patients(str(args.data))
 
-    # img = nib.load(im_path)
-    # d_type = img.header.get_data_dtype()  # get data type from nifti header
-    # img2 = normalise(np.array(img.get_fdata(), dtype=np.dtype(d_type)))
-    # (a, b, c) = img2.shape
-
-    # mkdir_(output)
-
-    # # plot for all slices
-    # for i in range(0, c):
-    #     im = plt.imshow(img2[:, :, i], cmap='plasma')
-    #     plt.axis('off')
-    #     plt.colorbar(im, label='MBq/L')
-    #     plt.savefig(f'{output}/{patient}_{i}')
-    #     plt.close("all")
-
-    # specific patient
-    # im_path = find_patients(str(args.data))
-
-    im_path = os.path.join(str(args.data), str(args.patient)) if args.patient else find_patients(str(args.data))
-
+    # Limit number of patients
     if args.maxp:
-        im_path = im_path[1:args.maxp+1]
+        im_path = im_path[0:args.maxp+1]
+        
+    for p in im_path:
+        im = find_nifti(p)
+        if not len(im) == 0:
+            for i in im:
+                images.append(i)
+    return images
 
-    return im_path
 
+# Matplotlib
+def load_nib(args):
+    import matplotlib.pyplot as plt
+
+    images = load_patients(args)
+
+    for i in images:
+        img = nib.load(i)
+        d_type = img.header.get_data_dtype()  # get data type from nifti header
+        img2 = normalise(args, np.array(img.get_fdata(), dtype=np.dtype(d_type)))
+
+        (a, b, c) = img2.shape
+
+        save_dir = output_dir(args, i)
+        print(save_dir)
+        mkdir_(save_dir)
+
+        # plot for all slices
+        for i in range(0, c):
+            im = plt.imshow(img2[:, :, i], cmap='plasma')
+            plt.axis('off')
+            plt.colorbar(im, label='MBq/L')
+            plt.savefig(f'{save_dir}/{i}')
+            plt.close("all")
 
 # antspyx for entire .nii.gz file
-def load_ants(im_path):
+
+
+def load_ants(args):
     import ants
-    # img = ants.image_read(im_path)
-    # ants.plot(img, filename=f'/homes/michellef/recon_im/{dose}_{mode.lower()}_rest_{patient}.png', cmap='plasma')
+
+    images = load_patients(args)
+
+    for i in images:
+        img = ants.image_read(i)
+
+        # Create save dir in parent folder
+        save_dir = output_dir(args, i)
+
+        ants.plot(img, filename=f'{save_dir}.png', cmap='plasma')
 
 
 if __name__ == "__main__":
@@ -100,39 +139,31 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     required_args = parser.add_argument_group('required arguments')
 
-    # Add argument
+    # Required args: output image type and data path
     required_args.add_argument("--mode", "-m", dest='mode',  help="nib/ants", required=True)
     required_args.add_argument("--data", "-d", dest='data',  help="patient directory", required=True)
-    # required_args.add_argument("--original", "-o", dest='original', type=bool,
-    # help="original = True, predicted = False", required=True)
+    # Changes save directory if niftis are not network output
+    required_args.add_argument("--original", "-o", dest='original', type=parse_bool,
+                               help="original (True)/predicted (False)", required=True)
 
     # Image args
-    parser.add_argument('--suv', dest='suv', type=bool,
-                        default=True, help='normalise to suv: True/False')
-    parser.add_argument('--norm', '-n', dest='norm', type=bool,
-                        default=True, help='normalise: True/False')
-    # Save args
-    parser.add_argument('--patient', '-p', dest='patient', help='patient name')
-    parser.add_argument('--filename', '-f', dest='filename',
-                        default='3_rest-lm-00-psftof_000_000_ctmv_4i_21s.nii.gz', help='file name')
-    # For original only
-    parser.add_argument('--dose', dest='dose', default='100', help='dose level')
-    parser.add_argument('--state', dest='phase', default='stat', help='stat/dyn/ekg')
-    parser.add_argument('--phase', dest='phase', default='rest', help='stat/dyn/ekg')
+    parser.add_argument('--suv', dest='suv', type=parse_bool, help='normalise to suv: True/False')
+    parser.add_argument('--norm', '-n', dest='norm', type=parse_bool, help='normalise: True/False')
 
+    # Choose single patient to process
+    parser.add_argument('--patient', '-p', dest='patient', help='patient name')
+    # Limit number of patient to process
     parser.add_argument('--maxp', dest='maxp', type=int, help='maximum number of patient to process')
 
     # Read arguments from the command line
     args = parser.parse_args()
-
-    dir_path = str(args.data)
 
     mode = str(args.mode)
 
     if mode == 'nib':
         load_nib(args)
     elif mode == 'ants':
-        load_ants(dir_path)
+        load_ants(args)
     else:
         print('Wrong input!')
 
