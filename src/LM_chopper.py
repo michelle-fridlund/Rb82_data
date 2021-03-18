@@ -120,9 +120,8 @@ def copy_files(dir_path, dst):
             else:
                 print(f'{dirname} has {len(ptds)} files!!!')
                 pass
-
-   # print(my_ptds.keys())
-   with Bar('Loading LISTMODE:', suffix='%(percent)d%%') as bar:
+    print(my_ptds.keys())
+    with Bar('Loading LISTMODE:', suffix='%(percent)d%%') as bar:
         for k, v in my_ptds.items():  # Add progress bar here
             save_path = os.path.join(dst, k)
             create_dir(save_path)
