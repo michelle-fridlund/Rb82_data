@@ -68,7 +68,12 @@ class DCMDataLoader(object):
             return np.array(nifti.get_fdata(), dtype=np.dtype(d_type))
         except:
             return None
-
+    
+    #Scale low-dose input
+    def scale_dose(self, pixels):
+        d_type = pixels.dtype
+        return np.array(pixels*4, dtype=np.dtype(d_type))  # 1/4 factor
+    
     # Normalise pixel values to [0, 1]
     def normalise(self, pixels):
         d_type = pixels.dtype
@@ -86,6 +91,7 @@ class DCMDataLoader(object):
 
         patients = self.summary[mode]
         stack_dict = {}
+        #TODO: Load patients randomly
         # Load and reshape all patient data
         for patient in patients:
             # Print progress
@@ -132,7 +138,7 @@ class DCMDataLoader(object):
                 # print(lowres_numpy.shape)
                 # print(hires_numpy.shape)
 
-                ld_ = (self.normalise(lowres_numpy)).reshape(128, 128, 111, 1)
+                ld_ = (self.scale_dose(self.normalise(lowres_numpy))).reshape(128, 128, 111, 1)
                 hd_ = (self.normalise(hires_numpy)).reshape(128, 128, 111, 1)
 
                 # Check for NaN or inf in the data

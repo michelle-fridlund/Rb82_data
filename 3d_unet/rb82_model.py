@@ -49,7 +49,8 @@ class NetworkModel(object):
 
         self.batch_size = args.batch_size
         n_batches = len(self.summary['train']) if 'train' in self.summary else len(self.summary[self.train_pts])
-        self.epoch_step = n_batches*(args.image_size**2//args.patch_size**2)//self.batch_size
+        # self.epoch_step = n_batches*(args.image_size**2//args.patch_size**2)//self.batch_size
+        self.epoch_step = n_batches//self.batch_size
         self.epoch = args.epoch
 
         self.model_outname = str(args.model_name) + "_e" + \
@@ -149,7 +150,6 @@ class NetworkModel(object):
         return model_name
 
     def predict(self):
-        import nibabel as nib
         from tensorflow.keras.models import load_model
 
         # Load pretrained model
