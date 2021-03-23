@@ -2,20 +2,16 @@
 # -*- coding: utf-8 -*-
 """
 Created on Tue Oct  6 12:11:17 2020
-
+##############################################################################
+Fetches unique tags from the LM and writes into pickle 
+##############################################################################
 @author: michellef
 """
 import pickle
-import re
 import os
-from datetime import datetime
+import linecache
 import argparse
 from pathlib import Path
-
-
-#Regex for fetching SeriesInstanceUID
-def get_uid(string):
-    return str(re.findall(r'(?<=UI8).*?(?=[\s])', string))
 
 
 # Find listmode files
@@ -28,10 +24,9 @@ def find_LM(dir_path):
             return f
     return None
 
-
+# Fetch LM info
 def get_dump(new_path):
     lm = find_LM(new_path)
-    # print(lm)
     if lm:
         os.system(f'strings "{lm}" | tail -200 > "{new_path}"/dump.txt')
 
@@ -45,21 +40,21 @@ def find_patients(dir_path):
         get_dump(new_path)
         if (new_path/'dump.txt').exists():
             with open(new_path/'dump.txt') as f:
-                for line in f.readlines():
-                    # line_ = line.strip()
-                    uid = get_uid(line)
-                    patients[dirname] = uid
-            # os.remove(new_path/'dump.txt')
+                for i, line in enumerate(f.readlines()):
+                    if line.startswith('PETCT'): #StudyInstance is before PETCT tag
+                        prev_line = linecache.getline(f'{str(new_path)}/dump.txt', i).strip()
+                        patients[dirname] = prev_line 
     return patients
             
 # Write dump files
 def write_pickle(dir_path):
-    patients =  find_patients(dir_path)
+    patients = find_patients(dir_path)
+    print(f'{len(patients.keys())} PATIENTS FOUND!')
     os.chdir(dir_path)
-    with open('series_uid.pickle', 'wb') as p:
+    with open('paediatrics_studyuid.pickle', 'wb') as p:
         pickle.dump(patients, p)
         
-    print(pickle.load(open('series_uid.pickle','rb')))
+    print(pickle.load(open('paediatrics_studyuid.pickle','rb')))
 
 
 
