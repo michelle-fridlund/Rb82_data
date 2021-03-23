@@ -147,8 +147,10 @@ if __name__ == "__main__":
                                help="original (True)/predicted (False)", required=True)
 
     # Image args
-    parser.add_argument('--suv', dest='suv', type=parse_bool, help='normalise to suv: True/False')
-    parser.add_argument('--norm', '-n', dest='norm', type=parse_bool, help='normalise: True/False')
+    parser.add_argument('--suv', dest='suv', type=parse_bool, default=False,
+                        help='normalise to suv: True/False')
+    parser.add_argument('--norm', '-n', dest='norm', type=parse_bool, default=False,
+                        help='normalise: True/False')
 
     # Choose single patient to process
     parser.add_argument('--patient', '-p', dest='patient', help='patient name')
