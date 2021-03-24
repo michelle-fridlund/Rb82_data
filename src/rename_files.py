@@ -9,7 +9,7 @@ def myrename(original_name, new_name, dirpath):
                           
        
 def find_dir(current_path):            
-    for (dirpath, dirnames, filenames) in walk(current_path): 
+    for (dirpath, dirnames, filenames) in os.walk(current_path): 
         print(f'We are at {dirpath}')
         myrename('test1.txt', 'michelle.txt', dirpath)
         myrename('test2.txt', 'tolik.txt', dirpath)

@@ -158,6 +158,7 @@ class NetworkModel(object):
 
         # Load test data
         stack = self.load_data(self.test_pts)
+  
         for key, value in stack.items():
             for state, pair in value.items():
                 if state == 'UNKNOWN':

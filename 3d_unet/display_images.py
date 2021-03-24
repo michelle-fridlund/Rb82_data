@@ -25,16 +25,14 @@ def parse_bool(b):
     else:
         raise ValueError('Cannot parse string into boolean.')
 
+
 # Create output directory
-
-
 def mkdir_(output):
     if not os.path.exists(output):
         os.makedirs(output)
 
+
 # Define save directory
-
-
 def output_dir(args, i):
     # Create save dir from /homes/michellef/recon_im
     if args.original == True:
@@ -70,7 +68,7 @@ def normalise(args, pixels):
     if args.suv == True and args.norm == False:
         return np.array(pixels*80000/(1149), dtype=np.dtype(d_type))  # SUV nromalised
     if args.norm == True and args.suv == True:
-        return np.array(pixels*80000/(65535*1149), dtype=np.dtype(d_type))
+        return np.array(pixels*4*80000/(65535*1149), dtype=np.dtype(d_type))
     else:
         return np.array(pixels, dtype=np.dtype(d_type))
 
