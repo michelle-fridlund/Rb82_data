@@ -49,12 +49,17 @@ class NetworkModel(object):
 
         self.batch_size = args.batch_size
         n_batches = len(self.summary['train']) if 'train' in self.summary else len(self.summary[self.train_pts])
+
         self.epoch_step = n_batches*(args.image_size//args.patch_size)//self.batch_size
         self.epoch = args.epoch
+        self.initial_epoch = args.initial_epoch
 
-        self.model_outname = str(args.model_name) + "_e" + \
-            str(self.epoch) + "_bz" + str(self.batch_size) + "_lr" + \
+        self.model_outname = str(args.model_name) + \
+            "_bz" + str(self.batch_size) + "_lr" + \
             str(self.lr)+"_k" + str(self.kfold)
+
+        # Resume previous training
+        self.continue_train = args.continue_train
 
     def mkdir_(self, output):
         if not os.path.exists(output):
@@ -69,7 +74,7 @@ class NetworkModel(object):
     # Data Generator for tensorfow
     def yield_data(self, stack):
         import tensorflow as tf
-        
+
         for value in stack.values():
             for state, pair in value.items():
                 if state == 'UNKNOWN':
@@ -93,7 +98,7 @@ class NetworkModel(object):
         return self.yield_data(stack)
 
     def model_train(self, model_outname, x, y, z, d, epoch, epoch_step, batch_size,
-                    lr, verbose=1, train_pts=None, validate_pts=None, initial_epoch=0,
+                    lr, initial_epoch, verbose=1, train_pts=None, validate_pts=None,
                     initial_model=None, MULTIGPU=False, loss="mae"):
 
         import network
@@ -137,28 +142,38 @@ class NetworkModel(object):
         self.model.save(model_outname+".h5")
         print("Saved model to disk")
 
+    # Return model name
     def get_model(self):
+        # Last epoch step
         if os.path.exists(f'{self.model_outname}.h5'):
             model_name = self.model_outname + '.h5'
         else:
+            # Last saved iteration
             checkpoint_models = glob.glob('checkpoint/{}*.h5'.format(self.model_outname))
             if not checkpoint_models:
                 print('No pretrained models found')
                 exit(-1)
             model_name = checkpoint_models[-1]
+
+        # Resume/load from specific epoch
+        if self.initial_epoch > 0:
+            model_name = f'checkpoint/{self.model_outname}_e{self.initial_epoch:03d}.h5'
+            print("Resuming from model: {}".format(model_name))
+
+        print(f'!LOADING MODEL: {model_name}!')
         return model_name
 
+    # Test pretrained model
     def predict(self):
         from tensorflow.keras.models import load_model
 
         # Load pretrained model
         model_name = self.get_model()
-        print(f'!LOADING MODEL: {model_name}!')
         model = load_model(model_name)
 
         # Load test data
         stack = self.load_data(self.test_pts)
-  
+
         for key, value in stack.items():
             for state, pair in value.items():
                 if state == 'UNKNOWN':
@@ -191,7 +206,7 @@ class NetworkModel(object):
                 #             predicted[z_index+ind, :, :] = predicted_stack[0, :, :, int(z/2)+ind].reshape(128, 128)
                 #     predicted[z_index, :, :] = predicted_stack[0, :, :, int(z/2)].reshape(128, 128)
                 # predicted_full = predicted
-                
+
                 for z_index in range(int(z/2), 111-int(z/2)):
                     predicted_stack = model.predict(ld_data)
                     if z_index == int(z/2):
@@ -215,7 +230,14 @@ class NetworkModel(object):
         if os.path.exists(self.model_outname+".h5"):
             print("Model %s exists" % self.model_outname)
 
-        # Initialise training
-        self.model_train(self.model_outname, 128, 128, 16, 2, self.epoch, self.epoch_step, self.batch_size, self.lr)
+        # Resume previous training:
+        if self.continue_train:
+            from tensorflow.keras.models import load_model
+            
+            model_name = self.get_model()
+            self.model = load_model(model_name)
+            self.model.compile()
 
-    # TODO: Implement resume training / transfer learning
+        # Initialise training
+        self.model_train(self.model_outname, 128, 128, 16, 2, self.epoch,
+                         self.epoch_step, self.batch_size, self.lr, self.initial_epoch)

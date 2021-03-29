@@ -31,12 +31,16 @@ if __name__ == "__main__":
     parser.add_argument('--model_name', dest='model_name', default='Rb82_denoise', help='model name')
     parser.add_argument('--learning_rate', '-l', dest='lr', type=float, default=0.00001, help='learning rate')
     parser.add_argument('--epoch', '-e', dest='epoch', type=int, default=100, help='number of training epochs')
+    parser.add_argument('--initial_epoch', dest='initial_epoch', type=int, default=0, help='starting epoch')
     parser.add_argument('--input_channels', dest='input_channels', type=int, default=2, help='number of input channels')
     parser.add_argument('--output_channels', dest='output_channels', type=int, default=1, help='number of input channels')
     parser.add_argument('--batch_size', dest='batch_size', type=int, default=1, help='batch size')
 
     parser.add_argument('--augment', '-a', dest='augment', type=data.ParseBoolean,
                         default=True, help='apply data augmentation: true, false')
+    # Resume previous training
+    parser.add_argument('--continue_train', dest='continue_train', type=data.ParseBoolean,
+                        default=False, help='resume training: true, false')
 
     parser.add_argument('--phase', dest='phase', default='train', help='train or test')
     parser.add_argument('--kfold', dest='kfold', type=int, default='0', help='fold number')

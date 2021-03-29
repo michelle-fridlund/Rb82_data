@@ -88,7 +88,7 @@ def prep_chopper(dir_path):
         LM_chopper(v, new_path)
 
 
-def delete_files(_path):
+def delete_files(dir_path):
     paths = get_paths(dir_path)
     for new_path in paths:
         ptds = find_LM(new_path, number='')
@@ -96,7 +96,7 @@ def delete_files(_path):
             file = os.path.basename(str(p))
             print(file)
 
-        # print(ptds) # PLEASE MAKE SURE THE FILES ARE CORRECT FIRST!
+        # print(ptds[2]) # PLEASE MAKE SURE THE FILES ARE CORRECT FIRST!
         # os.remove(ptds[2])
         # os.chdir(str(new_path))
         # os.remove('TempDicomHeader.IMA')
@@ -120,7 +120,7 @@ def copy_files(dir_path, dst):
             else:
                 print(f'{dirname} has {len(ptds)} files!!!')
                 pass
-    print(my_ptds.keys())
+    # print(my_ptds.values())
     with Bar('Loading LISTMODE:', suffix='%(percent)d%%') as bar:
         for k, v in my_ptds.items():  # Add progress bar here
             save_path = os.path.join(dst, k)
@@ -136,22 +136,23 @@ if __name__ == "__main__":
     required_args = parser.add_argument_group('required arguments')
     # Add long and short argument
     required_args.add_argument("--mode", "-m", help="delete/copy/prep", required=True)
-
+    required_args.add_argument("--year", type=int, help="scan year", required=True)
     # Read arguments from the command line
     args = parser.parse_args()
     mode = str(args.mode)
+    year = str(args.year)
     
     # TODO: Use relative paths
     # TODO: Read relative path from script arguments using an argument parser
 
     # Simulated data path
-    dir_path = '/homes/michellef/my_projects/rb82_data/PET_LMChopper_OCT8/2019'
+    dir_path = f'/homes/michellef/my_projects/rb82_data/PET_LMChopper_OCT8/{year}'
     # Temporary data path
-    dst = '/homes/michellef/my_projects/rb82_data/PET_LMChopper_OCT8/2019_25p'
+    dst = f'/homes/michellef/my_projects/rb82_data/PET_LMChopper_OCT8/{year}_25p'
 
    # ALSO USE THIS FOR DELETING ANY GIVEN DOSE LEVEL
-   if mode == 'delete':
-        delete_files(dst)  # Delete original LM file
+    if mode == 'delete':
+       delete_files(dst)  # Delete original LM file
     # One at a time
     elif mode == 'copy':
         copy_files(dir_path, dst)
