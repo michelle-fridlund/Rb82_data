@@ -56,7 +56,6 @@ class DCMDataLoader(object):
             'fill_mode': 'reflect'
         }
 
-    # Create a dict with filename as a key and numpy array as a value
 
     def load_nifti(self, path):
         return {os.path.basename(i): nib.load(i) for i in glob.glob("{}/*.nii.gz".format(path), recursive=True)}
@@ -64,16 +63,16 @@ class DCMDataLoader(object):
     # Transform DICOMS into numpy
     def nifti2numpy(self, nifti):
         try:
-            d_type = nifti.header.get_data_dtype()
+            d_type = nifti.header.get_data_dtype() #Extract data type from nifti header
             return np.array(nifti.get_fdata(), dtype=np.dtype(d_type))
         except:
             return None
-    
-    #Scale low-dose input
+
+    # Scale low-dose input
     def scale_dose(self, pixels):
         d_type = pixels.dtype
-        return np.array(pixels*4, dtype=np.dtype(d_type))  # 1/4 factor
-    
+        return np.array(pixels*4, dtype=np.dtype(d_type))  # 1/4 factor for 25% dose 
+
     # Normalise pixel values to [0, 1]
     def normalise(self, pixels):
         d_type = pixels.dtype
@@ -81,7 +80,7 @@ class DCMDataLoader(object):
 
     def augment_data(self, x, y):
         from DataAugmentation3D import DataAugmentation3D
-
+        #Call data augmentation function with pre-defined parameters
         augment3D = DataAugmentation3D(**self.augmentation_params)
         x, y = augment3D.random_transform_batch(x, y)
         return x, y
@@ -91,13 +90,14 @@ class DCMDataLoader(object):
 
         patients = self.summary[mode]
         stack_dict = {}
-        #TODO: Load patients randomly
+
         # Load and reshape all patient data
         for patient in patients:
             # Print progress
             print('.', end='', flush=True)
-
+            #Create patient dictionary
             stack_dict[patient] = {}
+            #Load nifti files
             ld_data_raw = self.load_nifti('%s/%s/%s' % (self.data_path, self.ld_path, patient))
             hd_data_raw = self.load_nifti('%s/%s/%s' % (self.data_path, self.hd_path, patient))
 
@@ -108,6 +108,8 @@ class DCMDataLoader(object):
                 print(f'No nifti files for patient {patient} found')
                 continue
 
+            #Create a dict with patient name as key and file dictionary as a value
+            #File dictionary contains both nifti and numpy formats of 
             ld_data = {key: {'nifti': value, 'numpy': self.nifti2numpy(value)} for key, value in ld_data_raw.items()}
             hd_data = {key: {'nifti': value, 'numpy': self.nifti2numpy(value)} for key, value in hd_data_raw.items()}
 
@@ -137,41 +139,42 @@ class DCMDataLoader(object):
                 # print(key)
                 # print(lowres_numpy.shape)
                 # print(hires_numpy.shape)
-
-                ld_ = (self.scale_dose(self.normalise(lowres_numpy))).reshape(128, 128, 111, 1)
-                hd_ = (self.normalise(hires_numpy)).reshape(128, 128, 111, 1)
+                
+                #Whole numpy images
+                ld_whole = (self.scale_dose(self.normalise(lowres_numpy))).reshape(128, 128, -1, 1)
+                hd_whole = (self.normalise(hires_numpy)).reshape(128, 128, -1, 1)
 
                 # Check for NaN or inf in the data
-                if np.all(np.isnan(ld_)) or np.all(np.isnan(hd_)):
+                if np.all(np.isnan(ld_whole)) or np.all(np.isnan(hd_whole)):
                     print(f'NaN element in {patient}')
-                if np.all(np.isinf(ld_)) or np.all(np.isinf(hd_)):
+                if np.all(np.isinf(ld_whole)) or np.all(np.isinf(hd_whole)):
                     print(f'Inf element in {patient}')
 
-                # Determine slice
+                # Select random slices (first and last 8 are omitted)
                 z = np.random.randint(8, 111-8, 1)[0]
-                ld_ = ld_[:, :, z-8:z+8, :]
-                hd_ = hd_[:, :, z-8:z+8, :]
+                
+                #Reshape into appropriate tensor dimension for augmentation and training
+                ld = ld_whole[:, :, z-8:z+8, :].reshape(1,128,128,16,1)
+                hd = hd_whole[:, :, z-8:z+8, :].reshape(1,128,128,16,1)
 
-                x = np.empty((self.batch_size,) + (self.image_size, self.image_size, self.patch_size)
-                             + (self.input_channels,))
-                y = np.empty((self.batch_size,) + (self.image_size, self.image_size, self.patch_size)
-                             + (self.output_channels,))
 
-                for i in range(self.batch_size):
-                    x[i, ...] = ld_
-                    y[i, ...] = hd_.reshape((self.image_size, self.image_size, self.patch_size)
-                                            + (self.output_channels,))
+                # Apply augmentation
+                if self.phase == 'train' and self.augment:
+                    ld, hd = self.augment_data(ld, hd)
 
-                    if self.phase == 'train' and self.augment:
-                        x, y = self.augment_data(x, y)
-
+                # Ensure there is one nifti file for each state
                 if stack_dict.get(patient, {}).get(patient_state):
                     print(f'There are more nifti files for patient {patient} than needed. Skipping this patient...')
                     stack_dict.pop(patient, None)
                     break
-
-                stack_dict[patient][patient_state] = ({'numpy': x, 'nifti': lowres_data}, {'numpy': y, 'nifti': hires_data})
-
+                
+                #Return whole images for test and patches for train 
+                if self.phase == 'test':
+                    stack_dict[patient][patient_state] = ({'numpy': ld_whole, 'nifti': lowres_data},
+                                                          {'numpy': hd_whole, 'nifti': hires_data})
+                else:
+                    stack_dict[patient][patient_state] = ({'numpy': ld, 'nifti': lowres_data},
+                                                          {'numpy': hd, 'nifti': hires_data})
         print()
         print('Finished loading nifti files')
         return stack_dict

@@ -44,19 +44,26 @@ class NetworkModel(object):
             self.summary[self.valid_pts] = self.summary[self.valid_pts][0:args.maxp]
             self.summary[self.test_pts] = self.summary[self.test_pts][0:args.maxp]
 
-        # Learning rate
-        self.lr = args.lr
+        # Image parameters
+        self.image_size = args.image_size
+        self.patch_size = args.patch_size
 
+        # Training parameters
+        self.lr = args.lr
+        self.input_channels = args.input_channels
+        self.output_channels = args.output_channels
         self.batch_size = args.batch_size
+
+        # Variable to scale the epoch step to the number of training patients used
         n_batches = len(self.summary['train']) if 'train' in self.summary else len(self.summary[self.train_pts])
 
-        self.epoch_step = n_batches*(args.image_size//args.patch_size)//self.batch_size
+        self.epoch_step = n_batches*(self.image_size//self.patch_size)//self.batch_size  # integer value
         self.epoch = args.epoch
         self.initial_epoch = args.initial_epoch
 
-        self.model_outname = str(args.model_name) + \
-            "_bz" + str(self.batch_size) + "_lr" + \
-            str(self.lr)+"_k" + str(self.kfold)
+        # Generate model name from parameters
+        self.model_outname = str(args.model_name) + "_bz" + str(self.batch_size) + \
+            "_lr" + str(self.lr) + "_k" + str(self.kfold)
 
         # Resume previous training
         self.continue_train = args.continue_train
@@ -76,10 +83,12 @@ class NetworkModel(object):
         import tensorflow as tf
 
         for value in stack.values():
+            # Check each patient has expected states
             for state, pair in value.items():
                 if state == 'UNKNOWN':
                     print('Patient state for selected pair is unknown, skipping...')
                     continue
+                # Extract file pair
                 (ld_dict, hd_dict) = pair
                 ld = ld_dict['numpy']
                 hd = hd_dict['numpy']
@@ -97,6 +106,27 @@ class NetworkModel(object):
         stack = self.load_data(self.valid_pts)
         return self.yield_data(stack)
 
+    # Return model name
+    def get_model(self):
+        # Last epoch step
+        if os.path.exists(f'{self.model_outname}.h5'):
+            model_name = self.model_outname + '.h5'
+        else:
+            # Last saved iteration
+            checkpoint_models = glob.glob('checkpoint/{}*.h5'.format(self.model_outname))
+            if not checkpoint_models:
+                print('No pretrained models found')
+                exit(-1)
+            model_name = checkpoint_models[-1]
+
+        # Resume/load from specific epoch
+        if self.initial_epoch > 0:
+            model_name = f'checkpoint/{self.model_outname}_e{self.initial_epoch:03d}.h5'
+            print("Resuming from model: {}".format(model_name))
+
+        print(f'!LOADING MODEL: {model_name}!')
+        return model_name
+
     def model_train(self, model_outname, x, y, z, d, epoch, epoch_step, batch_size,
                     lr, initial_epoch, verbose=1, train_pts=None, validate_pts=None,
                     initial_model=None, MULTIGPU=False, loss="mae"):
@@ -109,14 +139,19 @@ class NetworkModel(object):
         data_train_gen = tf.data.Dataset.from_generator(self.generator_train,
                                                         output_types=(
                                                             tf.float64, tf.float64),
-                                                        output_shapes=(tf.TensorShape((128, 128, 16, 2)), tf.TensorShape((128, 128, 16, 1))))
+                                                        output_shapes=(tf.TensorShape((128, 128, 16, 1)), tf.TensorShape((128, 128, 16, 1))))
         data_valid_gen = tf.data.Dataset.from_generator(self.generator_validate,
                                                         output_types=(
                                                             tf.float64, tf.float64),
-                                                        output_shapes=(tf.TensorShape((128, 128, 16, 2)), tf.TensorShape((128, 128, 16, 1))))
+                                                        output_shapes=(tf.TensorShape((128, 128, 16, 1)), tf.TensorShape((128, 128, 16, 1))))
+        # Make sure batches have the same outer dimension
+        # repeat() to generate enough batches
+        data_train_gen = data_train_gen.repeat().batch(batch_size, drop_remainder=True)
+        data_valid_gen = data_valid_gen.repeat().batch(batch_size, drop_remainder=True)
 
-        data_valid_gen = data_valid_gen.repeat().batch(batch_size)
-        data_train_gen = data_train_gen.repeat().batch(batch_size)
+        # Find pretrained model
+        if self.continue_train:
+            initial_model = self.get_model()
 
         self.model = network.prepare_3D_unet(x, y, z, d, initialize_model=initial_model, lr=lr, loss=loss)
 
@@ -142,29 +177,10 @@ class NetworkModel(object):
         self.model.save(model_outname+".h5")
         print("Saved model to disk")
 
-    # Return model name
-    def get_model(self):
-        # Last epoch step
-        if os.path.exists(f'{self.model_outname}.h5'):
-            model_name = self.model_outname + '.h5'
-        else:
-            # Last saved iteration
-            checkpoint_models = glob.glob('checkpoint/{}*.h5'.format(self.model_outname))
-            if not checkpoint_models:
-                print('No pretrained models found')
-                exit(-1)
-            model_name = checkpoint_models[-1]
-
-        # Resume/load from specific epoch
-        if self.initial_epoch > 0:
-            model_name = f'checkpoint/{self.model_outname}_e{self.initial_epoch:03d}.h5'
-            print("Resuming from model: {}".format(model_name))
-
-        print(f'!LOADING MODEL: {model_name}!')
-        return model_name
-
     # Test pretrained model
+
     def predict(self):
+        stack = self.load_data(self.test_pts)
         from tensorflow.keras.models import load_model
 
         # Load pretrained model
@@ -173,7 +189,6 @@ class NetworkModel(object):
 
         # Load test data
         stack = self.load_data(self.test_pts)
-
         for key, value in stack.items():
             for state, pair in value.items():
                 if state == 'UNKNOWN':
@@ -188,27 +203,17 @@ class NetworkModel(object):
                 # print(type(ld_raw))
 
                 img = ld_raw
-                ld_data = ld.reshape(1, 128, 128, -1, 2)
+                ld_data = ld.reshape(1, 128, 128, -1, 1)
+                print(ld_data.shape)
 
                 # Inference
                 print(f'Predicting patient {key}...')
-                # predicted = np.empty((111, 128, 128))
+                z = self.patch_size
+
                 predicted = np.empty((128, 128, 111))
-                z = 16
-
-                # for z_index in range(int(z/2), 111-int(z/2)):
-                #     predicted_stack = model.predict(ld_data)
-                #     if z_index == int(z/2):
-                #         for ind in range(int(z/2)):
-                #             predicted[ind, :, :] = predicted_stack[0, :, :, ind].reshape(128, 128)
-                #     if z_index == 111-int(z/2)-1:
-                #         for ind in range(int(z/2)):
-                #             predicted[z_index+ind, :, :] = predicted_stack[0, :, :, int(z/2)+ind].reshape(128, 128)
-                #     predicted[z_index, :, :] = predicted_stack[0, :, :, int(z/2)].reshape(128, 128)
-                # predicted_full = predicted
-
-                for z_index in range(int(z/2), 111-int(z/2)):
-                    predicted_stack = model.predict(ld_data)
+                for z_index in range(int(z/2),111-int(z/2)):
+                    predicted_stack = model.predict(ld_data[:,:,:,z_index-int(z/2):z_index+int(z/2),:].reshape(1,128,128,16,1))
+                    print(predicted_stack.shape)
                     if z_index == int(z/2):
                         for ind in range(int(z/2)):
                             predicted[:, :, ind] = predicted_stack[0, :, :, ind].reshape(128, 128)
@@ -230,14 +235,6 @@ class NetworkModel(object):
         if os.path.exists(self.model_outname+".h5"):
             print("Model %s exists" % self.model_outname)
 
-        # Resume previous training:
-        if self.continue_train:
-            from tensorflow.keras.models import load_model
-            
-            model_name = self.get_model()
-            self.model = load_model(model_name)
-            self.model.compile()
-
         # Initialise training
-        self.model_train(self.model_outname, 128, 128, 16, 2, self.epoch,
+        self.model_train(self.model_outname, 128, 128, 16, 1, self.epoch,
                          self.epoch_step, self.batch_size, self.lr, self.initial_epoch)
