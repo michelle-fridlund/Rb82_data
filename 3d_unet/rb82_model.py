@@ -204,7 +204,6 @@ class NetworkModel(object):
 
                 img = ld_raw
                 ld_data = ld.reshape(1, 128, 128, -1, 1)
-                print(ld_data.shape)
 
                 # Inference
                 print(f'Predicting patient {key}...')

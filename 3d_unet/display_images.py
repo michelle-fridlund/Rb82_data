@@ -100,7 +100,7 @@ def load_nib(args):
         img = nib.load(i)
         d_type = img.header.get_data_dtype()  # get data type from nifti header
         img2 = normalise(args, np.array(img.get_fdata(), dtype=np.dtype(d_type)))
-
+        #print(np.amax(img2))
         (a, b, c) = img2.shape
 
         save_dir = output_dir(args, i)

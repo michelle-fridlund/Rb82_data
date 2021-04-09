@@ -23,7 +23,7 @@ def create_dir(output):
 
 def get_name(string, **name_):
     if name_.get("regex") == "date":
-        return (re.search('(\/homes\/michellef\/my_projects\/rb82_data\/PET_OCT8_Anonymous_JSReconReady)\/(?<=\/)(.*)', string)).group(2)
+        return (re.search('(\/homes\/michellef\/my_projects\/paediatrics_fdg_data\/rawdata_18March_PETCT_anonymous)\/(?<=\/)(.*)', string)).group(2)
     if name_.get("regex") == "path":
         return (re.search('\/homes\/michellef\/(.*)', string)).group(1)
     else:
@@ -46,12 +46,21 @@ def find_LM(pt, **name_):
 
 
 # Find paths
+# def get_paths(dir_path):
+#     paths = []
+#     for (dirpath, dirnames, filenames) in os.walk(dir_path):
+#         dirname = str(Path(dirpath).relative_to(dir_path))
+#         if '/REST' in str(dirname) and 'IMA' not in str(dirname) and 'CT' not in str(dirname) \
+#                 or '/STRESS' in str(dirname) and 'IMA' not in str(dirname) and 'CT' not in str(dirname):
+#             new_path = Path(os.path.join(dir_path, dirname))
+#             paths.append(new_path)
+#     return paths
+
 def get_paths(dir_path):
     paths = []
     for (dirpath, dirnames, filenames) in os.walk(dir_path):
         dirname = str(Path(dirpath).relative_to(dir_path))
-        if '/REST' in str(dirname) and 'IMA' not in str(dirname) and 'CT' not in str(dirname) \
-                or '/STRESS' in str(dirname) and 'IMA' not in str(dirname) and 'CT' not in str(dirname):
+        if 'CT' not in str(dirname):
             new_path = Path(os.path.join(dir_path, dirname))
             paths.append(new_path)
     return paths
@@ -61,8 +70,12 @@ def find_files(dir_path):
     LM_list = {}
     paths = get_paths(dir_path)
     for new_path in paths:
-        name = get_name(str(new_path), regex='date')
+        try:
+            name = get_name(str(new_path), regex='date')
+        except:
+            continue
         ptds = find_LM(new_path, number='one')
+        print(ptds)
         LM_list[name] = str(ptds)
     return LM_list
 
@@ -71,20 +84,21 @@ def find_files(dir_path):
 def LM_chopper(data_path, new_path):
     name = get_name(data_path, regex='path')
     my_dir = name.replace("/", "\\")
-    string = f'cscript C:\\JSRecon12\\LMChopper64\\LMChopper64.js Z:\\{my_dir}'
-    create_dir(new_path)
-    os.chdir(new_path)
-    f = open("run.bat", "w")
-    # write line to output file
-    f.write(string)
-    f.close()
-    # os.remove('run.bat')
+    print(my_dir)
+    # string = f'cscript C:\\JSRecon12\\LMChopper64\\LMChopper64.js Z:\\{my_dir}'
+    # create_dir(new_path)
+    # os.chdir(new_path)
+    # f = open("run.bat", "w")
+    # # write line to output file
+    # f.write(string)
+    # f.close()
+    # # os.remove('run.bat')
 
 
 def prep_chopper(dir_path):
     l = find_files(dir_path)
     for k, v in l.items():
-        new_path = os.path.join('/homes/michellef/my_projects/rb82_data/PET_LMChopper_OCT8', k)
+        new_path = os.path.join('/homes/michellef/my_projects/paediatrics_fdg_data/fgd_lm_chopper', k)
         LM_chopper(v, new_path)
 
 
@@ -95,15 +109,13 @@ def delete_files(dir_path):
         for p in ptds:
             file = os.path.basename(str(p))
             print(file)
-
         # print(ptds[2]) # PLEASE MAKE SURE THE FILES ARE CORRECT FIRST!
         # os.remove(ptds[2])
         # os.chdir(str(new_path))
         # os.remove('TempDicomHeader.IMA')
 
+
 # Copy selected low dose into previously structured/copied folder
-
-
 def copy_files(dir_path, dst):
     my_ptds = {}
     for (dirpath, dirnames, filenames) in os.walk(dir_path):
@@ -120,13 +132,13 @@ def copy_files(dir_path, dst):
             else:
                 print(f'{dirname} has {len(ptds)} files!!!')
                 pass
-    # print(my_ptds.values())
-    with Bar('Loading LISTMODE:', suffix='%(percent)d%%') as bar:
-        for k, v in my_ptds.items():  # Add progress bar here
-            save_path = os.path.join(dst, k)
-            create_dir(save_path)
-            copyfile(v, os.path.join(save_path, os.path.basename(v)))
-            bar.next()
+        # print(my_ptds.values())
+        with Bar('Loading LISTMODE:', suffix='%(percent)d%%') as bar:
+            for k, v in my_ptds.items():  # Add progress bar here
+                save_path = os.path.join(dst, k)
+                create_dir(save_path)
+                copyfile(v, os.path.join(save_path, os.path.basename(v)))
+                bar.next()
     print('Done!!!')
 
 
@@ -141,7 +153,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     mode = str(args.mode)
     year = str(args.year)
-    
+
     # TODO: Use relative paths
     # TODO: Read relative path from script arguments using an argument parser
 
@@ -152,7 +164,7 @@ if __name__ == "__main__":
 
    # ALSO USE THIS FOR DELETING ANY GIVEN DOSE LEVEL
     if mode == 'delete':
-       delete_files(dst)  # Delete original LM file
+        delete_files(dst)  # Delete original LM file
     # One at a time
     elif mode == 'copy':
         copy_files(dir_path, dst)
@@ -160,4 +172,5 @@ if __name__ == "__main__":
     else:
         # TODO: Use relative path
         # TODO: Read path from argument (maybe?)
-        prep_chopper('/homes/michellef/my_projects/rb82_data/PET_OCT8_Anonymous_JSReconReady/')
+        find_files('/homes/michellef/my_projects/paediatrics_fdg_data/rawdata_18March_PETCT_anonymous/')
+        # prep_chopper('/homes/michellef/my_projects/paediatrics_fdg_data/rawdata_18March_PETCT_anonymous/')
