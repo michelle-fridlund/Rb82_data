@@ -81,7 +81,7 @@ def load_patients(args):
     # Limit number of patients
     if args.maxp:
         im_path = im_path[0:args.maxp+1]
-        
+
     for p in im_path:
         im = find_nifti(p)
         if not len(im) == 0:
@@ -100,7 +100,7 @@ def load_nib(args):
         img = nib.load(i)
         d_type = img.header.get_data_dtype()  # get data type from nifti header
         img2 = normalise(args, np.array(img.get_fdata(), dtype=np.dtype(d_type)))
-        #print(np.amax(img2))
+
         (a, b, c) = img2.shape
 
         save_dir = output_dir(args, i)
