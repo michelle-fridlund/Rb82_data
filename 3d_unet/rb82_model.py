@@ -212,7 +212,7 @@ class NetworkModel(object):
                 predicted = np.empty((128, 128, 111))
                 for z_index in range(int(z/2),111-int(z/2)):
                     predicted_stack = model.predict(ld_data[:,:,:,z_index-int(z/2):z_index+int(z/2),:].reshape(1,128,128,16,1))
-                    print(predicted_stack.shape)
+                    #print(predicted_stack.shape)
                     if z_index == int(z/2):
                         for ind in range(int(z/2)):
                             predicted[:, :, ind] = predicted_stack[0, :, :, ind].reshape(128, 128)
