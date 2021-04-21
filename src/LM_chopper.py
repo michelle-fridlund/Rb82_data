@@ -23,7 +23,7 @@ def create_dir(output):
 
 def get_name(string, **name_):
     if name_.get("regex") == "date":
-        return (re.search('(\/homes\/michellef\/my_projects\/paediatrics_fdg_data\/rawdata_18March_PETCT_anonymous)\/(?<=\/)(.*)', string)).group(2)
+        return (re.search('(\/homes\/michellef\/my_projects\/paediatrics_fdg_data\/fgd_lm_chopper)\/(?<=\/)(.*)', string)).group(2)
     if name_.get("regex") == "path":
         return (re.search('\/homes\/michellef\/(.*)', string)).group(1)
     else:
@@ -40,7 +40,7 @@ def find_LM(pt, **name_):
         if 'ptd' in f.name:
             ptds.append(f)
     if name_.get("number") == "one":
-        return ptds[1]
+        return ptds[14]
     else:  # Custom
         return ptds
 
@@ -74,8 +74,7 @@ def find_files(dir_path):
             name = get_name(str(new_path), regex='date')
         except:
             continue
-        ptds = find_LM(new_path, number='one')
-        print(ptds)
+        ptds = find_LM(new_path, number = 'one')
         LM_list[name] = str(ptds)
     return LM_list
 
@@ -84,21 +83,22 @@ def find_files(dir_path):
 def LM_chopper(data_path, new_path):
     name = get_name(data_path, regex='path')
     my_dir = name.replace("/", "\\")
-    print(my_dir)
-    # string = f'cscript C:\\JSRecon12\\LMChopper64\\LMChopper64.js Z:\\{my_dir}'
+    # print(my_dir)
+    string = f'cscript C:\\JSRecon12\\LMChopper64\\LMChopper64.js Z:\\{my_dir}'
     # create_dir(new_path)
-    # os.chdir(new_path)
-    # f = open("run.bat", "w")
-    # # write line to output file
-    # f.write(string)
-    # f.close()
+    os.chdir(new_path)
+    f = open("run.bat", "w")
+    # write line to output file
+    f.write(string)
+    f.close()
     # # os.remove('run.bat')
 
 
 def prep_chopper(dir_path):
     l = find_files(dir_path)
     for k, v in l.items():
-        new_path = os.path.join('/homes/michellef/my_projects/paediatrics_fdg_data/fgd_lm_chopper', k)
+        # new_path = os.path.join('/homes/michellef/my_projects/paediatrics_fdg_data/fgd_lm_chopper', k)
+        new_path = '/homes/michellef/my_projects/paediatrics_fdg_data/fgd_lm_chopper/0630c6a2-1fd6-4d4e-bfaf-93a9d6fed142'
         LM_chopper(v, new_path)
 
 
@@ -172,5 +172,4 @@ if __name__ == "__main__":
     else:
         # TODO: Use relative path
         # TODO: Read path from argument (maybe?)
-        find_files('/homes/michellef/my_projects/paediatrics_fdg_data/rawdata_18March_PETCT_anonymous/')
-        # prep_chopper('/homes/michellef/my_projects/paediatrics_fdg_data/rawdata_18March_PETCT_anonymous/')
+        prep_chopper('/homes/michellef/my_projects/paediatrics_fdg_data/fgd_lm_chopper/0630c6a2-1fd6-4d4e-bfaf-93a9d6fed142_test')

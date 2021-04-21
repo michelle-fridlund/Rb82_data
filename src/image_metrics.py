@@ -77,6 +77,13 @@ def get_metrics(hd_path, ld_path):
     return metrics
 
 
+# Read test patient names from a pkl file
+def read_pickle(pkl_file):
+    summary = pickle.load(open('%s' % pkl_file, 'rb'))
+    # Test patients are alist of a list
+    return summary['test'][0]
+
+
 # Write metrics into pkl
 def build_pickle(hd_path, ld_path):
     metrics = get_metrics(hd_path, ld_path)
@@ -102,7 +109,8 @@ def get_stats(hd_path, ld_path):
     print(f"PSNR value is: {np.mean(psnr):.4f} + {err(psnr):.4f}")
     print(f"SSIM value is: {np.mean(ssim):.4f} + {err(ssim):.4f}")
     print(f"NRMSE value is: {np.mean(nrmse):.4f} + {err(nrmse):.4f}")
-    print(f"CV in target: {np.mean(cv_hd):.4f}% + {err(cv_hd):.4f}%; CV in low-dose: {np.mean(cv_ld):.4f}% + {err(cv_ld):.4f}")
+    print(
+        f"CV in target: {np.mean(cv_hd):.4f}% + {err(cv_hd):.4f}%; CV in low-dose: {np.mean(cv_ld):.4f}% + {err(cv_ld):.4f}")
 
 
 if __name__ == "__main__":
@@ -111,15 +119,22 @@ if __name__ == "__main__":
     required_args = parser.add_argument_group('required arguments')
 
     # Required args: output image type and data path
-    required_args.add_argument("--hd", dest='hd',  help="Path to target image directory", required=True)
-    required_args.add_argument("--ld", dest='ld',  help="Path to low-dose image directory", required=True)
+    # required_args.add_argument("--hd", dest='hd',  help="Path to target image directory", required=True)
+    # required_args.add_argument("--ld", dest='ld',  help="Path to low-dose image directory", required=True)
+
+    # Specify a pkl file for list of patients
+    parser.add_argument('--pkl', dest='pkl_path',
+                        default='/homes/michellef/my_projects/rb82_data/Dicoms_OCT8/data.pickle', help="dicom file directory")
 
     # Read arguments from the command line
     args = parser.parse_args()
 
-    hd_path = args.hd
-    ld_path = args.ld
+    # hd_path = args.hd
+    # ld_path = args.ld
 
-    get_stats(hd_path, ld_path)
+    pkl_path = args.pkl_path
 
+    
+    #get_stats(hd_path, ld_path)
+    read_pickle(pkl_path)
     print('Done.')
