@@ -156,12 +156,12 @@ class DCMDataLoader(object):
                 #Reshape into appropriate tensor dimension for augmentation and training
                 ld = ld_whole[:, :, z-8:z+8, :].reshape(1,128,128,16,1)
                 hd = hd_whole[:, :, z-8:z+8, :].reshape(1,128,128,16,1)
-
+                
 
                 # Apply augmentation
                 if self.phase == 'train' and self.augment:
                     ld, hd = self.augment_data(ld, hd)
-
+                
                 # Ensure there is one nifti file for each state
                 if stack_dict.get(patient, {}).get(patient_state):
                     print(f'There are more nifti files for patient {patient} than needed. Skipping this patient...')

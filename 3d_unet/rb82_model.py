@@ -28,7 +28,8 @@ class NetworkModel(object):
         self.data_path = args.data_path
         self.ld_path = args.ld_path
         # pickle file
-        self.summary = pickle.load(open('%s/data.pickle' % self.data_path, 'rb'))
+        self.summary = pickle.load(
+            open('%s/data.pickle' % self.data_path, 'rb'))
 
         self.kfold = args.kfold
         self.train_pts = 'train_{}'.format(self.kfold)
@@ -55,9 +56,11 @@ class NetworkModel(object):
         self.batch_size = args.batch_size
 
         # Variable to scale the epoch step to the number of training patients used
-        n_batches = len(self.summary['train']) if 'train' in self.summary else len(self.summary[self.train_pts])
+        n_batches = len(self.summary['train']) if 'train' in self.summary else len(
+            self.summary[self.train_pts])
 
-        self.epoch_step = n_batches*(self.image_size//self.patch_size)//self.batch_size  # integer value
+        self.epoch_step = n_batches * \
+            (self.image_size//self.patch_size)//self.batch_size  # integer value
         self.epoch = args.epoch
         self.initial_epoch = args.initial_epoch
 
@@ -71,6 +74,15 @@ class NetworkModel(object):
     def mkdir_(self, output):
         if not os.path.exists(output):
             os.makedirs(output)
+
+    # Learning rate scheduler that retains lr for 10 epochs
+    # and decreases exponentially thereafter
+    def scheduler(self, epoch, lr):
+        import tensorflow as tf
+        if epoch < 10:
+            return lr
+        else:
+            return lr * tf.math.exp(-0.1)
 
     # Load numpy arrays
     def load_data(self, mode):
@@ -113,7 +125,8 @@ class NetworkModel(object):
             model_name = self.model_outname + '.h5'
         else:
             # Last saved iteration
-            checkpoint_models = glob.glob('checkpoint/{}*.h5'.format(self.model_outname))
+            checkpoint_models = glob.glob(
+                'checkpoint/{}*.h5'.format(self.model_outname))
             if not checkpoint_models:
                 print('No pretrained models found')
                 exit(-1)
@@ -133,7 +146,7 @@ class NetworkModel(object):
 
         import network
         import tensorflow as tf
-        from tensorflow.keras.callbacks import ModelCheckpoint, TensorBoard
+        from tensorflow.keras.callbacks import ModelCheckpoint, TensorBoard, LearningRateScheduler
 
         # Generators
         data_train_gen = tf.data.Dataset.from_generator(self.generator_train,
@@ -153,15 +166,22 @@ class NetworkModel(object):
         if self.continue_train:
             initial_model = self.get_model()
 
-        self.model = network.prepare_3D_unet(x, y, z, d, initialize_model=initial_model, lr=lr, loss=loss)
+        self.model = network.prepare_3D_unet(
+            x, y, z, d, initialize_model=initial_model, lr=lr, loss=loss)
 
         self.mkdir_('checkpoint/TB/{}'.format(model_outname))
-        filepath = os.path.join('checkpoint', model_outname + "_e{epoch:03d}.h5")
-        checkpoint = ModelCheckpoint(filepath, verbose=1, save_freq='epoch')  # use save_freq
+        filepath = os.path.join(
+            'checkpoint', model_outname + "_e{epoch:03d}.h5")
+        
+        checkpoint = ModelCheckpoint(
+            filepath, verbose=1, save_freq='epoch')  # use save_freq
 
         tbCallBack = TensorBoard(log_dir='checkpoint/TB/{}'.format(model_outname),
                                  histogram_freq=0, write_graph=True, write_images=True, profile_batch=0)
-        callbacks_list = [checkpoint, tbCallBack]
+        
+        schedule_callback = LearningRateScheduler(self.scheduler)
+        
+        callbacks_list = [checkpoint, tbCallBack, schedule_callback]
 
         # Train model on dataset
         self.model.fit(data_train_gen,
@@ -210,23 +230,29 @@ class NetworkModel(object):
                 z = self.patch_size
 
                 predicted = np.empty((128, 128, 111))
-                for z_index in range(int(z/2),111-int(z/2)):
-                    predicted_stack = model.predict(ld_data[:,:,:,z_index-int(z/2):z_index+int(z/2),:].reshape(1,128,128,16,1))
-                    #print(predicted_stack.shape)
+                for z_index in range(int(z/2), 111-int(z/2)):
+                    predicted_stack = model.predict(
+                        ld_data[:, :, :, z_index-int(z/2):z_index+int(z/2), :].reshape(1, 128, 128, 16, 1))
+                    # print(predicted_stack.shape)
                     if z_index == int(z/2):
                         for ind in range(int(z/2)):
-                            predicted[:, :, ind] = predicted_stack[0, :, :, ind].reshape(128, 128)
+                            predicted[:, :, ind] = predicted_stack[0,
+                                                                   :, :, ind].reshape(128, 128)
                     if z_index == 111-int(z/2)-1:
                         for ind in range(int(z/2)):
-                            predicted[:, :, z_index+ind] = predicted_stack[0, :, :, int(z/2)+ind].reshape(128, 128)
-                    predicted[:, :, z_index] = predicted_stack[0, :, :, int(z/2)].reshape(128, 128)
+                            predicted[:, :, z_index+ind] = predicted_stack[0,
+                                                                           :, :, int(z/2)+ind].reshape(128, 128)
+                    predicted[:, :, z_index] = predicted_stack[0,
+                                                               :, :, int(z/2)].reshape(128, 128)
                 predicted_full = predicted
 
                 # Save NIFTI
-                predicted_image = nib.Nifti1Image(predicted_full, img.affine, img.header)
+                predicted_image = nib.Nifti1Image(
+                    predicted_full, img.affine, img.header)
                 save_dir = f'{self.data_path}/{self.model_outname}_predicted/{key}'
                 self.mkdir_(save_dir)
-                nib.save(predicted_image, f'{save_dir}/{key}_{state.lower()}_predicted.nii.gz')
+                nib.save(predicted_image,
+                         f'{save_dir}/{key}_{state.lower()}_predicted.nii.gz')
         print('Done.')
 
     def train(self):

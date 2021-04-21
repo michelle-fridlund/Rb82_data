@@ -84,4 +84,5 @@ def prepare_3D_unet(x, y, z, d, initialize_model=None, classification=False, lr=
             exit('did not find model %s' % initialize_model)
 
     model.compile(optimizer=Adam(lr=lr), loss='mean_absolute_error', metrics=['mean_absolute_error', 'acc'])
+    print('Learning rate: ' + str(round(model.optimizer.lr.numpy(), 5)))
     return model
