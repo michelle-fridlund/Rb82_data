@@ -74,7 +74,7 @@ def retain_lm(pt, dose):
     c = 0
     for k, v in tqdm(tags.items()):
         if 'LISTMODE' in v:
-            print(k)
+            print(v)
             ptd_path = '%s/%s.ptd' % (str(pt), k)
             c += 1
             if dose is not None:

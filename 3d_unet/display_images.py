@@ -12,10 +12,10 @@ import glob
 import argparse
 import nibabel as nib
 from pathlib import Path
+import pickle
+
 
 # Create parser
-
-
 def parse_bool(b):
     b = b.lower()
     if b == 'true':
@@ -36,7 +36,8 @@ def mkdir_(output):
 def output_dir(args, i):
     # Create save dir from /homes/michellef/recon_im
     if args.original == True:
-        rel_path = os.path.relpath(Path(i).with_suffix('').with_suffix(''), args.data)
+        rel_path = os.path.relpath(
+            Path(i).with_suffix('').with_suffix(''), args.data)
         type_ = os.path.basename(Path(args.data))
         save_dir = f'/homes/michellef/recon_im/{type_}/{rel_path}'
     # Create save dir from filename (network output)
@@ -45,18 +46,35 @@ def output_dir(args, i):
     return save_dir
 
 
+# Return all nifti files in a directory
 def find_nifti(path):
     return [i for i in glob.glob("{}/*.nii.gz".format(path), recursive=True)]
 
 
-def find_patients(dir_path):
+# Read test patient names from a pkl file
+def read_pickle(pkl_file):
+    summary = pickle.load(open('%s' % pkl_file, 'rb'))
+    # Test patients are alist of a list
+    return summary['test'][0]
+
+
+def find_patients(args):
     paths = []
-    for (dirpath, dirnames, filenames) in os.walk(dir_path):
-        dirname = str(Path(dirpath).relative_to(dir_path))
-        if '/REST' not in str(dirname) and '/STRESS' not in str(dirname) \
-                and '/Sinograms' not in str(dirname):
-            new_path = Path(os.path.join(dir_path, dirname))
-            paths.append(new_path)
+    dir_path = str(args.data)
+    # Read from pickle
+    if args.pkl_path:
+        patients = read_pickle(str(args.pkl_path))
+        
+        for p in patients:
+            paths.append(os.path.join(dir_path,p))
+    # Find paths manually
+    else:        
+        for (dirpath, dirnames, filenames) in os.walk(dir_path):
+            dirname = str(Path(dirpath).relative_to(dir_path))
+            if '/REST' not in str(dirname) and '/STRESS' not in str(dirname) \
+                    and '/Sinograms' not in str(dirname):
+                new_path = Path(os.path.join(dir_path, dirname))
+                paths.append(new_path)
     return paths
 
 
@@ -66,7 +84,8 @@ def normalise(args, pixels):
     if args.norm == True and args.suv == False:
         return np.array(pixels/65535, dtype=np.dtype(d_type))  # ~ [0,1]
     if args.suv == True and args.norm == False:
-        return np.array(pixels*80000/(1149), dtype=np.dtype(d_type))  # SUV nromalised
+        # SUV nromalised
+        return np.array(pixels*80000/(1149), dtype=np.dtype(d_type))
     if args.norm == True and args.suv == True:
         return np.array(pixels*4*80000/(65535*1149), dtype=np.dtype(d_type))
     else:
@@ -76,7 +95,8 @@ def normalise(args, pixels):
 def load_patients(args):
     images = []
     # Specific patient
-    im_path = [os.path.join(str(args.data), str(args.patient))] if args.patient else find_patients(str(args.data))
+    im_path = [os.path.join(str(args.data), str(
+        args.patient))] if args.patient else find_patients(args)
 
     # Limit number of patients
     if args.maxp:
@@ -99,7 +119,8 @@ def load_nib(args):
     for i in images:
         img = nib.load(i)
         d_type = img.header.get_data_dtype()  # get data type from nifti header
-        img2 = normalise(args, np.array(img.get_fdata(), dtype=np.dtype(d_type)))
+        img2 = normalise(args, np.array(
+            img.get_fdata(), dtype=np.dtype(d_type)))
 
         (a, b, c) = img2.shape
 
@@ -138,8 +159,10 @@ if __name__ == "__main__":
     required_args = parser.add_argument_group('required arguments')
 
     # Required args: output image type and data path
-    required_args.add_argument("--mode", "-m", dest='mode',  help="nib/ants", required=True)
-    required_args.add_argument("--data", "-d", dest='data',  help="patient directory", required=True)
+    required_args.add_argument(
+        "--mode", "-m", dest='mode',  help="nib/ants", required=True)
+    required_args.add_argument(
+        "--data", "-d", dest='data',  help="patient directory", required=True)
     # Changes save directory if niftis are not network output
     required_args.add_argument("--original", "-o", dest='original', type=parse_bool,
                                help="original (True)/predicted (False)", required=True)
@@ -153,14 +176,19 @@ if __name__ == "__main__":
     # Choose single patient to process
     parser.add_argument('--patient', '-p', dest='patient', help='patient name')
     # Limit number of patient to process
-    parser.add_argument('--maxp', dest='maxp', type=int, help='maximum number of patient to process')
+    parser.add_argument('--maxp', dest='maxp', type=int,
+                        help='maximum number of patient to process')
 
+     # Specify a pkl file for list of patients
+    parser.add_argument('--pkl', dest='pkl_path', help="dicom file directory")
+    
     # Read arguments from the command line
     args = parser.parse_args()
 
     mode = str(args.mode)
 
     if mode == 'nib':
+        # load_nib(args)
         load_nib(args)
     elif mode == 'ants':
         load_ants(args)

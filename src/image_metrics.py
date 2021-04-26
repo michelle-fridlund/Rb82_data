@@ -65,7 +65,7 @@ def get_metrics(hd_path, ld_path):
 
     hd = load_images(hd_path)
     ld = load_images(ld_path)
-    print(f'{len(hd)} hd and {len(ld)} ld images found')
+    # print(f'{len(hd)} hd and {len(ld)} ld images found')
 
     for im_hd, im_ld in zip(hd, ld):
         metrics['psnr'].append(psnr_(im_hd, im_ld))
@@ -80,32 +80,96 @@ def get_metrics(hd_path, ld_path):
 # Read test patient names from a pkl file
 def read_pickle(pkl_file):
     summary = pickle.load(open('%s' % pkl_file, 'rb'))
-    # Test patients are alist of a list
+    # Test patients are a list of a list
     return summary['test'][0]
 
 
 # Write metrics into pkl
 def build_pickle(hd_path, ld_path):
     metrics = get_metrics(hd_path, ld_path)
-    os.chdir(ld_path)
-    with open('im_metrics.pickle', 'wb') as p:
+    # here = os.path.dirname(os.path.abspath(__file__))
+    with open(os.path.join(ld_path, 'im_metrics.pickle'), 'wb') as p:
         pickle.dump(metrics, p)
-
+    print('.')
 
 # Extract info from pkl
-def get_stats(hd_path, ld_path):
-    print('ping')
-    # Check if pkl exists already
-    if not (Path('%s/im_metrics.pickle' % ld_path)).exists():
-        build_pickle(hd_path, ld_path)
-    print('pong')
-    p = pickle.load(open('%s/im_metrics.pickle' % ld_path, 'rb'))
 
+
+def get_stats(p):
     psnr = p['psnr']
     ssim = p['ssim']
     nrmse = p['nrmse']
     cv_hd = p['cv_hd']
     cv_ld = p['cv_ld']
+    return psnr, ssim, nrmse, cv_hd, cv_ld
+
+# Create a dictionary where patients are keys with hd/ld values
+
+
+def find_patients(args):
+    patient_dict = {}
+    patients = read_pickle(str(args.pkl_path))
+    # Change this to {p}_rest/stress_predicted for inferecd
+    folder = '3_stress-lm-00-psftof_000_000_ctmv_4i_21s'
+    for p in patients:
+        patient_dict[p] = {'hd': os.path.join(
+            str(args.hd), p, folder), 'ld': os.path.join(str(args.ld), p, folder)}
+    return patient_dict
+
+# Append individual metric values for all image slices for all patient keys
+
+
+def evaluate_patients(args):
+    patient_dict = find_patients(args)
+    stats_dict = {}
+    for k in patient_dict.keys():
+        for v in patient_dict.values():
+            total_metrics = {'psnr': [],
+                             'ssim': [],
+                             'nrmse': [],
+                             'cv_hd': [],
+                             'cv_ld': [], }
+            # Check if pkl exists already
+            if not (Path('%s/im_metrics.pickle' % v['ld'])).exists():
+                build_pickle(v['hd'], v['ld'])
+            p = pickle.load(open('%s/im_metrics.pickle' % v['ld'], 'rb'))
+            # TODO: technically could populate an array here, don't need dict
+            # and reduce by 1 fucntion
+            psnr, ssim, nrmse, cv_hd, cv_ld = get_stats(p)
+            total_metrics['psnr'].append(psnr)
+            total_metrics['ssim'].append(ssim)
+            total_metrics['nrmse'].append(nrmse)
+            total_metrics['cv_hd'].append(cv_hd)
+            total_metrics['cv_ld'].append(cv_ld)
+        stats_dict[k] = total_metrics
+    return stats_dict
+
+# Extract overall
+
+
+def overall_stats(args):
+    psnr_ = []
+    ssim_ = []
+    nrmse_ = []
+    cv_hd_ = []
+    cv_ld_ = []
+    stats_dict = evaluate_patients(args)
+    for k, v in stats_dict.items():
+        psnr = np.array(v['psnr'][0])
+        ssim = np.array(v['ssim'][0])
+        nrmse = np.array(v['nrmse'][0])
+        cv_hd = np.array(v['cv_hd'][0])
+        cv_ld = np.array(v['cv_ld'][0])
+        for p in psnr:
+            psnr_.append(p)
+        for s in ssim:
+            ssim_.append(s)
+        for r in nrmse:
+            nrmse_.append(r)
+        for h in cv_hd:
+            cv_hd_.append(h)
+        for l in cv_ld:
+            cv_ld_.append(l)
     print(f"PSNR value is: {np.mean(psnr):.4f} + {err(psnr):.4f}")
     print(f"SSIM value is: {np.mean(ssim):.4f} + {err(ssim):.4f}")
     print(f"NRMSE value is: {np.mean(nrmse):.4f} + {err(nrmse):.4f}")
@@ -119,22 +183,23 @@ if __name__ == "__main__":
     required_args = parser.add_argument_group('required arguments')
 
     # Required args: output image type and data path
-    # required_args.add_argument("--hd", dest='hd',  help="Path to target image directory", required=True)
-    # required_args.add_argument("--ld", dest='ld',  help="Path to low-dose image directory", required=True)
+    required_args.add_argument(
+        "--hd", dest='hd',  help="Path to target image directory", required=True)
+    required_args.add_argument(
+        "--ld", dest='ld',  help="Path to low-dose image directory", required=True)
 
     # Specify a pkl file for list of patients
-    parser.add_argument('--pkl', dest='pkl_path',
-                        default='/homes/michellef/my_projects/rb82_data/Dicoms_OCT8/data.pickle', help="dicom file directory")
+    parser.add_argument('--pkl', dest='pkl_path', help="pickle file path")
 
     # Read arguments from the command line
     args = parser.parse_args()
 
-    # hd_path = args.hd
-    # ld_path = args.ld
+    hd_path = args.hd
+    ld_path = args.ld
 
-    pkl_path = args.pkl_path
+    if args.pkl_path:
+        overall_stats(args)
+    else:
+        get_stats(hd_path, ld_path)
 
-    
-    #get_stats(hd_path, ld_path)
-    read_pickle(pkl_path)
     print('Done.')
