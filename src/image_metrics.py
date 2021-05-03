@@ -16,6 +16,7 @@ import nibabel as nib
 from math import log10, sqrt
 import matplotlib.pyplot as plt
 from pathlib import Path
+from skimage.metrics import peak_signal_noise_ratio, structural_similarity, normalized_root_mse
 
 folder = '3_rest-lm-00-psftof_000_000_ctmv_4i_21s'
 
@@ -30,9 +31,9 @@ def normalise(img, **dose_):
     d_type = img.header.get_data_dtype()
     np_im = np.array(img.get_fdata(), dtype=np.dtype(d_type))
     if dose_.get("dose_") == "ld":
-        return np.array(np_im*4/(65535), dtype=np.dtype(d_type))
+        return np.array(np_im*4.0/(65535.0), dtype=np.dtype(d_type))
     else:
-        return np.array(np_im/(65535), dtype=np.dtype(d_type))
+        return np.array(np_im/(65535.0), dtype=np.dtype(d_type))
     
 
 # Return PSNR as compared to respective target
@@ -45,18 +46,31 @@ def psnr_(hd, ld):
     return psnr
 
 
+# # Return normalsed RMSE as compared to respective target
+# def rmse_(hd, ld):
+#     rmse = sqrt(np.mean((hd - ld) ** 2))/np.mean(hd)
+#     return rmse
+
+# #TODO: try skimage.metrics module instead
+
+# # Return structural similarity index, hd is target
+# def ssim_(hd, ld):
+#     from skimage.measure import compare_ssim as ssim
+#     svalue = ssim(hd, ld, multichannel=True)
+#     return svalue
+
+# Return PSNR as compared to respective target
+# def psnr_(hd, ld):
+#     return peak_signal_noise_ratio(hd, ld)
+
+
 # Return normalsed RMSE as compared to respective target
 def rmse_(hd, ld):
-    rmse = sqrt(np.mean((hd - ld) ** 2))/np.mean(hd)
-    return rmse
-
+    return normalized_root_mse(hd, ld, normalization = 'mean')
 
 # Return structural similarity index, hd is target
 def ssim_(hd, ld):
-    from skimage.measure import compare_ssim as ssim
-    svalue = ssim(hd, ld, multichannel=True)
-    return svalue
-
+    return structural_similarity(hd,ld,multichannel=True)
 
 # Return coefficient of variation
 def cv_(im):
@@ -101,8 +115,7 @@ def get_metrics(args, hd_path, ld_path):
     
     if str(args.mode) == 'nifti':
         hd = normalise(nib.load(os.path.join(str(hd_path), f'{folder}.nii.gz')))
-        ld = normalise(nib.load(os.path.join(str(ld_path), f'{folder}.nii.gz')), dose_='ld')
-        
+        ld = normalise(nib.load(os.path.join(str(ld_path), f'{folder}.nii.gz')), dose_ = 'ld')
         
     for im_hd, im_ld in zip(hd, ld):
         metrics['psnr'].append(psnr_(im_hd, im_ld))
