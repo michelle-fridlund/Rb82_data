@@ -64,11 +64,11 @@ def find_patients(args):
     # Read from pickle
     if args.pkl_path:
         patients = read_pickle(str(args.pkl_path))
-        
+
         for p in patients:
-            paths.append(os.path.join(dir_path,p))
+            paths.append(os.path.join(dir_path, p))
     # Find paths manually
-    else:        
+    else:
         for (dirpath, dirnames, filenames) in os.walk(dir_path):
             dirname = str(Path(dirpath).relative_to(dir_path))
             if '/REST' not in str(dirname) and '/STRESS' not in str(dirname) \
@@ -97,7 +97,6 @@ def load_patients(args):
     # Specific patient
     im_path = [os.path.join(str(args.data), str(
         args.patient))] if args.patient else find_patients(args)
-
     # Limit number of patients
     if args.maxp:
         im_path = im_path[0:args.maxp+1]
@@ -179,9 +178,9 @@ if __name__ == "__main__":
     parser.add_argument('--maxp', dest='maxp', type=int,
                         help='maximum number of patient to process')
 
-     # Specify a pkl file for list of patients
+    # Specify a pkl file for list of patients
     parser.add_argument('--pkl', dest='pkl_path', help="dicom file directory")
-    
+
     # Read arguments from the command line
     args = parser.parse_args()
 
