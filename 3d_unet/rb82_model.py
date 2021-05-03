@@ -75,15 +75,6 @@ class NetworkModel(object):
         if not os.path.exists(output):
             os.makedirs(output)
 
-    # Learning rate scheduler that retains lr for 10 epochs
-    # and decreases exponentially thereafter
-    def scheduler(self, epoch, lr):
-        import tensorflow as tf
-        if epoch < 10:
-            return lr
-        else:
-            return lr * tf.math.exp(-0.1)
-
     # Load numpy arrays
     def load_data(self, mode):
         args = self.args
@@ -146,7 +137,7 @@ class NetworkModel(object):
 
         import network
         import tensorflow as tf
-        from tensorflow.keras.callbacks import ModelCheckpoint, TensorBoard, LearningRateScheduler
+        from tensorflow.keras.callbacks import ModelCheckpoint, TensorBoard, EarlyStopping, LearningRateScheduler
 
         # Generators
         data_train_gen = tf.data.Dataset.from_generator(self.generator_train,
@@ -159,8 +150,10 @@ class NetworkModel(object):
                                                         output_shapes=(tf.TensorShape((128, 128, 16, 1)), tf.TensorShape((128, 128, 16, 1))))
         # Make sure batches have the same outer dimension
         # repeat() to generate enough batches
-        data_train_gen = data_train_gen.repeat().batch(batch_size, drop_remainder=True)
-        data_valid_gen = data_valid_gen.repeat().batch(batch_size, drop_remainder=True)
+        # data_train_gen = data_train_gen.repeat().batch(batch_size, drop_remainder=True)
+        # data_valid_gen = data_valid_gen.repeat().batch(batch_size, drop_remainder=True)
+        data_train_gen = data_train_gen.batch(batch_size, drop_remainder=True)
+        data_valid_gen = data_valid_gen.batch(batch_size, drop_remainder=True)
 
         # Find pretrained model
         if self.continue_train:
@@ -172,22 +165,22 @@ class NetworkModel(object):
         self.mkdir_('checkpoint/TB/{}'.format(model_outname))
         filepath = os.path.join(
             'checkpoint', model_outname + "_e{epoch:03d}.h5")
-        
+
         checkpoint = ModelCheckpoint(
             filepath, verbose=1, save_freq='epoch')  # use save_freq
 
         tbCallBack = TensorBoard(log_dir='checkpoint/TB/{}'.format(model_outname),
                                  histogram_freq=0, write_graph=True, write_images=True, profile_batch=0)
         
-        schedule_callback = LearningRateScheduler(self.scheduler)
-        
-        callbacks_list = [checkpoint, tbCallBack, schedule_callback]
+        stop_callback = EarlyStopping(monitor = 'loss', patience = 50)
+
+        callbacks_list = [checkpoint, tbCallBack, stop_callback]
 
         # Train model on dataset
         self.model.fit(data_train_gen,
-                       steps_per_epoch=epoch_step,
+                       # steps_per_epoch=epoch_step,
                        validation_data=data_valid_gen,
-                       validation_steps=50,
+                       # validation_steps=50,
                        epochs=epoch,
                        verbose=1,
                        callbacks=callbacks_list,
@@ -205,7 +198,7 @@ class NetworkModel(object):
 
         # Load pretrained model
         model_name = self.get_model()
-        model = load_model(model_name)
+        model = load_model(model_name, compile = False)
 
         # Load test data
         stack = self.load_data(self.test_pts)
