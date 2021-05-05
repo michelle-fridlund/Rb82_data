@@ -16,61 +16,69 @@ import nibabel as nib
 from math import log10, sqrt
 import matplotlib.pyplot as plt
 from pathlib import Path
+from contextlib import suppress
 from skimage.metrics import peak_signal_noise_ratio, structural_similarity, normalized_root_mse
 
-folder = '3_rest-lm-00-psftof_000_000_ctmv_4i_21s'
+
+# Main helper parsers
+def ParseLower(s):
+    return s.lower()
+
+
+def ParseBoolean(s):
+    s = ParseLower(s)
+    if s == 'true':
+        return True
+    elif s == 'false':
+        return False
+    else:
+        raise ValueError('Cannot parse string into boolean.')
 
 
 def load_images(path):
     return [plt.imread(i) for i in glob.glob("{}/*.png".format(path), recursive=True)]
 
+
 def find_nifti(path):
     return [nib.load(i) for i in glob.glob("{}/*.nii.gz".format(path), recursive=True)]
 
+
 def normalise(img, **dose_):
+    # Get data type form nifti header
     d_type = img.header.get_data_dtype()
     np_im = np.array(img.get_fdata(), dtype=np.dtype(d_type))
+    # Normalise to ~ [0,1] and scale inout LD 
     if dose_.get("dose_") == "ld":
         return np.array(np_im*4.0/(65535.0), dtype=np.dtype(d_type))
     else:
         return np.array(np_im/(65535.0), dtype=np.dtype(d_type))
-    
 
 # Return PSNR as compared to respective target
 def psnr_(hd, ld):
     mse = np.mean((hd - ld) ** 2)
     if(mse == 0):
         return 100
-    max_pixel = 255.0
+    max_pixel = 65535.0 #or 4294967294????
     psnr = 20 * log10(max_pixel / sqrt(mse))
     return psnr
 
 
 # # Return normalsed RMSE as compared to respective target
-# def rmse_(hd, ld):
-#     rmse = sqrt(np.mean((hd - ld) ** 2))/np.mean(hd)
-#     return rmse
+def rmse_(hd, ld):
+    rmse = sqrt(np.mean((hd - ld) ** 2))/np.mean(hd)
+    return rmse
 
-# #TODO: try skimage.metrics module instead
-
-# # Return structural similarity index, hd is target
-# def ssim_(hd, ld):
-#     from skimage.measure import compare_ssim as ssim
-#     svalue = ssim(hd, ld, multichannel=True)
-#     return svalue
-
-# Return PSNR as compared to respective target
-# def psnr_(hd, ld):
-#     return peak_signal_noise_ratio(hd, ld)
 
 
 # Return normalsed RMSE as compared to respective target
-def rmse_(hd, ld):
-    return normalized_root_mse(hd, ld, normalization = 'mean')
+# def rmse_(hd, ld):
+#     return normalized_root_mse(hd, ld, normalization='mean')
+
 
 # Return structural similarity index, hd is target
 def ssim_(hd, ld):
-    return structural_similarity(hd,ld,multichannel=True)
+    return structural_similarity(hd, ld, multichannel=False)
+
 
 # Return coefficient of variation
 def cv_(im):
@@ -82,41 +90,74 @@ def err(value):
     return np.std(value)/np.sqrt(len(value))
 
 
-# Create a dictionary where patients are keys with hd/ld values
+# Read test patient names from a pkl file
+def read_pickle(pkl_file):
+    summary = pickle.load(open('%s' % pkl_file, 'rb'))
+    # Test patients are a list of a list
+    return summary['test'][0]
+
+# Generate data pickle name to store image stats
+def get_pkl_name(args):
+    pickle_name = f'im_stats_{args.phase}_{args.mode}.pickle'
+    return pickle_name
+
+# Write metrics into pkl
+def build_pickle(args, hd_path, ld_path):
+    pickle_name = get_pkl_name(args)
+    metrics = get_metrics(args, hd_path, ld_path)
+    with open(os.path.join(ld_path, f'{pickle_name}'), 'wb') as p:
+        pickle.dump(metrics, p)
+    print('.')
+
+
+# Create a dictionary where patients are keys with hd/ld paths are values
 def find_patients(args):
     patient_dict = {}
     patients = read_pickle(str(args.pkl_path))
-    
+
+    folder = f'3_{args.phase}-lm-00-psftof_000_000_ctmv_4i_21s'
+
     # Change this to {p}_rest/stress_predicted for inferecd
     for p in patients:
         if str(args.mode) == 'numpy':
             patient_dict[p] = {'hd': os.path.join(
-                str(args.hd), p, folder), 'ld': os.path.join(str(args.ld), p, f'{p}_rest_predicted')}
-    
+                str(args.hd), p, folder), 'ld': os.path.join(str(args.ld), p, f'{p}_{args.phase}_predicted')}
+
         elif str(args.mode) == 'nifti':
             patient_dict[p] = {'hd': os.path.join(
                 str(args.hd), p), 'ld': os.path.join(str(args.ld), p)}
-            
+
     return patient_dict
 
 
 # Create a dictionary with all metrics for low-dose directory
 def get_metrics(args, hd_path, ld_path):
 
+    folder = f'3_{args.phase}-lm-00-psftof_000_000_ctmv_4i_21s'
+
     metrics = {'psnr': [],
                'ssim': [],
                'nrmse': [],
                'cv_hd': [],
                'cv_ld': [], }
-    
+
+    # Load .png images from subdirectory
     if str(args.mode) == 'numpy':
         hd = load_images(hd_path)
         ld = load_images(ld_path)
-    
-    if str(args.mode) == 'nifti':
-        hd = normalise(nib.load(os.path.join(str(hd_path), f'{folder}.nii.gz')))
-        ld = normalise(nib.load(os.path.join(str(ld_path), f'{folder}.nii.gz')), dose_ = 'ld')
-        
+
+    # Load single nifti file from patient directory
+    elif str(args.mode) == 'nifti':
+        hd = normalise(nib.load(os.path.join(
+            str(hd_path), f'{folder}.nii.gz')))
+    # Normalise both and scale if original LD
+        ld = normalise(nib.load(os.path.join(
+            str(ld_path), f'{folder}.nii.gz')), dose_='ld') if args.original \
+            else normalise(nib.load(os.path.join(
+            str(ld_path), f'{os.path.basename(ld_path)}_{args.phase}_predicted.nii.gz')))
+    else:
+        print('I do not know this format')
+
     for im_hd, im_ld in zip(hd, ld):
         metrics['psnr'].append(psnr_(im_hd, im_ld))
         metrics['ssim'].append(ssim_(im_hd, im_ld))
@@ -126,21 +167,6 @@ def get_metrics(args, hd_path, ld_path):
 
     return metrics
 
-
-# Read test patient names from a pkl file
-def read_pickle(pkl_file):
-    summary = pickle.load(open('%s' % pkl_file, 'rb'))
-    # Test patients are a list of a list
-    return summary['test'][0]
-
-
-# Write metrics into pkl
-def build_pickle(args, hd_path, ld_path):
-    metrics = get_metrics(args, hd_path, ld_path)
-    # here = os.path.dirname(os.path.abspath(__file__))
-    with open(os.path.join(ld_path, 'im_metrics_nifti.pickle'), 'wb') as p:
-        pickle.dump(metrics, p)
-    print('.')
 
 # Extract info from pkl
 def get_stats(p):
@@ -152,22 +178,36 @@ def get_stats(p):
     return psnr, ssim, nrmse, cv_hd, cv_ld
 
 
+def clean_dir(patient_dict, args):
+    pickle_name = get_pkl_name(args)
+    for v in patient_dict.values():
+        with suppress(FileNotFoundError):
+            os.remove('%s/%s' % (v['ld'], pickle_name))
+
+
 # Append individual metric values for all image slices for all patient keys
 def evaluate_patients(args):
     patient_dict = find_patients(args)
+    pickle_name = get_pkl_name(args)
+    
+    # Delete old pkl if necessary
+    if args.delete:
+        clean_dir(patient_dict, args)
+
     stats_dict = {}
     for k in patient_dict.keys():
         for v in patient_dict.values():
             total_metrics = {'psnr': [],
-                             'ssim': [],
-                             'nrmse': [],
-                             'cv_hd': [],
-                             'cv_ld': [], }
+                              'ssim': [],
+                              'nrmse': [],
+                              'cv_hd': [],
+                              'cv_ld': [], }
+
             # Check if pkl exists already
-            # os.remove('%s/im_metrics_nifti.pickle' % v['ld'])
-            if not (Path('%s/im_metrics_nifti.pickle' % v['ld'])).exists():
-                build_pickle(args, v['hd'], v['ld'])
-            p = pickle.load(open('%s/im_metrics_nifti.pickle' % v['ld'], 'rb'))
+            if not (Path('%s/%s' % (v['ld'], pickle_name))).exists():
+                    build_pickle(args, v['hd'], v['ld'])
+            # p = pickle.load(open('%s/metrics_{args.phase}_{args.mode}.pickle' % v['ld'], 'rb'))
+            p = pickle.load(open('%s/%s' % (v['ld'], pickle_name), 'rb'))
             # TODO: technically could populate an array here, don't need dict
             # and reduce by 1 fucntion
             psnr, ssim, nrmse, cv_hd, cv_ld = get_stats(p)
@@ -223,22 +263,33 @@ if __name__ == "__main__":
         "--hd", dest='hd',  help="Path to target image directory", required=True)
     required_args.add_argument(
         "--ld", dest='ld',  help="Path to low-dose image directory", required=True)
-    
-    # Process in numpy or nifti format
+
+    # Inout or output to compare
+    required_args.add_argument(
+        "--original", "-o", dest='original', type=ParseBoolean, help="original: True/False", required=True)
+
+    # Rest or stress
+    required_args.add_argument(
+        "--phase", dest='phase', type=ParseLower, help="rest or stress", required=True)
+
+    # Process in numpy slices or nifti volumes format
     required_args.add_argument(
         "--mode", dest='mode',  help="numpy/nifti", required=True)
 
     # Specify a pkl file for list of patients
     parser.add_argument('--pkl', dest='pkl_path', help="pickle file path")
-    
+
+    # Force delete old pickle files
+    parser.add_argument('--delete', dest='delete', type=ParseBoolean,
+                        default=False, help="purge existing info_pickle")
 
     # Read arguments from the command line
     args = parser.parse_args()
 
     hd_path = args.hd
     ld_path = args.ld
-    
 
+    
     if args.pkl_path:
         overall_stats(args)
     else:
