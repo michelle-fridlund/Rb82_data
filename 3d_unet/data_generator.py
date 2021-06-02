@@ -71,12 +71,12 @@ class DCMDataLoader(object):
     # Scale low-dose input
     def scale_dose(self, pixels):
         d_type = pixels.dtype
-        return np.array(pixels*4, dtype=np.dtype(d_type))  # 1/4 factor for 25% dose 
+        return np.array(pixels*4.0, dtype=np.dtype(d_type))  # 1/4 factor for 25% dose 
 
     # Normalise pixel values to [0, 1]
     def normalise(self, pixels):
         d_type = pixels.dtype
-        return np.array(pixels/65535, dtype=np.dtype(d_type))  # maximal PET value (int16)
+        return np.array(pixels/60193.9, dtype=np.dtype(d_type))  # IQR between 25% and 95%
 
     def augment_data(self, x, y):
         from DataAugmentation3D import DataAugmentation3D

@@ -11,6 +11,7 @@ import data_generator as data
 import matplotlib as mpl
 import nibabel as nib
 import numpy as np
+import math
 import pickle
 import os
 import glob
@@ -63,6 +64,9 @@ class NetworkModel(object):
             (self.image_size//self.patch_size)//self.batch_size  # integer value
         self.epoch = args.epoch
         self.initial_epoch = args.initial_epoch
+
+        # Choose network version
+        self.version = args.version
 
         # Generate model name from parameters
         self.model_outname = str(args.model_name) + "_bz" + str(self.batch_size) + \
@@ -131,6 +135,14 @@ class NetworkModel(object):
         print(f'!LOADING MODEL: {model_name}!')
         return model_name
 
+    def lr_step_decay(self, epoch, lr):
+        drop_rate = 0.05
+        epochs_drop = 1.0
+        return self.lr*math.pow*(drop_rate, math.floor(epoch/epochs_drop))
+
+    def decayed_learning_rate(self, epoch):
+        return self.lr * 0.95 ** (epoch / 1000.0)
+
     def model_train(self, model_outname, x, y, z, d, epoch, epoch_step, batch_size,
                     lr, initial_epoch, verbose=1, train_pts=None, validate_pts=None,
                     initial_model=None, MULTIGPU=False, loss="mae"):
@@ -158,9 +170,12 @@ class NetworkModel(object):
         # Find pretrained model
         if self.continue_train:
             initial_model = self.get_model()
-
-        self.model = network.prepare_3D_unet(
-            x, y, z, d, initialize_model=initial_model, lr=lr, loss=loss)
+        if self.version == 1:
+            print('LOADING ORIGINAL VERSION!')
+            self.model = network.prepare_3D_unet(
+                x, y, z, d, initialize_model=initial_model, lr=lr, loss=loss)
+        else:
+            print('I do not know this model :(')
 
         self.mkdir_('checkpoint/TB/{}'.format(model_outname))
         filepath = os.path.join(
@@ -171,8 +186,10 @@ class NetworkModel(object):
 
         tbCallBack = TensorBoard(log_dir='checkpoint/TB/{}'.format(model_outname),
                                  histogram_freq=0, write_graph=True, write_images=True, profile_batch=0)
-        
-        stop_callback = EarlyStopping(monitor = 'loss', patience = 50)
+
+        stop_callback = EarlyStopping(monitor='loss', patience=50, verbose=1)
+
+        # lrs_callback = LearningRateScheduler(self.decayed_learning_rate, verbose = 1)
 
         callbacks_list = [checkpoint, tbCallBack, stop_callback]
 
@@ -180,9 +197,10 @@ class NetworkModel(object):
         self.model.fit(data_train_gen,
                        # steps_per_epoch=epoch_step,
                        validation_data=data_valid_gen,
-                       # validation_steps=50,
+                       # validation_steps=100,
                        epochs=epoch,
                        verbose=1,
+                       batch_size=batch_size,
                        callbacks=callbacks_list,
                        initial_epoch=initial_epoch)
 
@@ -198,7 +216,7 @@ class NetworkModel(object):
 
         # Load pretrained model
         model_name = self.get_model()
-        model = load_model(model_name, compile = False)
+        model = load_model(model_name, compile=False)
 
         # Load test data
         stack = self.load_data(self.test_pts)

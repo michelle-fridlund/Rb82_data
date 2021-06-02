@@ -5,14 +5,14 @@ Created on Thu May 24 10:57:19 2018
 
 @author: claesnl
 """
-
+import tensorflow as tf
 from tensorflow.keras.models import Model
 from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.optimizers.schedules import ExponentialDecay
 from tensorflow.keras.layers import Conv3D, Conv3DTranspose, Dropout, Input
 from tensorflow.keras.layers import Activation, BatchNormalization, concatenate
-from tensorflow.keras import regularizers, optimizers
-from tensorflow.keras.optimizers import schedules
-# from tensorflow.keras import backend as K, regularizers
+from tensorflow.keras import regularizers
+from tensorflow.keras import backend as K, regularizers
 import os
 
 
@@ -85,13 +85,19 @@ def construct_3D_unet_architecture(X):
 
     return output
 
-def get_lr_metric(optimizer):
-    def lr_(y_true, y_pred):
-        return optimizer.lr
-    return lr_
+# def get_lr_metric(model):
+#     def lr(y_true, y_pred):
+#         optimizer = model.optimizer
+#         iterations = optimizer.iterations
+#         decay = optimizer.lr
+#         lr = decay.decayed_learning_rate(iterations)
+#         # decay = optimizer.lr
+#         # return K.eval(lr.decay)
+#         # # return K.eval(K.cast(decay, K.dtype(lr)))
+#     return lr
+
 
 def prepare_3D_unet(x, y, z, d, initialize_model=None, classification=False, lr=0.0001, loss='mean_absolute_error'):
-
     inp = Input(shape=(x, y, z, d))
     output = construct_3D_unet_architecture(inp)
     model = Model(inputs=inp, outputs=output)
@@ -108,15 +114,16 @@ def prepare_3D_unet(x, y, z, d, initialize_model=None, classification=False, lr=
         else:
             exit('did not find model %s' % initialize_model)
             
-    # lr_schedule = schedules.ExponentialDecay(
-    # initial_learning_rate=lr,
-    # decay_steps=100000,
+    # initial_learning_rate = lr
+    # # initial_learning_rate = tf.cast(initial_learning_rate, tf.float64)
+    # lr_schedule = ExponentialDecay(
+    # initial_learning_rate,
+    # decay_steps=1000,
     # decay_rate=0.95)
     
-    # my_optimizer = Adam(learning_rate = lr_schedule)
-    # lr_metric = get_lr_metric(my_optimizer)
-
-    # model.compile(optimizer=my_optimizer, loss='mean_absolute_error', metrics=['mean_absolute_error', 'acc', lr_metric])
+    # lr_metric = get_lr_metric(model)
+    # lr_metric = tf.cast(lr_metric, tf.float64)
+    # model.compile(optimizer=Adam(learning_rate=lr_schedule), loss='mean_absolute_error', metrics=['mean_absolute_error', 'acc'])
     model.compile(optimizer=Adam(lr=lr), loss='mean_absolute_error', metrics=['mean_absolute_error', 'acc'])
     # print('Learning rate: ' + str(round(model.optimizer.lr.numpy(), 5)))
     return model

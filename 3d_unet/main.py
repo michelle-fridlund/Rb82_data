@@ -4,7 +4,6 @@
 Created on Jan 19 2020 by michellef
 
 """
-
 import argparse
 import rb82_model as rb82
 import data_generator as data
@@ -40,6 +39,9 @@ if __name__ == "__main__":
     # Resume previous training
     parser.add_argument('--continue_train', dest='continue_train', type=data.ParseBoolean,
                         default=False, help='resume training: true, false')
+    
+    # Choose network version
+    parser.add_argument('--version', dest='version', type=int, default=1, help = '1,2,3...')
 
     parser.add_argument('--phase', dest='phase', default='train', help='train or test')
     parser.add_argument('--kfold', dest='kfold', type=int, default='0', help='fold number')
