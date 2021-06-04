@@ -17,6 +17,7 @@ from math import log10, sqrt
 import matplotlib.pyplot as plt
 from pathlib import Path
 from contextlib import suppress
+from sklearn.preprocessing import MinMaxScaler
 from skimage.metrics import peak_signal_noise_ratio, structural_similarity, normalized_root_mse
 
 
@@ -47,37 +48,51 @@ def normalise(img, **dose_):
     # Get data type form nifti header
     d_type = img.header.get_data_dtype()
     np_im = np.array(img.get_fdata(), dtype=np.dtype(d_type))
-    # Normalise to ~ [0,1] and scale inout LD 
+    # Normalise to ~ [0,1] and scale input LD 
+    # Don't actually need to scale
     if dose_.get("dose_") == "ld":
-        return np.array(np_im*4.0/(65535.0), dtype=np.dtype(d_type))
+        # print(f'LD: {np_im.max()}')
+        return np.array(4.0*np_im/60193.9, dtype=np.dtype(d_type))
+    elif dose_.get("dose_") == "hd":
+        # print(f'HD: {np_im.max()}')
+        return np.array(np_im/60193.9, dtype=np.dtype(d_type))
     else:
-        return np.array(np_im/(65535.0), dtype=np.dtype(d_type))
+        # print(f'OUTPUT: {np_im.max()/4.0}')
+        # if np.isinf(n_im.max()) == True:
+        #     np_im.max() = np.ptp(np_im[np.isfinite(np_im)])
+        return np.array(np_im, dtype=np.dtype(d_type))
+        
 
 # Return PSNR as compared to respective target
 def psnr_(hd, ld):
+    # ld = np.nan_to_num(ld)
+    hd = hd.astype(np.uint16)
+    ld = ld.astype(np.uint16)
+    # print(hd.max(), ld.max())
     mse = np.mean((hd - ld) ** 2)
     if(mse == 0):
-        return 100
-    max_pixel = 65535.0 #or 4294967294????
+        return 100.0
+    max_pixel = 65535
     psnr = 20 * log10(max_pixel / sqrt(mse))
     return psnr
 
 
-# # Return normalsed RMSE as compared to respective target
+# Return normalsed RMSE as compared to respective target
 def rmse_(hd, ld):
     rmse = sqrt(np.mean((hd - ld) ** 2))/np.mean(hd)
     return rmse
 
-
+# def psnr_(hd,ld):
+#     return peak_signal_noise_ratio(hd,ld, data_range = [np.min(hd),np.max(hd)])
 
 # Return normalsed RMSE as compared to respective target
 # def rmse_(hd, ld):
-#     return normalized_root_mse(hd, ld, normalization='mean')
+#     return normalized_root_mse(hd,ld,normalization='mean')
 
 
 # Return structural similarity index, hd is target
 def ssim_(hd, ld):
-    return structural_similarity(hd, ld, multichannel=False)
+    return structural_similarity(hd, ld, multichannel=True)
 
 
 # Return coefficient of variation
@@ -107,7 +122,7 @@ def build_pickle(args, hd_path, ld_path):
     metrics = get_metrics(args, hd_path, ld_path)
     with open(os.path.join(ld_path, f'{pickle_name}'), 'wb') as p:
         pickle.dump(metrics, p)
-    print('.')
+    # print('.')
 
 
 # Create a dictionary where patients are keys with hd/ld paths are values
@@ -149,7 +164,7 @@ def get_metrics(args, hd_path, ld_path):
     # Load single nifti file from patient directory
     elif str(args.mode) == 'nifti':
         hd = normalise(nib.load(os.path.join(
-            str(hd_path), f'{folder}.nii.gz')))
+            str(hd_path), f'{folder}.nii.gz')), dose_='hd')
     # Normalise both and scale if original LD
         ld = normalise(nib.load(os.path.join(
             str(ld_path), f'{folder}.nii.gz')), dose_='ld') if args.original \
@@ -162,8 +177,8 @@ def get_metrics(args, hd_path, ld_path):
         metrics['psnr'].append(psnr_(im_hd, im_ld))
         metrics['ssim'].append(ssim_(im_hd, im_ld))
         metrics['nrmse'].append(rmse_(im_hd, im_ld))
-        metrics['cv_hd'].append(cv_(im_hd))
-        metrics['cv_ld'].append(cv_(im_ld))
+        # metrics['cv_hd'].append(cv_(im_hd))
+        # metrics['cv_ld'].append(cv_(im_ld))
 
     return metrics
 
@@ -173,9 +188,9 @@ def get_stats(p):
     psnr = p['psnr']
     ssim = p['ssim']
     nrmse = p['nrmse']
-    cv_hd = p['cv_hd']
-    cv_ld = p['cv_ld']
-    return psnr, ssim, nrmse, cv_hd, cv_ld
+    # cv_hd = p['cv_hd']
+    # cv_ld = p['cv_ld']
+    return psnr, ssim, nrmse
 
 
 def clean_dir(patient_dict, args):
@@ -210,12 +225,12 @@ def evaluate_patients(args):
             p = pickle.load(open('%s/%s' % (v['ld'], pickle_name), 'rb'))
             # TODO: technically could populate an array here, don't need dict
             # and reduce by 1 fucntion
-            psnr, ssim, nrmse, cv_hd, cv_ld = get_stats(p)
+            psnr, ssim, nrmse = get_stats(p)
             total_metrics['psnr'].append(psnr)
             total_metrics['ssim'].append(ssim)
             total_metrics['nrmse'].append(nrmse)
-            total_metrics['cv_hd'].append(cv_hd)
-            total_metrics['cv_ld'].append(cv_ld)
+            # total_metrics['cv_hd'].append(cv_hd)
+            # total_metrics['cv_ld'].append(cv_ld)
         stats_dict[k] = total_metrics
     return stats_dict
 
@@ -226,29 +241,29 @@ def overall_stats(args):
     psnr_ = []
     ssim_ = []
     nrmse_ = []
-    cv_hd_ = []
-    cv_ld_ = []
+    # cv_hd_ = []
+    # cv_ld_ = []
     stats_dict = evaluate_patients(args)
     for k, v in stats_dict.items():
         psnr = np.array(v['psnr'][0])
         ssim = np.array(v['ssim'][0])
         nrmse = np.array(v['nrmse'][0])
-        cv_hd = np.array(v['cv_hd'][0])
-        cv_ld = np.array(v['cv_ld'][0])
+        # cv_hd = np.array(v['cv_hd'][0])
+        # cv_ld = np.array(v['cv_ld'][0])
         for p in psnr:
             psnr_.append(p)
         for s in ssim:
             ssim_.append(s)
         for r in nrmse:
             nrmse_.append(r)
-        for h in cv_hd:
-            cv_hd_.append(h)
-        for l in cv_ld:
-            cv_ld_.append(l)
+        # for h in cv_hd:
+        #     cv_hd_.append(h)
+        # for l in cv_ld:
+        #     cv_ld_.append(l)
     print(f"PSNR value is: {np.mean(psnr):.4f} + {err(psnr):.4f}")
     print(f"SSIM value is: {np.mean(ssim):.4f} + {err(ssim):.4f}")
     print(f"NRMSE value is: {np.mean(nrmse):.4f} + {err(nrmse):.4f}")
-    print(f"CV in low-dose: {np.mean(cv_ld):.4f}% + {err(cv_ld):.4f}")
+    # print(f"CV in low-dose: {np.mean(cv_ld):.4f}% + {err(cv_ld):.4f}")
     # print(
     #     f"CV in target: {np.mean(cv_hd):.4f}% + {err(cv_hd):.4f}%; CV in low-dose: {np.mean(cv_ld):.4f}% + {err(cv_ld):.4f}")
 

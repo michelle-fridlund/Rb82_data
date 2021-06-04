@@ -69,6 +69,7 @@ def id_file(pt):
 
 def retain_lm(pt, dose):
     tags = id_file(pt)
+    print(tags)
     save_dir = '%s/%s_%s' % (str(pt), os.path.basename(str(pt)), dose)
 
     c = 0
@@ -96,11 +97,11 @@ def get_stats(args):
 
 def plot_prompts(args):
     df = get_stats(args)
-    sns.lineplot(x=df.t, y=df.numEvents, hue = 'type', data=df)
-    #prompts = sns.load_dataset(df)
-    #print(prompts.head())
-    # sns.lineplot(data=prompts, x = 't', y = 'numEvents')
-    plt.savefig('/homes/michellef/sns.png')
+    print(df)
+    # df.drop(['count'], axis='columns', inplace=True)
+    df2 = df[df.type == 'prompt'] 
+    sns.lineplot(x=df.t, y=df.numEvents, hue = 'type', data= df)
+    plt.savefig('/homes/michellef/seaborn-data/prompts_new_50.png')
     
 if __name__ == "__main__":
     # Initiate the parser
@@ -124,8 +125,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Read arguments from the command line
-    data_path = Path(args.data)
-    dose_level = args.dose
+    # data_path = Path(args.data)
+    # dose_level = args.dose
 
-    retain_lm(data_path, dose_level)
-    # plot_prompts(args)
+    # retain_lm(data_path, dose_level)
+    plot_prompts(args)

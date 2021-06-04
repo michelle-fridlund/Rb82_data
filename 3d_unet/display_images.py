@@ -7,12 +7,15 @@ Created on Tue Mar  9 14:23:48 2021
 @author: michellef
 """
 import os
+import re
 import numpy as np
 import glob
 import argparse
 import nibabel as nib
 from pathlib import Path
 import pickle
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 
 # Create parser
@@ -82,12 +85,14 @@ def find_patients(args):
 def normalise(args, pixels):
     d_type = pixels.dtype
     if args.norm == True and args.suv == False:
-        return np.array(pixels/65535, dtype=np.dtype(d_type))  # ~ [0,1]
+        # ~ [0,1]
+        return np.array(pixels/(60193.9), dtype=np.dtype(d_type))
     if args.suv == True and args.norm == False:
         # SUV nromalised
-        return np.array(pixels*80000/(1149), dtype=np.dtype(d_type))
+        return np.array(pixels*80000.0/(1149.0), dtype=np.dtype(d_type))
     if args.norm == True and args.suv == True:
-        return np.array(pixels*4*80000/(65535*1149), dtype=np.dtype(d_type))
+        # return np.array(pixels*80000/(65535*1149), dtype=np.dtype(d_type))
+        return np.array(pixels*80000.0/((60193.9*1149.0)), dtype=np.dtype(d_type))
     else:
         return np.array(pixels, dtype=np.dtype(d_type))
 
@@ -99,7 +104,7 @@ def load_patients(args):
         args.patient))] if args.patient else find_patients(args)
     # Limit number of patients
     if args.maxp:
-        im_path = im_path[0:args.maxp+1]
+        im_path = im_path[0:args.maxp]
 
     for p in im_path:
         im = find_nifti(p)
@@ -109,11 +114,60 @@ def load_patients(args):
     return images
 
 
-# Matplotlib
-def load_nib(args):
-    import matplotlib.pyplot as plt
+# Generate random hex colour codes
+def gen_color(n):
+    import random
+    colors_list = []
+    for i in range(0, n):
+        color = "#"+''.join([random.choice('0123456789ABCDEF')
+                             for j in range(6)])
+        colors_list.append(color)
+    return colors_list
 
+
+def get_iqr(vals):
+    from scipy.stats import iqr
+    my_iqr = iqr(vals, rng=(25, 95))
+    print(f'IQR value is: {my_iqr}')
+    return my_iqr
+
+
+# Plot and save individual slices
+def plot_slices(img, save_dir):
+    (a, b, c) = img.shape
+    for i in range(0, c):
+        im = plt.imshow(img[:, :, i], cmap='plasma')
+        plt.axis('off')
+        plt.colorbar(im, label='MBq/L')
+        plt.savefig(f'{save_dir}/{i}')
+        plt.close("all")
+
+
+# Get stats/display with seaborn
+def get_stats(args):
+    im_dict = load_nib(args)
+    keys = list(im_dict.keys())
+    vals = [im_dict[k] for k in keys]
+    my_iqr = get_iqr(vals)
+    print(len(keys))
+
+    # s = sns.boxplot(vals)
+    # s = sns.distplot(vals, label=keys, kde=False, bins=10)
+    # s.set(xlim=(-1000, 100000))
+
+    # colors_list = gen_color(len(keys))
+    # plt.hist(vals, bins = 10, color = colors_list, label = keys)
+    # plt.xlim([-1000,50000])
+    # plt.legend(prop={'size':5})
+    # plt.legend(['Maximal pixel values'])
+    # plt.savefig('/homes/michellef/box_all.png')
+    
+
+# Plot and save individual images with matplotlib
+def load_nib(args):
     images = load_patients(args)
+
+    im_dict = {}
 
     for i in images:
         img = nib.load(i)
@@ -121,23 +175,21 @@ def load_nib(args):
         img2 = normalise(args, np.array(
             img.get_fdata(), dtype=np.dtype(d_type)))
 
-        (a, b, c) = img2.shape
-
         save_dir = output_dir(args, i)
-        print(save_dir)
-        mkdir_(save_dir)
 
-        # plot for all slices
-        for i in range(0, c):
-            im = plt.imshow(img2[:, :, i], cmap='plasma')
-            plt.axis('off')
-            plt.colorbar(im, label='MBq/L')
-            plt.savefig(f'{save_dir}/{i}')
-            plt.close("all")
+        # create a numpy array dictionary per patient
+        name_ = (re.search('\STAT\/(.*?)-lm', i)).group(1)[0:4] + '...'
+        im_dict[name_] = img2
+
+        if args.plot == True:
+            print(f'Plotting {name_}')
+            mkdir_(save_dir)
+            plot_slices(img2, save_dir)
+
+    return im_dict
+
 
 # antspyx for entire .nii.gz file
-
-
 def load_ants(args):
     import ants
 
@@ -159,7 +211,7 @@ if __name__ == "__main__":
 
     # Required args: output image type and data path
     required_args.add_argument(
-        "--mode", "-m", dest='mode',  help="nib/ants", required=True)
+        "--mode", "-m", dest='mode',  help="nib/ants/stats", required=True)
     required_args.add_argument(
         "--data", "-d", dest='data',  help="patient directory", required=True)
     # Changes save directory if niftis are not network output
@@ -178,16 +230,21 @@ if __name__ == "__main__":
     parser.add_argument('--maxp', dest='maxp', type=int,
                         help='maximum number of patient to process')
 
-    # Specify a pkl file for list of patients
+    # Specify a pkl file for list of testing patients
     parser.add_argument('--pkl', dest='pkl_path', help="dicom file directory")
+
+    # Plot slices with matplotlib
+    parser.add_argument('--plot', dest='plot', type=parse_bool, default=False,
+                        help="matplotlib: True/False")
 
     # Read arguments from the command line
     args = parser.parse_args()
 
     mode = str(args.mode)
 
-    if mode == 'nib':
-        # load_nib(args)
+    if mode == 'stats':
+        get_stats(args)
+    elif mode == 'nib':
         load_nib(args)
     elif mode == 'ants':
         load_ants(args)
