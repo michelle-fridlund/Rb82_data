@@ -205,7 +205,7 @@ class NetworkModel(object):
         self.model.fit(data_train_gen,
                        steps_per_epoch=epoch_step,
                        validation_data=data_valid_gen,
-                       validation_steps=100,
+                       validation_steps=300,
                        epochs=epoch,
                        verbose=1,
                        batch_size=batch_size,

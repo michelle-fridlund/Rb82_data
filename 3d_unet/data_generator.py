@@ -41,6 +41,9 @@ class DCMDataLoader(object):
         self.input_channels = args.input_channels
         self.output_channels = args.output_channels
         self.batch_size = args.batch_size
+        
+        # PET normalisation factor
+        self.norm = args.norm
 
         # data augmentation
         self.augment = args.augment
@@ -74,10 +77,11 @@ class DCMDataLoader(object):
         return np.array(pixels*4.0, dtype=np.dtype(d_type))  # 1/4 factor for 25% dose 
 
     # Normalise pixel values to [0, 1]
+    # IQR between 25% and 99.8%: 232429.9
+    # IQR between 25% and 95%: 60193.9
     def normalise(self, pixels):
         d_type = pixels.dtype
-        return np.array(pixels/232429.9, dtype=np.dtype(d_type))  # IQR between 25% and 95%
-        # return np.array(pixels/65535.0, dtype=np.dtype(d_type))  # IQR between 25% and 95%
+        return np.array(pixels/self.norm, dtype=np.dtype(d_type))
 
     def augment_data(self, x, y):
         from DataAugmentation3D import DataAugmentation3D

@@ -84,15 +84,16 @@ def find_patients(args):
 # Normalise pixel values
 def normalise(args, pixels):
     d_type = pixels.dtype
+    #60193.9
     if args.norm == True and args.suv == False:
         # ~ [0,1]
-        return np.array(pixels/(60193.9), dtype=np.dtype(d_type))
+        return np.array(pixels/(232429.9), dtype=np.dtype(d_type))
     if args.suv == True and args.norm == False:
         # SUV nromalised
         return np.array(pixels*80000.0/(1149.0), dtype=np.dtype(d_type))
     if args.norm == True and args.suv == True:
         # return np.array(pixels*80000/(65535*1149), dtype=np.dtype(d_type))
-        return np.array(pixels*80000.0/((60193.9*1149.0)), dtype=np.dtype(d_type))
+        return np.array(pixels*4.0*80000.0/((232429.9*1149.0)), dtype=np.dtype(d_type))
     else:
         return np.array(pixels, dtype=np.dtype(d_type))
 
@@ -178,7 +179,8 @@ def load_nib(args):
         save_dir = output_dir(args, i)
 
         # create a numpy array dictionary per patient
-        name_ = (re.search('\STAT\/(.*?)-lm', i)).group(1)[0:4] + '...'
+        name_ = (re.search('\STAT\/(.*?)-lm', i)).group(1)[0:4] + '...' \
+            if args.original == True else i
         im_dict[name_] = img2
 
         if args.plot == True:

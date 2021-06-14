@@ -27,7 +27,7 @@ if __name__ == "__main__":
 
     # Network training arguments
     parser.add_argument('--model_name', dest='model_name', default='Rb82_denoise', help='model name')
-    parser.add_argument('--learning_rate', '-l', dest='lr', type=float, default=0.00001, help='learning rate')
+    parser.add_argument('--learning_rate', '-l', dest='lr', type=float, default=0.000001, help='learning rate')
     parser.add_argument('--epoch', '-e', dest='epoch', type=int, default=100, help='number of training epochs')
     parser.add_argument('--initial_epoch', dest='initial_epoch', type=int, default=0, help='starting epoch')
     parser.add_argument('--input_channels', dest='input_channels', type=int, default=1, help='number of input channels')
@@ -42,6 +42,9 @@ if __name__ == "__main__":
     
     # Choose network version
     parser.add_argument('--version', dest='version', type=int, default=1, help = '1,2,3...')
+    
+    # PET normalisation number
+    parser.add_argument('--norm', dest='norm', type=float, default=65535.0, help = 'PET normalisation factor')
 
     parser.add_argument('--phase', dest='phase', default='train', help='train or test')
     parser.add_argument('--kfold', dest='kfold', type=int, default='0', help='fold number')
