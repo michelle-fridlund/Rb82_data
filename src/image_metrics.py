@@ -52,16 +52,17 @@ def normalise(img, **dose_):
     # Don't actually need to scale
     if dose_.get("dose_") == "ld":
         # print(f'LD: {np_im.max()}')
-        return np.array(4.0*np_im/60193.9, dtype=np.dtype(d_type))
+        #232429.9
+        return np.array(4.0*np_im/232429.9, dtype=np.dtype(d_type))
     elif dose_.get("dose_") == "hd":
         # print(f'HD: {np_im.max()}')
-        return np.array(np_im/60193.9, dtype=np.dtype(d_type))
+        return np.array(np_im/232429.9, dtype=np.dtype(d_type))
     else:
         # print(f'OUTPUT: {np_im.max()/4.0}')
         # if np.isinf(n_im.max()) == True:
         #     np_im.max() = np.ptp(np_im[np.isfinite(np_im)])
         return np.array(np_im, dtype=np.dtype(d_type))
-        
+          
 
 # Return PSNR as compared to respective target
 def psnr_(hd, ld):
@@ -72,26 +73,22 @@ def psnr_(hd, ld):
     mse = np.mean((hd - ld) ** 2)
     if(mse == 0):
         return 100.0
-    max_pixel = 65535
+    # max_pixel = 1.0
+    max_pixel = 65535.0
     psnr = 20 * log10(max_pixel / sqrt(mse))
     return psnr
 
 
 # Return normalsed RMSE as compared to respective target
 def rmse_(hd, ld):
+    # ld = np.nan_to_num(ld)
     rmse = sqrt(np.mean((hd - ld) ** 2))/np.mean(hd)
     return rmse
-
-# def psnr_(hd,ld):
-#     return peak_signal_noise_ratio(hd,ld, data_range = [np.min(hd),np.max(hd)])
-
-# Return normalsed RMSE as compared to respective target
-# def rmse_(hd, ld):
-#     return normalized_root_mse(hd,ld,normalization='mean')
 
 
 # Return structural similarity index, hd is target
 def ssim_(hd, ld):
+    # ld = np.nan_to_num(ld)
     return structural_similarity(hd, ld, multichannel=True)
 
 
@@ -115,7 +112,6 @@ def read_pickle(pkl_file):
 def get_pkl_name(args):
     pickle_name = f'im_stats_{args.phase}_{args.mode}.pickle'
     return pickle_name
-
 # Write metrics into pkl
 def build_pickle(args, hd_path, ld_path):
     pickle_name = get_pkl_name(args)

@@ -101,7 +101,7 @@ def plot_prompts(args):
     # df.drop(['count'], axis='columns', inplace=True)
     df2 = df[df.type == 'prompt'] 
     sns.lineplot(x=df.t, y=df.numEvents, hue = 'type', data= df)
-    plt.savefig('/homes/michellef/seaborn-data/prompts_new_50.png')
+    plt.savefig('/homes/michellef/seaborn-data/prompts_rb82_new_25.png')
     
 if __name__ == "__main__":
     # Initiate the parser
@@ -113,7 +113,7 @@ if __name__ == "__main__":
 
     parser.add_argument('--dose', dest='dose', type=int,
                         help='percentage of dose to retain (0-100)')
-
+    # Filename only
     parser.add_argument("--ptd_file", help='Input PTD LLM file', type=str)
     parser.add_argument("--retain", help='Percent (float) of LMM events to retain (0-100)', type=float)
     parser.add_argument("--out_folder", help='Output folder for chopped PTD LLM file(s)', type=str)
