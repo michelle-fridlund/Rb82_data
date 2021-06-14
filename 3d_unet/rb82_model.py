@@ -147,7 +147,7 @@ class NetworkModel(object):
                     lr, initial_epoch, verbose=1, train_pts=None, validate_pts=None,
                     initial_model=None, MULTIGPU=False, loss="mae"):
 
-        import network
+        import network, network_v2, network_v3
         import tensorflow as tf
         from tensorflow.keras.callbacks import ModelCheckpoint, TensorBoard, EarlyStopping, LearningRateScheduler
 
@@ -162,16 +162,24 @@ class NetworkModel(object):
                                                         output_shapes=(tf.TensorShape((128, 128, 16, 1)), tf.TensorShape((128, 128, 16, 1))))
         # Make sure batches have the same outer dimension
         # repeat() to generate enough batches
-        # data_train_gen = data_train_gen.repeat().batch(batch_size, drop_remainder=True)
-        # data_valid_gen = data_valid_gen.repeat().batch(batch_size, drop_remainder=True)
-        data_train_gen = data_train_gen.batch(batch_size, drop_remainder=True)
-        data_valid_gen = data_valid_gen.batch(batch_size, drop_remainder=True)
+        data_train_gen = data_train_gen.repeat().batch(batch_size, drop_remainder=True)
+        data_valid_gen = data_valid_gen.repeat().batch(batch_size, drop_remainder=True)
 
         # Find pretrained model
         if self.continue_train:
             initial_model = self.get_model()
-        if self.version == 1:
-            print('LOADING ORIGINAL VERSION!')
+
+        # Load network version
+        if self.version == 2:
+            print('LOADING VERSON 2.0')
+            self.model = network_v2.prepare_3D_unet(
+                x, y, z, d, initialize_model=initial_model, lr=lr, loss=loss)
+        elif self.version == 3:
+            print('LOADING VERSON 3.0')
+            self.model = network_v3.prepare_3D_unet(
+                x, y, z, d, initialize_model=initial_model, lr=lr, loss=loss)
+        elif self.version == 1:
+            print('LOADING VERSON 1.0')
             self.model = network.prepare_3D_unet(
                 x, y, z, d, initialize_model=initial_model, lr=lr, loss=loss)
         else:
@@ -187,7 +195,7 @@ class NetworkModel(object):
         tbCallBack = TensorBoard(log_dir='checkpoint/TB/{}'.format(model_outname),
                                  histogram_freq=0, write_graph=True, write_images=True, profile_batch=0)
 
-        stop_callback = EarlyStopping(monitor='loss', patience=50, verbose=1)
+        stop_callback = EarlyStopping(monitor='val_loss', patience=50, verbose=1)
 
         # lrs_callback = LearningRateScheduler(self.decayed_learning_rate, verbose = 1)
 
@@ -195,9 +203,9 @@ class NetworkModel(object):
 
         # Train model on dataset
         self.model.fit(data_train_gen,
-                       # steps_per_epoch=epoch_step,
+                       steps_per_epoch=epoch_step,
                        validation_data=data_valid_gen,
-                       # validation_steps=100,
+                       validation_steps=100,
                        epochs=epoch,
                        verbose=1,
                        batch_size=batch_size,
@@ -216,8 +224,8 @@ class NetworkModel(object):
 
         # Load pretrained model
         model_name = self.get_model()
-        model = load_model(model_name, compile=False)
-
+        # model = load_model(model_name, compile=False)
+        model = load_model(model_name)
         # Load test data
         stack = self.load_data(self.test_pts)
         for key, value in stack.items():

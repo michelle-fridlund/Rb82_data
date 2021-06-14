@@ -76,7 +76,8 @@ class DCMDataLoader(object):
     # Normalise pixel values to [0, 1]
     def normalise(self, pixels):
         d_type = pixels.dtype
-        return np.array(pixels/60193.9, dtype=np.dtype(d_type))  # IQR between 25% and 95%
+        return np.array(pixels/232429.9, dtype=np.dtype(d_type))  # IQR between 25% and 95%
+        # return np.array(pixels/65535.0, dtype=np.dtype(d_type))  # IQR between 25% and 95%
 
     def augment_data(self, x, y):
         from DataAugmentation3D import DataAugmentation3D
