@@ -70,6 +70,9 @@ class NetworkModel(object):
 
         # Choose network version
         self.version = args.version
+        
+        # Learning Rate scheudler: True/False
+        self.lrs = args.lrs
 
         # Generate model name from parameters
         self.model_outname = str(args.model_name) + "_bz" + str(self.batch_size) + \
@@ -200,8 +203,12 @@ class NetworkModel(object):
 
         lrs_callback = LearningRateScheduler(
             self.decayed_learning_rate, verbose=1)
-
-        callbacks_list = [checkpoint, tbCallBack, stop_callback]
+        
+        if self.lrs:
+            print('Implementing LRS.')
+            callbacks_list = [checkpoint, tbCallBack, stop_callback, lrs_callback]
+        else:
+            callbacks_list = [checkpoint, tbCallBack, stop_callback]
 
         # Train model on dataset
         self.model.fit(data_train_gen,

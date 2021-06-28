@@ -49,6 +49,10 @@ if __name__ == "__main__":
     parser.add_argument('--phase', dest='phase', default='train', help='train or test')
     parser.add_argument('--kfold', dest='kfold', type=int, default='0', help='fold number')
     parser.add_argument('--maxp', dest='maxp', type=int, help='maximum number of patient to process')
+    
+    # Learning Rate Scheduler
+    parser.add_argument('--lrs', dest='lrs', type=data.ParseBoolean,
+                        default=True, help='use LRS: true, false')
 
     args = parser.parse_args()
 
