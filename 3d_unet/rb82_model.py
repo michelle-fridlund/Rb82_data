@@ -59,9 +59,12 @@ class NetworkModel(object):
         # Variable to scale the epoch step to the number of training patients used
         n_batches = len(self.summary['train']) if 'train' in self.summary else len(
             self.summary[self.train_pts])
+        n_batches_valid = len(self.summary[self.train_pts])
 
         self.epoch_step = n_batches * \
             (self.image_size//self.patch_size)//self.batch_size  # integer value
+        self.valid_step = n_batches_valid * \
+            (self.image_size//self.patch_size)//self.batch_size
         self.epoch = args.epoch
         self.initial_epoch = args.initial_epoch
 
@@ -135,19 +138,16 @@ class NetworkModel(object):
         print(f'!LOADING MODEL: {model_name}!')
         return model_name
 
-    def lr_step_decay(self, epoch, lr):
-        drop_rate = 0.05
-        epochs_drop = 1.0
-        return self.lr*math.pow*(drop_rate, math.floor(epoch/epochs_drop))
-
     def decayed_learning_rate(self, epoch):
-        return self.lr * 0.95 ** (epoch / 1000.0)
+        return self.lr * 0.95 ** (epoch // 1.0)  # decay by 5% every 10th epoch
 
-    def model_train(self, model_outname, x, y, z, d, epoch, epoch_step, batch_size,
-                    lr, initial_epoch, verbose=1, train_pts=None, validate_pts=None,
+    def model_train(self, model_outname, x, y, z, d, epoch, epoch_step, valid_step,
+                    batch_size, lr, initial_epoch, verbose=1, train_pts=None, validate_pts=None,
                     initial_model=None, MULTIGPU=False, loss="mae"):
 
-        import network, network_v2, network_v3
+        import network
+        import network_v2
+        import network_v3
         import tensorflow as tf
         from tensorflow.keras.callbacks import ModelCheckpoint, TensorBoard, EarlyStopping, LearningRateScheduler
 
@@ -195,9 +195,11 @@ class NetworkModel(object):
         tbCallBack = TensorBoard(log_dir='checkpoint/TB/{}'.format(model_outname),
                                  histogram_freq=0, write_graph=True, write_images=True, profile_batch=0)
 
-        stop_callback = EarlyStopping(monitor='val_loss', patience=50, verbose=1)
+        stop_callback = EarlyStopping(
+            monitor='val_loss', patience=50, verbose=1)
 
-        # lrs_callback = LearningRateScheduler(self.decayed_learning_rate, verbose = 1)
+        lrs_callback = LearningRateScheduler(
+            self.decayed_learning_rate, verbose=1)
 
         callbacks_list = [checkpoint, tbCallBack, stop_callback]
 
@@ -205,7 +207,7 @@ class NetworkModel(object):
         self.model.fit(data_train_gen,
                        steps_per_epoch=epoch_step,
                        validation_data=data_valid_gen,
-                       validation_steps=300,
+                       validation_steps=valid_step,
                        epochs=epoch,
                        verbose=1,
                        batch_size=batch_size,
@@ -281,4 +283,4 @@ class NetworkModel(object):
 
         # Initialise training
         self.model_train(self.model_outname, 128, 128, 16, 1, self.epoch,
-                         self.epoch_step, self.batch_size, self.lr, self.initial_epoch)
+                         self.epoch_step, self.valid_step, self.batch_size, self.lr, self.initial_epoch)

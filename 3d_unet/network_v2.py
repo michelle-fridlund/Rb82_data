@@ -11,8 +11,6 @@ from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.layers import Conv3D, Conv3DTranspose, Dropout, Input
 from tensorflow.keras.layers import Activation, BatchNormalization, concatenate
 from tensorflow.keras import regularizers, optimizers
-from tensorflow.keras.optimizers import schedules
-# from tensorflow.keras import backend as K, regularizers
 import os
 
 

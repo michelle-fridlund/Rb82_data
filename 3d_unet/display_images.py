@@ -87,13 +87,13 @@ def normalise(args, pixels):
     #60193.9
     if args.norm == True and args.suv == False:
         # ~ [0,1]
-        return np.array(pixels/(232429.9), dtype=np.dtype(d_type))
+        return np.array(pixels/(60193.9), dtype=np.dtype(d_type))
     if args.suv == True and args.norm == False:
         # SUV nromalised
         return np.array(pixels*80000.0/(1149.0), dtype=np.dtype(d_type))
     if args.norm == True and args.suv == True:
-        # return np.array(pixels*80000/(65535*1149), dtype=np.dtype(d_type))
-        return np.array(pixels*4.0*80000.0/((232429.9*1149.0)), dtype=np.dtype(d_type))
+        return np.array(pixels*80000/(60193.9*1149), dtype=np.dtype(d_type))
+        # return np.array(pixels*4.0*80000.0/((232429.9*1149.0)), dtype=np.dtype(d_type))
     else:
         return np.array(pixels, dtype=np.dtype(d_type))
 
@@ -167,7 +167,7 @@ def get_stats(args):
 # Plot and save individual images with matplotlib
 def load_nib(args):
     images = load_patients(args)
-
+    print(images)
     im_dict = {}
 
     for i in images:
@@ -175,6 +175,7 @@ def load_nib(args):
         d_type = img.header.get_data_dtype()  # get data type from nifti header
         img2 = normalise(args, np.array(
             img.get_fdata(), dtype=np.dtype(d_type)))
+        print(np.mean(img2))
 
         save_dir = output_dir(args, i)
 
