@@ -12,6 +12,7 @@ from tqdm import tqdm
 from pathlib import Path
 import argparse
 import dicom2nifti
+import pre_process
 
 FORCE_DELETE = False
 
@@ -128,6 +129,11 @@ if __name__ == "__main__":
     parser.add_argument(
         "--pet", dest='pet', help="data source directory")
     
+    parser.add_argument(
+        "--data_path", dest='data_path', help="nii.gz. data directory")
+    parser.add_argument(
+        "--norm", dest='norm', type=float, help="PET norm factor")
+    
     # Read arguments from the command line
     args = parser.parse_args()
 
@@ -135,3 +141,6 @@ if __name__ == "__main__":
     pet = str(args.pet)
     
     rename_pet(pet)
+    
+    processor = pre_process.Data_Preprocess(args)
+    processor.load_data()
