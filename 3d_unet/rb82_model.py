@@ -59,7 +59,7 @@ class NetworkModel(object):
         # Variable to scale the epoch step to the number of training patients used
         n_batches = len(self.summary['train']) if 'train' in self.summary else len(
             self.summary[self.train_pts])
-        n_batches_valid = len(self.summary[self.train_pts])
+        n_batches_valid = len(self.summary[self.valid_pts])
 
         self.epoch_step = n_batches * \
             (self.image_size//self.patch_size)//self.batch_size  # integer value
@@ -70,6 +70,9 @@ class NetworkModel(object):
 
         # Choose network version
         self.version = args.version
+
+        # Learning Rate scheudler: True/False
+        self.lrs = args.lrs
 
         # Generate model name from parameters
         self.model_outname = str(args.model_name) + "_bz" + str(self.batch_size) + \
@@ -139,7 +142,8 @@ class NetworkModel(object):
         return model_name
 
     def decayed_learning_rate(self, epoch):
-        return self.lr * 0.95 ** (epoch // 1.0)  # decay by 5% every 10th epoch
+        # decay by 5% every 10th epoch
+        return self.lr * 0.95 ** (epoch // 10.0)
 
     def model_train(self, model_outname, x, y, z, d, epoch, epoch_step, valid_step,
                     batch_size, lr, initial_epoch, verbose=1, train_pts=None, validate_pts=None,
@@ -201,7 +205,12 @@ class NetworkModel(object):
         lrs_callback = LearningRateScheduler(
             self.decayed_learning_rate, verbose=1)
 
-        callbacks_list = [checkpoint, tbCallBack, stop_callback]
+        if self.lrs:
+            print('Implementing LRS.')
+            callbacks_list = [checkpoint, tbCallBack,
+                              stop_callback, lrs_callback]
+        else:
+            callbacks_list = [checkpoint, tbCallBack, stop_callback]
 
         # Train model on dataset
         self.model.fit(data_train_gen,
