@@ -7,21 +7,21 @@ import numpy as np
 from sklearn.model_selection import train_test_split, KFold
 from collections import defaultdict
 
-data_path = '/homes/michellef/my_projects/paediatrics_fdg_data/dicoms'
+data_path = '/homes/michellef/my_projects/rhtorch/rb82/data'
 
 def find_patients(data_path):
     pts = os.listdir(data_path)
     return np.array(pts)
 
 def train_test(pts):
-    pts_train, pts_test = train_test_split(pts, test_size = 0.1)
+    pts_train, pts_test = train_test_split(pts, test_size = 0.25)
     return pts_train, pts_test
 
 def write_summary(data_path):
     pts = find_patients(data_path)
     pts_train, pts_test = train_test(pts)
 
-    kf = KFold(n_splits=5,shuffle=True)
+    kf = KFold(n_splits=6,shuffle=True)
     kf.get_n_splits(pts_train)
     
     data = defaultdict(list)
@@ -45,9 +45,9 @@ def build_pickle(data_path):
     output  = str(Path(data_path).parent) 
     os.chdir(output)
     data = write_summary(data_path)
-    with open('data.pickle', 'wb') as p:
+    with open('rb82_6fold.pickle', 'wb') as p:
         pickle.dump(data, p)
-    print(pickle.load(open('data.pickle','rb')))
+    print(pickle.load(open('rb82_6fold.pickle','rb')))
 
 if __name__=="__main__":
     write_summary(data_path)

@@ -63,6 +63,7 @@ def copy_files(src, dst):
 # Copy patients from pickle into a new directory
 def copy_pet(pickle_path, pet_path):
     patients = load_pickle(pickle_path)
+    print(patients)
     save_path = f'{pet_path}_PETCT'
     for p in tqdm(patients):
         src = os.path.join(pet_path, p)
