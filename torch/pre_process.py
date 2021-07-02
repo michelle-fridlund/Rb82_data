@@ -54,6 +54,7 @@ class Data_Preprocess(object):
     def normalise_ct(self, pixels):
         return (pixels + 1024.0) / 4095.0
     
+    
     # Choose normalisation based on input type
     def prep_numpy(self, numpy, **mode):
         if mode.get("mode") == "hd":
@@ -61,7 +62,13 @@ class Data_Preprocess(object):
         elif mode.get("mode") == "ld":
             return self.scale_pet_dose(self.normalise_pet(numpy))
         elif mode.get("mode") == "ct":
-            return self.normalise_ct(numpy)[::4,::4,] # Need to downsample CT from 512x512 to 128x128
+            # Some CTs have an extra slice at the end
+            if numpy.shape[2] == 112:
+                return self.normalise_ct(numpy)[:,:,0:111] 
+            elif numpy.shape[2] == 111:
+                return self.normalise_ct(numpy) 
+            else:
+                print('Oddly-sized numpy array')
         else:
             print('Invalid input type: hd/ld/ct')
             
@@ -70,29 +77,49 @@ class Data_Preprocess(object):
     def create_paths(self, patient, filename):
         load_path = '%s/%s/%s%s' % (self.data_path, patient, filename, self.extension)
         save_path = '%s/%s/%s%s%s' % (self.data_path, patient, filename, '_norm', self.extension)
-        return load_path, save_path
+        return [load_path, save_path]
             
-    
+    # Create normalised PET nifti
     def save_nifti(self, nifti, numpy, save_path):
         image = nib.Nifti1Image(numpy, nifti.affine, nifti.header)
         nib.save(image, save_path)
-    
-    
-    def create_new_nifti(self, load_path, save_path, mode):
+        
+    # Create normalised CT nifti
+    def transform_nifti(self, nifti, nifti_pet, numpy, save_path):
+        # Need to downsample CT from 512x512 to 128x128
+        numpy = numpy[::4,::4,]
+        new_header = nifti.header.copy()
+        # Use affine matrix to match PET input
+        xform = nifti_pet.affine
+        img = nib.Nifti1Image(numpy, xform, header = new_header)
+        nib.save(img, save_path)
+        print('Transforming CT...')
+        
+        
+    def create_new_nifti(self, load_path, load_path2, save_path, mode):
         nifti = self.load_nifti(load_path)
+        nifti_pet = self.load_nifti(load_path2)
         numpy = self.nifti2numpy(nifti)
         norm = self.prep_numpy(numpy, mode = mode)
         
-        self.save_nifti(nifti, norm, save_path)
+        if str(mode) == 'ct':
+            self.transform_nifti(nifti, nifti_pet, norm, save_path)
+        else:
+            self.save_nifti(nifti, norm, save_path)
         
     
     def load_data(self):
         print('\nLoading nifti files...')
 
         patients = self.summary
-        
         #TODO: take filenames as arguments...
-        for patient in tqdm(patients):     
-            load_path, save_path = self.create_paths(patient, self.ct_name)
-
-            self.create_new_nifti(load_path, save_path, 'ct')
+        for patient in patients:     
+            # Ignore the pickle file in the data directory
+            if not 'pickle' in str(patient):
+                hd = self.create_paths(patient, self.hd_name)
+                ld = self.create_paths(patient, self.ld_name)
+                ct = self.create_paths(patient, self.ct_name)
+            # ld[0] used for affine CT transformation
+            self.create_new_nifti(hd[0], ld[0], hd[1], 'hd')
+            self.create_new_nifti(ld[0], ld[0], ld[1], 'ld')
+            self.create_new_nifti(ct[0], ld[0], ct[1], 'ct')
