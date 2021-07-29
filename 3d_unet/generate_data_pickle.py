@@ -7,14 +7,14 @@ import numpy as np
 from sklearn.model_selection import train_test_split, KFold
 from collections import defaultdict
 
-data_path = '/homes/michellef/my_projects/rhtorch/rb82/data'
+data_path = '/homes/michellef/my_projects/rb82_data/Dicoms_OCT8/100p_STAT'
 
 def find_patients(data_path):
     pts = os.listdir(data_path)
     return np.array(pts)
 
 def train_test(pts):
-    pts_train, pts_test = train_test_split(pts, test_size = 0.25)
+    pts_train, pts_test = train_test_split(pts, test_size = 0.14)
     return pts_train, pts_test
 
 def write_summary(data_path):
@@ -44,10 +44,15 @@ def write_summary(data_path):
 def build_pickle(data_path):
     output  = str(Path(data_path).parent) 
     os.chdir(output)
+    print(f'Saved in {output}')
     data = write_summary(data_path)
-    with open('rb82_6fold.pickle', 'wb') as p:
+    with open('data2.pickle', 'wb') as p:
         pickle.dump(data, p)
-    print(pickle.load(open('rb82_6fold.pickle','rb')))
+    data = pickle.load(open('data2.pickle','rb'))
+    t = len(data['train_0'])
+    v = len(data['valid_0'])
+    tt = len(data['test'][0])
+    print(f'Train: {t} \n Val: {v}, Test: {tt}')
 
 if __name__=="__main__":
     write_summary(data_path)
