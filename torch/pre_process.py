@@ -9,7 +9,7 @@ import pickle
 import numpy as np
 import nibabel as nib 
 from tqdm import tqdm
-
+from sklearn.preprocessing import RobustScaler
 
 class Data_Preprocess(object):
     def __init__(self, args, hd_name = 'pet_100p_stat', ld_name= 'pet_25p_stat',
@@ -50,6 +50,11 @@ class Data_Preprocess(object):
     def normalise_pet(self, pixels):
         return pixels/self.norm
     
+    
+    def normalise_robust(self, pixels):
+        scaler = RobustScaler()
+        pixels = scaler.fit_transform(pixels)
+        return pixels
     
     def normalise_ct(self, pixels):
         return (pixels + 1024.0) / 4095.0
@@ -113,13 +118,13 @@ class Data_Preprocess(object):
 
         patients = self.summary
         #TODO: take filenames as arguments...
-        for patient in patients:     
+        for patient in tqdm(patients):     
             # Ignore the pickle file in the data directory
             if not 'pickle' in str(patient):
                 hd = self.create_paths(patient, self.hd_name)
                 ld = self.create_paths(patient, self.ld_name)
-                ct = self.create_paths(patient, self.ct_name)
+                # ct = self.create_paths(patient, self.ct_name)
             # ld[0] used for affine CT transformation
             self.create_new_nifti(hd[0], ld[0], hd[1], 'hd')
             self.create_new_nifti(ld[0], ld[0], ld[1], 'ld')
-            self.create_new_nifti(ct[0], ld[0], ct[1], 'ct')
+            # self.create_new_nifti(ct[0], ld[0], ct[1], 'ct')

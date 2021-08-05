@@ -16,7 +16,7 @@ import pre_process
 
 FORCE_DELETE = False
 
-save_path = '/homes/michellef/my_projects/rhtorch/rb82/data'
+save_path = '/homes/michellef/my_projects/rhtorch/torch/rb82/data'
 
 def get_name(string, **name_):
     if name_.get("regex") == "name":  # Getting date from DICOM header
@@ -140,7 +140,7 @@ if __name__ == "__main__":
     ct = str(args.ct)
     pet = str(args.pet)
     
-    rename_pet(pet)
+    # rename_pet(pet)
     
     processor = pre_process.Data_Preprocess(args)
     processor.load_data()
