@@ -87,12 +87,12 @@ def normalise(args, pixels):
     #60193.9
     if args.norm == True and args.suv == False:
         # ~ [0,1]
-        return np.array(pixels/(60193.9), dtype=np.dtype(d_type))
+        return np.array(pixels/(232429.9), dtype=np.dtype(d_type))
     if args.suv == True and args.norm == False:
         # SUV nromalised
         return np.array(pixels*80000.0/(1149.0), dtype=np.dtype(d_type))
     if args.norm == True and args.suv == True:
-        return np.array(pixels*80000/(60193.9*1149), dtype=np.dtype(d_type))
+        return np.array(pixels*80000/(232429.9*1149), dtype=np.dtype(d_type))
         # return np.array(pixels*4.0*80000.0/((232429.9*1149.0)), dtype=np.dtype(d_type))
     else:
         return np.array(pixels, dtype=np.dtype(d_type))
@@ -109,6 +109,7 @@ def load_patients(args):
 
     for p in im_path:
         im = find_nifti(p)
+        print(im)
         if not len(im) == 0:
             for i in im:
                 images.append(i)
@@ -175,13 +176,14 @@ def load_nib(args):
         d_type = img.header.get_data_dtype()  # get data type from nifti header
         img2 = normalise(args, np.array(
             img.get_fdata(), dtype=np.dtype(d_type)))
-        print(np.mean(img2))
+        
 
         save_dir = output_dir(args, i)
 
         # create a numpy array dictionary per patient
-        name_ = (re.search('\STAT\/(.*?)-lm', i)).group(1)[0:4] + '...' \
-            if args.original == True else i
+        #name_ = (re.search('\STAT\/(.*?)-lm', i)).group(1)[0:4] + '...' \
+        #    if args.original == True else i:
+        name_ = i
         im_dict[name_] = img2
 
         if args.plot == True:

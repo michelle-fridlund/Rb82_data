@@ -53,15 +53,15 @@ def normalise(img, **dose_):
     if dose_.get("dose_") == "ld":
         # print(f'LD: {np_im.max()}')
         #232429.9
-        return np.array(4.0*np_im/232429.9, dtype=np.dtype(d_type))
+        return np.array(4.0*np_im/232429.9)
     elif dose_.get("dose_") == "hd":
         # print(f'HD: {np_im.max()}')
-        return np.array(np_im/232429.9, dtype=np.dtype(d_type))
+        return np.array(np_im/232429.9)
     else:
         # print(f'OUTPUT: {np_im.max()/4.0}')
         # if np.isinf(n_im.max()) == True:
         #     np_im.max() = np.ptp(np_im[np.isfinite(np_im)])
-        return np.array(np_im, dtype=np.dtype(d_type))
+        return np.array(np_im)
           
 
 # Return PSNR as compared to respective target
