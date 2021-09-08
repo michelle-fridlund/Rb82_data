@@ -53,7 +53,10 @@ class Data_Preprocess(object):
     
     def normalise_robust(self, pixels):
         scaler = RobustScaler()
-        pixels = scaler.fit_transform(pixels)
+        print(f'Before: {np.mean(pixels)}')
+        # Need to flatten array when passing to RobustScaler
+        pixels = scaler.fit_transform(pixels.reshape(-1, pixels.shape[-1])).reshape(pixels.shape)
+        print(f'After: {np.mean(pixels)}')
         return pixels
     
     def normalise_ct(self, pixels):
@@ -63,9 +66,9 @@ class Data_Preprocess(object):
     # Choose normalisation based on input type
     def prep_numpy(self, numpy, **mode):
         if mode.get("mode") == "hd":
-            return self.normalise_pet(numpy)
+            return self.normalise_robust(numpy)
         elif mode.get("mode") == "ld":
-            return self.scale_pet_dose(self.normalise_pet(numpy))
+            return self.scale_pet_dose(self.normalise_robust(numpy))
         elif mode.get("mode") == "ct":
             # Some CTs have an extra slice at the end
             if numpy.shape[2] == 112:
@@ -81,7 +84,7 @@ class Data_Preprocess(object):
     # Concatenate load/save path strings
     def create_paths(self, patient, filename):
         load_path = '%s/%s/%s%s' % (self.data_path, patient, filename, self.extension)
-        save_path = '%s/%s/%s%s%s' % (self.data_path, patient, filename, '_norm', self.extension)
+        save_path = '%s/%s/%s%s%s' % (self.data_path, patient, filename, '_norm_robust', self.extension)
         return [load_path, save_path]
             
     # Create normalised PET nifti
