@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import argparse 
+import argparse
 import pickle
 import os
 from pathlib import Path
@@ -22,28 +22,19 @@ def train_test(pts):
 
 def write_summary(args, data_path):
     pts = find_patients(data_path)
+    # This function is only used when a test set needs to be created separately
     pts_train_t, pts_test_t = train_test(pts)
 
     pts_train = []
     pts_test = []
-    print(pts_test_t)
+
+    # Use this argument to append phases later
     if args.extend:
-        pts_train_double = []
-        
-        for i in pts:
-            pts_double.extend([i, i])
+        pts_train = np.array(pts)
 
-        for n,p in enumerate(pts_double):
-            if n%2==0:
-                p = p + '_rest'
-            else:
-                p = p + '_stress'
-            pts_train.append(p)
-        pts_train = np.array(pts_train)
-
-        print(len(pts_train))
-            
+    # Regular train/test data split
     else:
+        # Important to parse numpy arrays to kf
         pts_train = np.array(pts_train_t)
         pts_test = np.array(pts_test_t)
 
@@ -51,17 +42,17 @@ def write_summary(args, data_path):
     kf.get_n_splits(pts_train)
 
     data = defaultdict(list)
-    
+
     # data = {
     #         'train_%d' % i:[]for i in range(0, kf.get_n_splits(pts_train)-1),
     #         'test_%d' % i:[]for i in range(0, kf.get_n_splits(pts_valid)-1),
     #         'test': [],
     #         }
 
-    # for n, (train,valid) in enumerate(kf.split(pts_train)):
-    #     # print(n,len(train),len(valid))
-    #     data['train_%d' % n] = pts_train[train]
-    #     data['test_%d' % n] = pts_train[valid]
+    for n, (train, valid) in enumerate(kf.split(pts_train)):
+        # print(n,len(train),len(valid))
+        data['train_%d' % n] = pts_train[train]
+        data['test_%d' % n] = pts_train[valid]
 
     # #for p in pts_test:
     # data['test'].append(pts_test)
@@ -69,19 +60,46 @@ def write_summary(args, data_path):
     return data
 
 
+# This accomodates the rb82 folder structure for pytorch
+def sort_rb_phase(args, data_path):
+    data = write_summary(args, data_path)
+    data_rb = {}
+    for k, v in data.items():
+        # Temporary arrays to store lists
+        pts_double = []
+        pts_double_suffix = []
+        # Double every element in the list of patients
+        for pts in v:
+            pts_double.extend([pts, pts])
+
+        for n, p in enumerate(pts_double):
+            if n % 2 == 0:
+                p = p + '_rest'
+            else:
+                p = p + '_stress'
+            pts_double_suffix.append(p)
+
+        data_rb[k] = pts_double_suffix
+    return data_rb
+
+
 def build_pickle(args, data_path):
     output = str(Path(data_path).parent)
     os.chdir(output)
     print(f'Saved in {output}')
-    data = write_summary(args, data_path)
+
+    data = sort_rb_phase(args, data_path) if args.extend \
+        else write_summary(args, data_path)
+
     with open('rb82_6fold_sorted.pickle', 'wb') as p:
         pickle.dump(data, p)
-    data = pickle.load(open('rb82_6fold_sorted.pickle','rb'))
-    print(data)
-    # t = len(data['train_0'])
-    # v = len(data['valid_0'])
+    data = pickle.load(open('rb82_6fold_sorted.pickle', 'rb'))
+
+    t = len(data['train_0'])
+    v = len(data['test_0'])
     # tt = len(data['test'][0])
-    # print(f'Train: {t} \n Val: {v}, Test: {tt}')
+    print(data['test_0'])
+    print(f'Train: {t} \n Test: {v}')
 
 
 if __name__ == "__main__":
@@ -91,12 +109,10 @@ if __name__ == "__main__":
     required_args.add_argument(
         "--data", "-d", help="patient directory path", required=True)
     required_args.add_argument("--extend", "-e", help="extend for rest/stress suffix?",
-                               required=True, type=data.ParseBoolean, default=False)
-
+                               required=True, type=data.ParseBoolean)
 
     # Read arguments from the command line
     args = parser.parse_args()
     data_path = str(args.data)
 
-    write_summary(args, data_path)
     build_pickle(args, data_path)
