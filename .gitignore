@@ -7,3 +7,4 @@ __pycache__
 *.stdout
 /old_runs
 workspace.code-workspace
+.vscode/
