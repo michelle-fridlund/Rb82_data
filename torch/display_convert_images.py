@@ -13,7 +13,8 @@ import pickle
 from pathlib import Path
 #from PIL import Image
 import pydicom
-
+import shutil
+import tqdm
 
 # Return all files of selected format in a directory
 def find_files(dir_path, **file_format):
@@ -33,6 +34,12 @@ def find_files(dir_path, **file_format):
     else:
         print('Wrong format: nifti/numpy/ima/dicom.')
 
+
+def create_save_dir(data_path, gate_number: int=1):
+    save_path = f'{data_path}/Gate{gate_number}'
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
+    return save_path
 
 # Read pickle file
 def read_pickle(pkl_path):
@@ -62,17 +69,35 @@ def plot_dicom(args):
     if len(files) == 0:
         print('No files found')
 
-    i = 1
-    for f in files:
-        print(f'Saving in {save_dir}')
+    sequence = []
+
+ #   for f in files:
+ #       dicom_raw = pydicom.dcmread(f)
+ #       sequence.append(int(dicom_raw.SliceLocation))
+ #   idx = [i[0] for i in sorted(enumerate(sequence), key=lambda s:s[1])]
+
+    for i in range(1, 889):
+        f = f'{args.data_path}{i}.ima'
         img = dcm2numpy(f)
         im = plt.imshow(img, cmap='plasma')
         plt.axis('off')
         plt.colorbar(im, label='MBq/L')
         plt.savefig(f'{save_dir}/{i}')
         plt.close("all")
-        i += 1
 
+
+def sort_gates(args):
+    for i in range(1,112):
+        src = f'{args.data_path}/PSFTOF-{i}.ima'
+        save_path = create_save_dir(args.data_path)
+        dst = f'{save_path}/PSFTOF-{i}.ima'
+        print(dst)
+        try:
+            shutil.copy(src, dst)
+            print(f"{i}. File copied successfully.")
+        # For other errors
+        except:
+            print("Error occurred while copying file.")
 
 # Plot each slice
 def plot_slices(img, save_dir):
@@ -99,4 +124,4 @@ if __name__ == "__main__":
     # Read arguments from the command line
     args = parser.parse_args()
 
-    plot_dicom(args)
+    sort_gates(args)
