@@ -47,7 +47,8 @@ def find_patients(dir_path):
                     # StudyInstance is before PETCT tag
                     if line.startswith('PETCT'):
                         # Get line before and remove \n
-                        prev_line = linecache.getline(f'{str(new_path)}/dump.txt', i).strip()
+                        prev_line = linecache.getline(
+                            f'{str(new_path)}/dump.txt', i).strip()
                         # Return patient name and StudyInstanceUID
                         patients[dirname] = prev_line
     return patients
@@ -70,24 +71,31 @@ def get_uid(dir_path):
             parser.clean_info()
 
         if parser.info['CTSeriesDicomUIDforAC'] != '':
-            pickle_info[k] = {'StudyInstance': v, 'SeriesInstance': parser.info['CTSeriesDicomUIDforAC']}
+            pickle_info[k] = {
+                'StudyInstance': v, 'SeriesInstance': parser.info['CTSeriesDicomUIDforAC']}
     return pickle_info
 
 
 # Write dump files
 def write_pickle(dir_path):
     patients = get_uid(dir_path)
+    df = pd.DataFrame(patients).transpose()
 
     print(f'{len(patients.keys())} PATIENTS FOUND!')
 
+    # Drop mising StudyInstance
+    index = df.index
+    condition = df['StudyInstance'] == 'Biograph64_mCT-1104'
+    missing_input = index[condition]
+    df.drop(missing_input, inplace=True)
+
     os.chdir(dir_path)
     with open('paediatrics_studyuid.pickle', 'wb') as p:
-        pickle.dump(patients, p)
+        pickle.dump(df, p)
 
     print(pickle.load(open('paediatrics_studyuid.pickle', 'rb')))
 
     # Nice print statement
-    df = pd.DataFrame(patients).transpose()
     print(df)
 
 
@@ -97,7 +105,8 @@ if __name__ == "__main__":
     required_args = parser.add_argument_group('required arguments')
 
     # Required args: LM data path
-    required_args.add_argument("--data", "-d", dest='data',  help="patient directory", required=True)
+    required_args.add_argument(
+        "--data", "-d", dest='data',  help="patient directory", required=True)
 
     # Read arguments from the command line
     args = parser.parse_args()

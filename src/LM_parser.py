@@ -13,12 +13,14 @@ import re
 import glob
 import argparse
 import pydicom
+import pickle
 from tqdm import tqdm
 from pathlib import Path
 from rhscripts.utils import LMParser  # claes_test conda env
 import seaborn as sns
 import matplotlib.pyplot as plt
 from shutil import rmtree
+import pandas as pd
 
 
 # Find all .ptd files
@@ -32,6 +34,7 @@ def find_LM(pt):
     return ptd
 
 
+# Create dicoms headers for .ptd files
 def parse_lm(pt):
     LM = find_LM(pt)
 
@@ -47,6 +50,7 @@ def parse_lm(pt):
                 f'lmparser.py "{l}" --out_dicom header/"{name}".dcm')
 
 
+# Identify .ptd file type from generated header
 def id_file(pt):
     # Check if header files already exist
     if not (pt/'header').exists():
@@ -69,9 +73,11 @@ def id_file(pt):
     return tags
 
 
+# Initiate lmparser.py from utils with input dose
 def retain_lm(pt, dose):
     tags = id_file(pt)
 
+    # Create save directory in the parent folder
     save_dir = '%s/%s_%s' % (str(pt), os.path.basename(str(pt)), dose)
 
     c = 0
@@ -82,7 +88,7 @@ def retain_lm(pt, dose):
             c += 1
             if dose is not None:
                 os.system(
-                    f'lmparser.py "{ptd_path}" --verbose --retain "{dose}" --out_folder "{save_dir}"')
+                    f'lmparser.py --ptd_file "{ptd_path}" --verbose --retain "{dose}" --out_folder "{save_dir}"')
             else:
                 print('.', end='', flush=True)
         if 'CALIB' in v:
@@ -91,8 +97,20 @@ def retain_lm(pt, dose):
     print(f'{c} LISTMODE files found.')
 
 
-def find_patients(dir_path, dose):
-    c=1
+# Find all available patient LISTMODE fileE paths and call lmparser on them
+def find_patients_fdg(data_path, dose):
+    c = 1
+    patients = os.listdir(data_path)
+    for p in patients:
+        new_path = Path(os.path.join(data_path, p))
+        retain_lm(new_path, dose)
+        print(f"{c}. {new_path}")
+        c += 1
+
+
+# Same as above, but accomodates Rb82 folder structure
+def find_patients_rb(dir_path, dose):
+    c = 1
     for (dirpath, dirnames, filenames) in os.walk(dir_path):
         dirname = str(Path(dirpath).relative_to(dir_path))
         if '/REST' in str(dirname) and 'IMA' not in str(dirname) and 'CT' not in str(dirname) \
@@ -104,8 +122,10 @@ def find_patients(dir_path, dose):
             # if (new_path/'header').exists():
             #     rmtree(os.path.join(new_path,'header'))
             retain_lm(new_path, dose)
-            c+=1
+            c += 1
 
+
+# Get statistics using inheritance
 def get_stats(args):
     parser = LMParser(ptd_file=args.ptd_file,  out_folder=args.out_folder,
                       anonymize=args.anonymize, verbose=args.verbose)
@@ -113,13 +133,16 @@ def get_stats(args):
     return df
 
 
+# Plot from stats (hard-coded)
 def plot_prompts(args):
     df = get_stats(args)
-    print(df)
+    # print(df)
     # df.drop(['count'], axis='columns', inplace=True)
-    df2 = df[df.type == 'prompt']
-    sns.lineplot(x=df.t, y=df.numEvents, hue='type', data=df)
-    plt.savefig('/homes/michellef/seaborn-data/prompts_rb82_new_25.png')
+    #df2 = df[df.type == 'events']
+    df.to_pickle(os.path.join(str(args.data), '22.pkl'))
+    # df = pd.read_pickle(os.path.join(str(args.data),'phantom_50.pkl'))
+    sns.lineplot(x=df.t, y=df.numEvents, data=df, hue='type')
+    plt.savefig('/homes/michellef/seaborn-data/23aug_22.png')
 
 
 if __name__ == "__main__":
@@ -128,11 +151,14 @@ if __name__ == "__main__":
     required_args = parser.add_argument_group('required arguments')
     # Add long and short argument
     required_args.add_argument(
-        "--mode", "-m", dest='mode',  help="retain/plot", required=True)
+        "--mode", "-m", dest='mode',  help="retain/parse/plot", type=str, required=True)
+    required_args.add_argument(
+        "--tracer", dest='tracer', help="fdg/rb", type=str, required=True)
+
     parser.add_argument("--data", "-d",
                         help="Data source directory path with pdt files")
 
-    parser.add_argument('--dose', dest='dose', type=int,
+    parser.add_argument('--dose', dest='dose', type=float,
                         help='percentage of dose to retain (0-100)')
     # Filename only
     parser.add_argument("--ptd_file", help='Input PTD LLM file', type=str)
@@ -153,15 +179,21 @@ if __name__ == "__main__":
 
     # Read arguments from the command line
     mode = str(args.mode)
+    tracer = str(args.tracer).lower()
     data_path = Path(args.data)
     dose = args.dose
 
     # Run on a single patient
     if mode == 'retain':
         retain_lm(data_path, dose)
-    # Run on all Rb82 patients
+    # Run on all patients
     elif mode == 'parse':
-        find_patients(data_path, dose)
+        if 'fdg' in tracer:
+            find_patients_fdg(data_path, dose)
+        elif 'rb' in tracer:
+            find_patients_rb(data_path, dose)
+        else:
+            print('Wrong tracer.')
     elif mode == 'plot':
         plot_prompts(args)
     else:

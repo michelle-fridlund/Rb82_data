@@ -48,33 +48,31 @@ def normalise(img, **dose_):
     # Get data type form nifti header
     d_type = img.header.get_data_dtype()
     np_im = np.array(img.get_fdata(), dtype=np.dtype(d_type))
-    # Normalise to ~ [0,1] and scale input LD 
+    # Normalise to ~ [0,1] and scale input LD
     # Don't actually need to scale
     if dose_.get("dose_") == "ld":
         # print(f'LD: {np_im.max()}')
-        #232429.9
-        return np.array(4.0*np_im/232429.9, dtype=np.dtype(d_type))
+        # 232429.9
+        return np.array(4.0*np_im/232429.9)
     elif dose_.get("dose_") == "hd":
         # print(f'HD: {np_im.max()}')
-        return np.array(np_im/232429.9, dtype=np.dtype(d_type))
+        return np.array(np_im/232429.9)
     else:
         # print(f'OUTPUT: {np_im.max()/4.0}')
         # if np.isinf(n_im.max()) == True:
         #     np_im.max() = np.ptp(np_im[np.isfinite(np_im)])
-        return np.array(np_im, dtype=np.dtype(d_type))
-          
+        return np.array(np_im)
+
 
 # Return PSNR as compared to respective target
 def psnr_(hd, ld):
-    # ld = np.nan_to_num(ld)
+    # hd = np.nan_to_num(ld)
     hd = hd.astype(np.uint16)
     ld = ld.astype(np.uint16)
-    # print(hd.max(), ld.max())
     mse = np.mean((hd - ld) ** 2)
     if(mse == 0):
-        return 100.0
-    # max_pixel = 1.0
-    max_pixel = 65535.0
+        return "Same Image."
+    max_pixel = np.amax(hd)
     psnr = 20 * log10(max_pixel / sqrt(mse))
     return psnr
 
@@ -109,10 +107,14 @@ def read_pickle(pkl_file):
     return summary['test'][0]
 
 # Generate data pickle name to store image stats
+
+
 def get_pkl_name(args):
     pickle_name = f'im_stats_{args.phase}_{args.mode}.pickle'
     return pickle_name
 # Write metrics into pkl
+
+
 def build_pickle(args, hd_path, ld_path):
     pickle_name = get_pkl_name(args)
     metrics = get_metrics(args, hd_path, ld_path)
@@ -165,7 +167,7 @@ def get_metrics(args, hd_path, ld_path):
         ld = normalise(nib.load(os.path.join(
             str(ld_path), f'{folder}.nii.gz')), dose_='ld') if args.original \
             else normalise(nib.load(os.path.join(
-            str(ld_path), f'{os.path.basename(ld_path)}_{args.phase}_predicted.nii.gz')))
+                str(ld_path), f'{os.path.basename(ld_path)}_{args.phase}_predicted.nii.gz')))
     else:
         print('I do not know this format')
 
@@ -200,7 +202,7 @@ def clean_dir(patient_dict, args):
 def evaluate_patients(args):
     patient_dict = find_patients(args)
     pickle_name = get_pkl_name(args)
-    
+
     # Delete old pkl if necessary
     if args.delete:
         clean_dir(patient_dict, args)
@@ -209,14 +211,14 @@ def evaluate_patients(args):
     for k in patient_dict.keys():
         for v in patient_dict.values():
             total_metrics = {'psnr': [],
-                              'ssim': [],
-                              'nrmse': [],
-                              'cv_hd': [],
-                              'cv_ld': [], }
+                             'ssim': [],
+                             'nrmse': [],
+                             'cv_hd': [],
+                             'cv_ld': [], }
 
             # Check if pkl exists already
             if not (Path('%s/%s' % (v['ld'], pickle_name))).exists():
-                    build_pickle(args, v['hd'], v['ld'])
+                build_pickle(args, v['hd'], v['ld'])
             # p = pickle.load(open('%s/metrics_{args.phase}_{args.mode}.pickle' % v['ld'], 'rb'))
             p = pickle.load(open('%s/%s' % (v['ld'], pickle_name), 'rb'))
             # TODO: technically could populate an array here, don't need dict
@@ -300,7 +302,6 @@ if __name__ == "__main__":
     hd_path = args.hd
     ld_path = args.ld
 
-    
     if args.pkl_path:
         overall_stats(args)
     else:

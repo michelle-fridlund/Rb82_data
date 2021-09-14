@@ -61,13 +61,15 @@ def copy_files(src, dst):
 
 
 # Copy patients from pickle into a new directory
-def copy_pet(pickle_path, pet_path):
-    patients = load_pickle(pickle_path)
-    print(patients)
-    save_path = f'{pet_path}_PETCT'
+#def copy_pet(pickle_path, pet_path):
+def copy_pet(pet_path):
+    #patients = load_pickle(pickle_path)
+    patients = os.listdir('/homes/michellef/my_projects/paediatrics_fdg/paediatrics_fdg_data/dcm_6Sep/')
+    save_path = '/homes/michellef/my_projects/paediatrics_fdg/paediatrics_fdg_data/rawdata_6Sep_PETCT'
+    #save_path = f'{pet_path}_PETCT'
     for p in tqdm(patients):
-        src = os.path.join(pet_path, p)
-        dst = os.path.join(save_path, p)
+        src = os.path.join(pet_path, p, 'CT')
+        dst = os.path.join(save_path, p, 'CT')
         copy_files(src, dst)
 
 
@@ -96,11 +98,11 @@ if __name__ == "__main__":
     parser.set_defaults(force=False)
     required_args = parser.add_argument_group('required arguments')
     # Add long and short argument
-    required_args.add_argument("--pet", "-p", help="PET source directory path with patient names", required=True)
-    required_args.add_argument("--ct", "-c", help="CT source directory path with patient names", required=True)  
     required_args.add_argument("--mode", help="copy PET or CT directories",
                                type=parse_low, required=True)
 
+    parser.add_argument("--pet", "-p", help="PET source directory path with patient names")
+    parser.add_argument("--ct", "-c", help="CT source directory path with patient names")  
     parser.add_argument('--pickle', dest='pickle_file', help='pickle file name')
 
     # Read arguments from the command line
@@ -113,12 +115,13 @@ if __name__ == "__main__":
     FORCE_DELETE = args.force
 
     if not os.path.exists(pet_path) or not os.path.exists(ct_path):
-        raise 'PET or/and CT source directories do not exist'
+        print('PET or/and CT source directories do not exist')
         
     if mode == 'ct':
         available_patients = find_available_patient_dirs(pet_path)
         copy_ct_to_pet(ct_path, available_patients)
     elif mode == 'pet':
-        copy_pet(os.path.join(pet_path, pickle_file), pet_path)
+        #copy_pet(os.path.join(pet_path, pickle_file), pet_path)
+        copy_pet(pet_path)
     else:
         print('Copy PET or CT?')

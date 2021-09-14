@@ -30,7 +30,7 @@ class NetworkModel(object):
         self.ld_path = args.ld_path
         # pickle file
         self.summary = pickle.load(
-            open('%s/data.pickle' % self.data_path, 'rb'))
+            open('%s/data2.pickle' % self.data_path, 'rb'))
 
         self.kfold = args.kfold
         self.train_pts = 'train_{}'.format(self.kfold)
@@ -142,8 +142,9 @@ class NetworkModel(object):
         return model_name
 
     def decayed_learning_rate(self, epoch):
-        # decay by 5% every 10th epoch
-        return self.lr * 0.95 ** (epoch // 10.0)
+        # Exp decay: 1% every epoch_step
+        epoch_step = 1
+        return self.lr * 0.99 ** math.floor((1+epoch)/epoch_step)
 
     def model_train(self, model_outname, x, y, z, d, epoch, epoch_step, valid_step,
                     batch_size, lr, initial_epoch, verbose=1, train_pts=None, validate_pts=None,
@@ -200,7 +201,7 @@ class NetworkModel(object):
                                  histogram_freq=0, write_graph=True, write_images=True, profile_batch=0)
 
         stop_callback = EarlyStopping(
-            monitor='val_loss', patience=50, verbose=1)
+            monitor='val_loss', mode = 'min', patience=50, verbose=1)
 
         lrs_callback = LearningRateScheduler(
             self.decayed_learning_rate, verbose=1)

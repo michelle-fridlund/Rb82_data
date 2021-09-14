@@ -6,3 +6,5 @@ __pycache__
 *.h5
 *.stdout
 /old_runs
+workspace.code-workspace
+.vscode/
