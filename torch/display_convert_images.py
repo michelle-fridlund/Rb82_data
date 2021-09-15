@@ -11,7 +11,8 @@ import numpy as np
 import argparse
 import pickle
 from pathlib import Path
-#from PIL import Image
+import numpy as np
+import nibabel as nib
 import pydicom
 import shutil
 import tqdm
@@ -41,11 +42,25 @@ def create_save_dir(data_path, gate_number: int=1):
         os.makedirs(save_path)
     return save_path
 
+
 # Read pickle file
 def read_pickle(pkl_path):
     summary = pickle.load(open('%s' % pkl_path, 'rb'))
     # Test patients (hardcoded)
     return summary['test_0']
+
+
+# TODO: Rewrite this later for NOT hard-coded 
+def denorm(pixels):
+    return pixels*232429.9/4.0
+
+
+# Return numpy array
+def nifti2numpy(nifti):
+    img = nib.load(nifti)
+    d_type = img.header.get_data_dtype()  # get data type from nifti header
+    # Network output is not in patient space???
+    return denorm(np.array(img.get_fdata(), dtype=np.dtype(d_type)))
 
 
 # Get a list of patients or read from pickle
@@ -99,15 +114,27 @@ def sort_gates(args):
         except:
             print("Error occurred while copying file.")
 
-# Plot each slice
-def plot_slices(img, save_dir):
-    (a, b, c) = img.shape
-    for i in range(0, c):
-        im = plt.imshow(img[:, :, i], cmap='plasma')
-        plt.axis('off')
-        plt.colorbar(im, label='MBq/L')
-        plt.savefig(f'{save_dir}/{i}')
-        plt.close("all")
+
+# Convert nifti to dicom
+def np2dcm(dicom_path, nifti_path):
+    # Load all dicoms and corresponding nifti pixels
+    dicom_files = find_files(dicom_path, format='ima')
+    pixels = nifti2numpy(nifti_path)
+    # Original DICOMS are int16
+    pixels = pixels.astype(np.int16)
+    # Create save dir in nifti dir
+    saff = '/homes/michellef/my_projects/rhtorch/torch/rb82/inferences/3616f6a0-b08a-4253-b072-431f699f5886_rest'
+    save_path = f'{saff}/DICOM'
+    print(save_path)
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
+
+    (a, b, c) = pixels.shape
+    for i in range (0, c):
+        d = pydicom.read_file(dicom_files[i])
+        pixel_data = pixels[:,:,i]
+        d.PixelData = pixel_data.tostring()
+        d.save_as(f'{save_path}/{i}.dcm')
 
 
 if __name__ == "__main__":
@@ -116,8 +143,7 @@ if __name__ == "__main__":
     required_args = parser.add_argument_group('required arguments')
 
     parser.add_argument('--data_path', dest='data_path', type=str,
-                        help="directory containing patient files",
-                        required=True)
+                        help="directory containing patient files")
     # Specify a pkl file for list of patients
     parser.add_argument('--pkl_path', dest='pkl_path', help="pickle filepath")
 
@@ -125,3 +151,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     sort_gates(args)
+    #np2dcm('/homes/michellef/my_projects/rb82_data/Dicoms_OCT8/100p_STAT/3616f6a0-b08a-4253-b072-431f699f5886/REST', '/homes/michellef/my_projects/rhtorch/torch/rb82/inferences/3616f6a0-b08a-4253-b072-431f699f5886_rest/Inferred_LightningAE_ResUNET3D_newsplit_TIODataModule_bz4_128x128x16_k0_e600_e=506.nii.gz')
