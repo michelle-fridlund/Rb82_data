@@ -11,8 +11,9 @@ import nibabel as nib
 from tqdm import tqdm
 from sklearn.preprocessing import RobustScaler
 
+
 class Data_Preprocess(object):
-    def __init__(self, args, hd_name = 'pet_100p_stat', ld_name= 'pet_25p_stat',
+    def __init__(self, args, hd_name = 'pet_100p_ekg', ld_name= 'pet_25p_stat',
                  ct_name = 'ct', extension = '.nii.gz'):
         #PET norm value from arguments
         self.norm = args.norm 
@@ -26,7 +27,7 @@ class Data_Preprocess(object):
         self.data_path = args.data_path
         # List of patients in data dir
         self.summary = os.listdir(self.data_path)
-                    
+       
         
     def load_nifti(self, file):
         return nib.load(file)
@@ -66,7 +67,7 @@ class Data_Preprocess(object):
     # Choose normalisation based on input type
     def prep_numpy(self, numpy, **mode):
         if mode.get("mode") == "hd":
-            return self.normalise_robust(numpy)
+            return self.normalise_pet(numpy)
         elif mode.get("mode") == "ld":
             return self.scale_pet_dose(self.normalise_robust(numpy))
         elif mode.get("mode") == "ct":
@@ -104,14 +105,16 @@ class Data_Preprocess(object):
         print('Transforming CT...')
         
         
-    def create_new_nifti(self, load_path, load_path2, save_path, mode):
+    #def create_new_nifti(self, load_path, load_path2, save_path, mode):
+    def create_new_nifti(self, load_path, save_path, mode):
         nifti = self.load_nifti(load_path)
-        nifti_pet = self.load_nifti(load_path2)
+        #nifti_pet = self.load_nifti(load_path2)
         numpy = self.nifti2numpy(nifti)
         norm = self.prep_numpy(numpy, mode = mode)
         
         if str(mode) == 'ct':
-            self.transform_nifti(nifti, nifti_pet, norm, save_path)
+            print('ct')
+            #self.transform_nifti(nifti, nifti_pet, norm, save_path)
         else:
             self.save_nifti(nifti, norm, save_path)
         
@@ -128,6 +131,6 @@ class Data_Preprocess(object):
                 ld = self.create_paths(patient, self.ld_name)
                 # ct = self.create_paths(patient, self.ct_name)
             # ld[0] used for affine CT transformation
-            self.create_new_nifti(hd[0], ld[0], hd[1], 'hd')
-            self.create_new_nifti(ld[0], ld[0], ld[1], 'ld')
+            self.create_new_nifti(hd[0], hd[1], 'hd')
+            #self.create_new_nifti(ld[0], ld[0], ld[1], 'ld')
             # self.create_new_nifti(ct[0], ld[0], ct[1], 'ct')

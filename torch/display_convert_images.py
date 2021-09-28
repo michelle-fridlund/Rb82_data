@@ -101,10 +101,10 @@ def plot_dicom(args):
         plt.close("all")
 
 
-def sort_gates(args):
+def sort_gates(data_path):
     for i in range(1,112):
-        src = f'{args.data_path}/PSFTOF-{i}.ima'
-        save_path = create_save_dir(args.data_path)
+        src = f'{data_path}/PSFTOF-{i}.ima'
+        save_path = create_save_dir(data_path,gate_number = 1)
         dst = f'{save_path}/PSFTOF-{i}.ima'
         print(dst)
         try:
@@ -114,6 +114,26 @@ def sort_gates(args):
         except:
             print("Error occurred while copying file.")
 
+
+def find_patients(args):
+    data_path = str(args.data_path)
+    patients = os.listdir(data_path)
+    print(len(patients))
+    for p in patients:
+        new_path = os.path.join(data_path, p, 'REST')
+        #sort_gates(new_path)
+    c = 0
+    for (dirpath, dirnames, filenames) in os.walk(data_path):
+        dirname = str(Path(dirpath).relative_to(data_path))
+        if '/REST' in dirname and '/Sinograms' not in dirname \
+            or '/STRESS' in dirname and '/Sinograms' not in dirname:
+            new_path = str(os.path.join(data_path, dirname))
+            files = find_files(new_path, format='ima')
+            if int(len(files)) != 888:
+                print(dirname)
+        c+=1
+    print(f'{c} patients found...')
+    
 
 # Convert nifti to dicom
 def np2dcm(dicom_path, nifti_path):
@@ -150,5 +170,5 @@ if __name__ == "__main__":
     # Read arguments from the command line
     args = parser.parse_args()
 
-    sort_gates(args)
+    find_patients(args)
     #np2dcm('/homes/michellef/my_projects/rb82_data/Dicoms_OCT8/100p_STAT/3616f6a0-b08a-4253-b072-431f699f5886/REST', '/homes/michellef/my_projects/rhtorch/torch/rb82/inferences/3616f6a0-b08a-4253-b072-431f699f5886_rest/Inferred_LightningAE_ResUNET3D_newsplit_TIODataModule_bz4_128x128x16_k0_e600_e=506.nii.gz')
