@@ -11,11 +11,11 @@ import numpy as np
 import argparse
 import pickle
 from pathlib import Path
+from tqdm import tqdm 
 import numpy as np
 import nibabel as nib
 import pydicom
 import shutil
-import tqdm
 
 # Return all files of selected format in a directory
 def find_files(dir_path, **file_format):
@@ -101,40 +101,6 @@ def plot_dicom(args):
         plt.close("all")
 
 
-def sort_gates(data_path):
-    for i in range(1,112):
-        src = f'{data_path}/PSFTOF-{i}.ima'
-        save_path = create_save_dir(data_path,gate_number = 1)
-        dst = f'{save_path}/PSFTOF-{i}.ima'
-        print(dst)
-        try:
-            shutil.copy(src, dst)
-            print(f"{i}. File copied successfully.")
-        # For other errors
-        except:
-            print("Error occurred while copying file.")
-
-
-def find_patients(args):
-    data_path = str(args.data_path)
-    patients = os.listdir(data_path)
-    print(len(patients))
-    for p in patients:
-        new_path = os.path.join(data_path, p, 'REST')
-        #sort_gates(new_path)
-    c = 0
-    for (dirpath, dirnames, filenames) in os.walk(data_path):
-        dirname = str(Path(dirpath).relative_to(data_path))
-        if '/REST' in dirname and '/Sinograms' not in dirname \
-            or '/STRESS' in dirname and '/Sinograms' not in dirname:
-            new_path = str(os.path.join(data_path, dirname))
-            files = find_files(new_path, format='ima')
-            if int(len(files)) != 888:
-                print(dirname)
-        c+=1
-    print(f'{c} patients found...')
-    
-
 # Convert nifti to dicom
 def np2dcm(dicom_path, nifti_path):
     # Load all dicoms and corresponding nifti pixels
@@ -157,6 +123,47 @@ def np2dcm(dicom_path, nifti_path):
         d.save_as(f'{save_path}/{i}.dcm')
 
 
+# Sort cardiac gates with hard-coded dicom indeces       
+def sort_gates(data_path):
+    for i in range(778,889): # Make sure the gate number matches indeces!!!
+        src = f'{data_path}/PSFTOF-{i}.ima'
+        # TODO: User-defined gates and index ranges???
+        # Copy selected dicoms over to user-defined gates 
+        save_path = create_save_dir(data_path,gate_number = 8)
+        dst = f'{save_path}/PSFTOF-{i}.ima'
+        try:
+            shutil.copy(src, dst)
+            #print(f"{i}. File copied successfully.")
+        # For other errors
+        except:
+            print("Error occurred while copying file.")
+
+
+# Call gate sorting on selected patients
+def find_patients(args):
+    data_path = str(args.data_path)
+    # Always start with the same index as last index of preceeding sequence
+    patients = os.listdir(data_path)[153:173]
+    for p in tqdm(patients):
+        print(p)
+        new_path = os.path.join(data_path, p, 'REST')
+        new_path2 = os.path.join(data_path, p, 'STRESS')
+        sort_gates(new_path)
+        sort_gates(new_path2)
+    # TODO: Run check for file length alongside sorting and output error if wrong
+"""     for (dirpath, dirnames, filenames) in os.walk(data_path):
+        dirname = str(Path(dirpath).relative_to(data_path))
+        if '/REST' in dirname and '/Sinograms' not in dirname \
+            or '/STRESS' in dirname and '/Sinograms' not in dirname:
+            new_path = str(os.path.join(data_path, dirname))
+            files = find_files(new_path, format='ima')
+            if int(len(files)) != 888:
+                print(dirname)
+    print(f'{len(patients)} patients found...') """
+    
+
+
+
 if __name__ == "__main__":
     # Initiate the parser
     parser = argparse.ArgumentParser()
@@ -171,4 +178,3 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     find_patients(args)
-    #np2dcm('/homes/michellef/my_projects/rb82_data/Dicoms_OCT8/100p_STAT/3616f6a0-b08a-4253-b072-431f699f5886/REST', '/homes/michellef/my_projects/rhtorch/torch/rb82/inferences/3616f6a0-b08a-4253-b072-431f699f5886_rest/Inferred_LightningAE_ResUNET3D_newsplit_TIODataModule_bz4_128x128x16_k0_e600_e=506.nii.gz')
