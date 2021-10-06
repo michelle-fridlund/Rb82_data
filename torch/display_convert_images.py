@@ -6,6 +6,7 @@ Created on Mon Sep 13 2021 15:29
 """
 import os
 import matplotlib.pyplot as plt
+from rhscripts.conversion import nifty_to_dcm
 import glob
 import numpy as np
 import argparse
@@ -16,6 +17,12 @@ import numpy as np
 import nibabel as nib
 import pydicom
 import shutil
+import sys
+import re
+
+
+inference_path = '/homes/michellef/my_projects/rhtorch/torch/rb82/inferences'
+
 
 # Return all files of selected format in a directory
 def find_files(dir_path, **file_format):
@@ -64,13 +71,6 @@ def nifti2numpy(nifti):
 
 
 # Get a list of patients or read from pickle
-def find_patients(args):
-    patients = read_pickle(str(args.pkl_path)) if args.pkl_path \
-               else os.listdir(args.data_path)
-    print(patients)
-
-
-# Get a list of patients or read from pickle
 def dcm2numpy(d):
     d = pydicom.read_file(d)
     img = d.pixel_array.astype(np.float32)*d.RescaleSlope--d.RescaleIntercept
@@ -82,7 +82,24 @@ def plot_dicom(args):
     save_dir = os.path.join(args.data_path, 'images')
 
     if len(files) == 0:
-        print('No files found')
+        print('No files found')# Load all dicoms and corresponding nifti pixels
+    dicom_files = find_files(dicom_path, format='ima')
+    pixels = nifti2numpy(nifti_path)
+    # Original DICOMS are int16
+    pixels = pixels.astype(np.int16)
+    # Create save dir in nifti dir
+    saff = '/homes/michellef/my_projects/rhtorch/torch/rb82/inferences/3616f6a0-b08a-4253-btest_LightningRAE_Res3DUnet_residual_TIODataModule_bz4_128x128x16_k0_e600_e=506.nii.gz072-431f699f5886_rest'
+    save_path = f'{saff}/DICOM'
+    print(save_path)
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
+
+    (a, b, c) = pixels.shape
+    for i in range(0, c):
+        d = pydicom.read_file(dicom_files[i])
+        pixel_data = pixels[:,:,i]
+        d.PixelData = pixel_data.tostring()
+        d.save_as(f'{save_path}/{i}.dcm')
 
     sequence = []
 
@@ -101,28 +118,6 @@ def plot_dicom(args):
         plt.close("all")
 
 
-# Convert nifti to dicom
-def np2dcm(dicom_path, nifti_path):
-    # Load all dicoms and corresponding nifti pixels
-    dicom_files = find_files(dicom_path, format='ima')
-    pixels = nifti2numpy(nifti_path)
-    # Original DICOMS are int16
-    pixels = pixels.astype(np.int16)
-    # Create save dir in nifti dir
-    saff = '/homes/michellef/my_projects/rhtorch/torch/rb82/inferences/3616f6a0-b08a-4253-b072-431f699f5886_rest'
-    save_path = f'{saff}/DICOM'
-    print(save_path)
-    if not os.path.exists(save_path):
-        os.makedirs(save_path)
-
-    (a, b, c) = pixels.shape
-    for i in range (0, c):
-        d = pydicom.read_file(dicom_files[i])
-        pixel_data = pixels[:,:,i]
-        d.PixelData = pixel_data.tostring()
-        d.save_as(f'{save_path}/{i}.dcm')
-
-
 # Sort cardiac gates with hard-coded dicom indeces       
 def sort_gates(data_path):
     for i in range(778,889): # Make sure the gate number matches indeces!!!
@@ -137,6 +132,13 @@ def sort_gates(data_path):
         # For other errors
         except:
             print("Error occurred while copying file.")
+
+
+# Get a list of patients or read from pickle
+def return_patient_list(args):
+    patients = read_pickle(str(args.pkl_path)) if args.pkl_path \
+               else os.listdir(args.data_path)
+    print(patients)
 
 
 # Call gate sorting on selected patients
@@ -162,6 +164,50 @@ def find_patients(args):
     print(f'{len(patients)} patients found...') """
     
 
+# Convert nifti to dicom
+def np2dcm(nifty_file, dicom_container, dicom_output):
+    nifty_to_dcm(nifty_file,
+            dicom_container,
+            dicom_output,
+            verbose=True)
+            
+"""     # Check for correct venv
+    try:
+        print(os.environ["claes_test"])
+        print('Environment OK')
+    except KeyError:
+        print("Please set the environment claes_test")
+        sys.exit(1) """
+
+
+# Convert user-defined model outputs to dicoms
+def convert_patient_dicom(args):
+    # Hard-coded for test patients
+    patients = os.listdir('/homes/michellef/my_projects/rb82_data/Dicoms_OCT8/10p_EKG')
+
+    for p in tqdm(patients):
+        # Rest and stress inference dir paths
+        output_dir1 = f'{inference_path}/{p}_rest'
+        output_dir2 = f'{inference_path}/{p}_stress'
+        # Full path to respective nifti files
+        nifty_file1 = os.path.join(output_dir1, str(args.nifty))
+        nifty_file2 = os.path.join(output_dir2, str(args.nifty))
+        # Respective rest and stress original dicom paths
+        dicom_container1 = os.path.join(str(args.data_path), p, 'REST')
+        dicom_container2 = os.path.join(str(args.data_path), p, 'STRESS')
+        # Get dirname from nifti/model input
+        save_dir_name = str((re.search('^(.*?)\.nii.gz', args.nifty)).group(1))
+        # Create save dir in inference parent folders
+        dicom_output1 = os.path.join(output_dir1, save_dir_name)
+        dicom_output2 = os.path.join(output_dir2, save_dir_name)
+
+        # Call nii2dcm on rest/stress from rhscripts 
+        np2dcm(nifty_file1, dicom_container1, dicom_output1)
+        np2dcm(nifty_file2, dicom_container2, dicom_output2)
+
+        print(f'{p} converted to DICOM.')
+
+    print('Done.')
 
 
 if __name__ == "__main__":
@@ -173,8 +219,12 @@ if __name__ == "__main__":
                         help="directory containing patient files")
     # Specify a pkl file for list of patients
     parser.add_argument('--pkl_path', dest='pkl_path', help="pickle filepath")
+    # Specify a pkl file for list of patients
+    parser.add_argument('--nifty', dest='nifty', help="input nifti filename")
 
     # Read arguments from the command line
     args = parser.parse_args()
 
-    find_patients(args)
+    #find_patients(args)
+
+    convert_patient_dicom(args)
