@@ -5,6 +5,9 @@ Created on Mon Sep 13 2021 15:29
 @author: michellef
 """
 import seaborn as sns
+import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
 
 extent_stress_100 = [10, 30, 29, 0, 3, 0, 13, 27, 1, 16, 1]
 extent_rest_100 = [1, 15, 0, 0, 2, 0, 2, 11, 0, 5, 0]
@@ -41,3 +44,21 @@ sv_stress_10 = [49,38,34,47,64,59,52,52,55,64,56]
 sv_rest_10 = [41,28,22,34,48,32,24,45,42,29,72]
 ef_stress_10 = [42,70,37,59,63,78,59,29,62,57,34]
 ef_rest_10 = [41,57,51,68,62,79,41,38,94,46,38]
+
+def corr(x, y, **kwargs):
+    
+    # Calculate the value
+    coef = np.corrcoef(x, y)[0][1]
+    # Make the label
+    label = r'$\rho$ = ' + str(round(coef, 2))
+    
+    # Add the label to the plot
+    ax = plt.gca()
+    ax.annotate(label, xy = (1.5, 1.8), size = 10, xycoords = ax.transAxes)
+
+df = pd.DataFrame(list(zip(extent_stress_100, extent_stress_25)),columns =['Extent_stress_FD', 'Extent_stress_QD'])
+ax = sns.pairplot(df)
+ax = ax.map_upper(corr)
+
+
+plt.savefig('/homes/michellef/stats.png')
