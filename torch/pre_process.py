@@ -11,8 +11,9 @@ import nibabel as nib
 from tqdm import tqdm
 from sklearn.preprocessing import RobustScaler
 
+
 class Data_Preprocess(object):
-    def __init__(self, args, hd_name = 'pet_100p_stat', ld_name= 'pet_25p_stat',
+    def __init__(self, args, hd_name = 'pet_100p_2mm_stat', ld_name= 'pet_25p_2mm_stat',
                  ct_name = 'ct', extension = '.nii.gz'):
         #PET norm value from arguments
         self.norm = args.norm 
@@ -26,7 +27,7 @@ class Data_Preprocess(object):
         self.data_path = args.data_path
         # List of patients in data dir
         self.summary = os.listdir(self.data_path)
-                    
+       
         
     def load_nifti(self, file):
         return nib.load(file)
@@ -66,9 +67,9 @@ class Data_Preprocess(object):
     # Choose normalisation based on input type
     def prep_numpy(self, numpy, **mode):
         if mode.get("mode") == "hd":
-            return self.normalise_robust(numpy)
+            return self.normalise_pet(numpy)
         elif mode.get("mode") == "ld":
-            return self.scale_pet_dose(self.normalise_robust(numpy))
+            return self.scale_pet_dose(self.normalise_pet(numpy))
         elif mode.get("mode") == "ct":
             # Some CTs have an extra slice at the end
             if numpy.shape[2] == 112:
@@ -84,7 +85,7 @@ class Data_Preprocess(object):
     # Concatenate load/save path strings
     def create_paths(self, patient, filename):
         load_path = '%s/%s/%s%s' % (self.data_path, patient, filename, self.extension)
-        save_path = '%s/%s/%s%s%s' % (self.data_path, patient, filename, '_norm_robust', self.extension)
+        save_path = '%s/%s/%s%s%s' % (self.data_path, patient, filename, '_norm', self.extension)
         return [load_path, save_path]
             
     # Create normalised PET nifti
@@ -111,7 +112,8 @@ class Data_Preprocess(object):
         norm = self.prep_numpy(numpy, mode = mode)
         
         if str(mode) == 'ct':
-            self.transform_nifti(nifti, nifti_pet, norm, save_path)
+            print('ct')
+            #self.transform_nifti(nifti, nifti_pet, norm, save_path)
         else:
             self.save_nifti(nifti, norm, save_path)
         
@@ -120,6 +122,7 @@ class Data_Preprocess(object):
         print('\nLoading nifti files...')
 
         patients = self.summary
+
         #TODO: take filenames as arguments...
         for patient in tqdm(patients):     
             # Ignore the pickle file in the data directory

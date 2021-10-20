@@ -7,7 +7,7 @@ Created on Mon Jun 28 16:00:22 2021
 
 import os
 import re
-from shutil import copy
+from shutil import copy, rmtree
 from tqdm import tqdm
 from pathlib import Path
 import argparse
@@ -44,26 +44,43 @@ def find_patients(data_path):
     return patients
 
 
+# Create a dictionary where save dirname is key and full path to nii.gz is value
+""" def find_patients(data_path):
+    patients = {}
+    for (dirpath, dirnames, filenames) in os.walk(data_path):
+        dirname = str(Path(dirpath).relative_to(data_path))
+        if '/REST' in dirname and '/Sinograms' not in dirname and '/Gate' not in dirname \
+                or '/STRESS' in dirname and '/Sinograms' not in dirname and '/Gate' not in dirname:
+            new_path = str(Path(os.path.join(data_path, dirname)))
+            patient_name = get_name(dirname, regex='name')
+            phase = (get_name(dirname, regex='phase')).lower()
+            filename = '3_psftof.nii.gz'
+            patients[f'{patient_name}_{phase}'] = os.path.join(
+                new_path, filename)
+    return patients """
+
+
 # Copy pet to new directory
 def copy_pet(data_path):
     patients = find_patients(data_path)
     for k, v in tqdm(patients.items()):
         dst = os.path.join(save_path, k)
+        print(v)
         try:
             copy(v, dst)
         except Exception as error:
             print(error)
             print(f'Cannot copy {v} to {dst}')
             continue
+    print(f'{len(patients)} found...')
 
 
 def rename_pet(data_path):
     patients = find_patients(data_path)
     for k, v in tqdm(patients.items()):
         dst = os.path.join(save_path, k)
-        # old = os.path.join(dst, os.path.basename(v))
-        old = os.path.join(dst, '5_ac_ct_cardiac_1.nii')
-        new = os.path.join(dst, 'ct.nii.gz')
+        old = os.path.join(dst, os.path.basename(v))
+        new = os.path.join(dst, 'pet_100p_2mm_stat.nii.gz')
         try:
             os.rename(old, new)
         except Exception as error:
@@ -74,7 +91,7 @@ def rename_pet(data_path):
 
 def copy_ct(dir_path, ct_path):
     patients = find_patients(dir_path)  # pet path
-    ct_name = '2_ac_ct_cardiac_1.nii.gz'
+    ct_name = '3_psftof.nii.gz'
     for k, v in tqdm(patients.items()):
         dst = os.path.join(save_path, k, ct_name)
         name_ = k.split('_')[0]
@@ -103,18 +120,88 @@ def find_cts(dir_path):
     return cts
 
 
-def convert_nii(dir_path):
-    cts = find_cts(dir_path)
+# Gated images
+def find_gates(dir_path):
+    gates = []
+    for (dirpath, dirnames, filenames) in os.walk(dir_path):
+        dirname = str(Path(dirpath).relative_to(dir_path))
+        if '/Gate' in dirname:
+            gates.append(dirname)
+            # Optionally delete gates and corresponding nifti files
+            if FORCE_DELETE:
+                dst = str(Path(dirname).parent)
+                new_path = os.path.join(dir_path, dirname)
+                print(new_path)
+                file = os.path.join(dir_path, dst, 'pet_100p_ekg.nii.gz')
+                try:
+                    #os.remove(file)
+                    rmtree(new_path)
+                except Exception as error:
+                    print(error)
+                    print(f'Cannot delete {file}')
+                    continue
+    return gates
+
+
+def rename_gates(dir_path):
+    gates = find_gates(dir_path)
+    for gate in tqdm(gates):
+        dst = str(Path(gate).parent)
+        old = os.path.join(dir_path, dst, '3_psftof.nii.gz')
+        new = os.path.join(dir_path, dst, 'pet_100p_ekg.nii.gz')
+        try:
+            os.rename(old, new)
+        except Exception as error:
+            print(error)
+            print(f'Cannot rename {old} to {new}')
+            continue
+
+
+""" def convert_nii(dir_path):
+    gates = find_gates(dir_path)
+    print(gates)
     c = 1
-    for ct in cts:
-        output_ = str(Path(ct).parent)
-        dicom_to_nifti(os.path.join(dir_path, ct),
-                       os.path.join(dir_path, output_))
-        print(f'{c}. {ct} to {output_}')
+    for gate in tqdm(gates):
+        output_ = str(Path(gate).parent)
+        print(os.path.join(output_))
+        files = os.listdir(os.path.join(dir_path, gate))
+        if len(files) == 0:
+            print(f'!No files found for {gate}!')
+        else:
+            dicom_to_nifti(os.path.join(dir_path, gate),
+                        os.path.join(dir_path, output_))
+            #print(f'{c}. {gate} to {output_}')
         c += 1
 
-    print('Done.')
+    print(f'{c} patients converted.') """
 
+
+def convert_nii(dir_path):
+    patients = find_patients(dir_path)
+    c = 1
+    for k,v in patients.items():
+        if FORCE_DELETE:
+            try:
+                os.remove(v)
+                print(f'deleted {k}')
+            except Exception as error:
+                print(error)
+                print(f'Cannot delete {v}')
+                continue
+
+        output_ = str(Path(v).parent)
+        input_ = os.path.join(output_, 'STRESS')
+ 
+        files = os.listdir(input_)
+
+        if len(files) == 0 or len(files) != 112:
+            print(f'!No files found for {input_}!')
+        else:
+            dicom_to_nifti(input_, output_)
+            #print(f'{c}. {input_} to {output_}')
+        c += 1
+
+    print(f'{c} patients converted.')
 
 if __name__ == "__main__":
     # Initiate the parser
@@ -141,9 +228,13 @@ if __name__ == "__main__":
 
     #ct = str(args.ct)
     #pet = str(args.pet)
-    data_path = str(args.data_path)
+    #data_path = str(args.data_path)
+    #FORCE_DELETE = args.force
 
-    # find_patients(data_path)
+    #convert_nii(data_path)
+    #copy_pet(data_path)
+    #rename_pet(data_path)
+    #rename_gates(data_path)
 
     processor = pre_process.Data_Preprocess(args)
     processor.load_data()
