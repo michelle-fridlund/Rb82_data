@@ -28,7 +28,7 @@ def get_name(string, **name_):
         print('Unknown regex')
 
 
-""" # Create a dictionary where save dirname is key and full path to nii.gz is value
+# Create a dictionary where save dirname is key and full path to nii.gz is value
 def find_patients(data_path):
     patients = {}
     for (dirpath, dirnames, filenames) in os.walk(data_path):
@@ -36,17 +36,16 @@ def find_patients(data_path):
         if '/REST' in dirname and '/Sinograms' not in dirname \
                 or '/STRESS' in dirname and '/Sinograms' not in dirname:
             new_path = str(Path(os.path.join(data_path, dirname)).parent)
-            print(new_path)
             patient_name = get_name(dirname, regex='name')
             phase = (get_name(dirname, regex='phase')).lower()
             filename = f'3_{phase}-lm-00-psftof_000_000_ctmv_4i_21s.nii.gz'
             patients[f'{patient_name}_{phase}'] = os.path.join(
                 new_path, filename)
-    return patients """
+    return patients
 
 
 # Create a dictionary where save dirname is key and full path to nii.gz is value
-def find_patients(data_path):
+""" def find_patients(data_path):
     patients = {}
     for (dirpath, dirnames, filenames) in os.walk(data_path):
         dirname = str(Path(dirpath).relative_to(data_path))
@@ -58,7 +57,7 @@ def find_patients(data_path):
             filename = '3_psftof.nii.gz'
             patients[f'{patient_name}_{phase}'] = os.path.join(
                 new_path, filename)
-    return patients
+    return patients """
 
 
 # Copy pet to new directory
@@ -81,7 +80,7 @@ def rename_pet(data_path):
     for k, v in tqdm(patients.items()):
         dst = os.path.join(save_path, k)
         old = os.path.join(dst, os.path.basename(v))
-        new = os.path.join(dst, 'pet_100p_ekg.nii.gz')
+        new = os.path.join(dst, 'pet_100p_2mm_stat.nii.gz')
         try:
             os.rename(old, new)
         except Exception as error:
@@ -158,7 +157,7 @@ def rename_gates(dir_path):
             continue
 
 
-def convert_nii(dir_path):
+""" def convert_nii(dir_path):
     gates = find_gates(dir_path)
     print(gates)
     c = 1
@@ -174,8 +173,35 @@ def convert_nii(dir_path):
             #print(f'{c}. {gate} to {output_}')
         c += 1
 
-    print(f'{c} patients converted.')
+    print(f'{c} patients converted.') """
 
+
+def convert_nii(dir_path):
+    patients = find_patients(dir_path)
+    c = 1
+    for k,v in patients.items():
+        if FORCE_DELETE:
+            try:
+                os.remove(v)
+                print(f'deleted {k}')
+            except Exception as error:
+                print(error)
+                print(f'Cannot delete {v}')
+                continue
+
+        output_ = str(Path(v).parent)
+        input_ = os.path.join(output_, 'STRESS')
+ 
+        files = os.listdir(input_)
+
+        if len(files) == 0 or len(files) != 112:
+            print(f'!No files found for {input_}!')
+        else:
+            dicom_to_nifti(input_, output_)
+            #print(f'{c}. {input_} to {output_}')
+        c += 1
+
+    print(f'{c} patients converted.')
 
 if __name__ == "__main__":
     # Initiate the parser
@@ -202,8 +228,8 @@ if __name__ == "__main__":
 
     #ct = str(args.ct)
     #pet = str(args.pet)
-    data_path = str(args.data_path)
-    FORCE_DELETE = args.force
+    #data_path = str(args.data_path)
+    #FORCE_DELETE = args.force
 
     #convert_nii(data_path)
     #copy_pet(data_path)

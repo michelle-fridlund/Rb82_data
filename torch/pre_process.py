@@ -13,7 +13,7 @@ from sklearn.preprocessing import RobustScaler
 
 
 class Data_Preprocess(object):
-    def __init__(self, args, hd_name = 'pet_100p_ekg', ld_name= 'pet_25p_stat',
+    def __init__(self, args, hd_name = 'pet_100p_2mm_stat', ld_name= 'pet_25p_2mm_stat',
                  ct_name = 'ct', extension = '.nii.gz'):
         #PET norm value from arguments
         self.norm = args.norm 
@@ -69,7 +69,7 @@ class Data_Preprocess(object):
         if mode.get("mode") == "hd":
             return self.normalise_pet(numpy)
         elif mode.get("mode") == "ld":
-            return self.scale_pet_dose(self.normalise_robust(numpy))
+            return self.scale_pet_dose(self.normalise_pet(numpy))
         elif mode.get("mode") == "ct":
             # Some CTs have an extra slice at the end
             if numpy.shape[2] == 112:
@@ -85,7 +85,7 @@ class Data_Preprocess(object):
     # Concatenate load/save path strings
     def create_paths(self, patient, filename):
         load_path = '%s/%s/%s%s' % (self.data_path, patient, filename, self.extension)
-        save_path = '%s/%s/%s%s%s' % (self.data_path, patient, filename, '_norm_robust', self.extension)
+        save_path = '%s/%s/%s%s%s' % (self.data_path, patient, filename, '_norm', self.extension)
         return [load_path, save_path]
             
     # Create normalised PET nifti
@@ -105,10 +105,9 @@ class Data_Preprocess(object):
         print('Transforming CT...')
         
         
-    #def create_new_nifti(self, load_path, load_path2, save_path, mode):
-    def create_new_nifti(self, load_path, save_path, mode):
+    def create_new_nifti(self, load_path, load_path2, save_path, mode):
         nifti = self.load_nifti(load_path)
-        #nifti_pet = self.load_nifti(load_path2)
+        nifti_pet = self.load_nifti(load_path2)
         numpy = self.nifti2numpy(nifti)
         norm = self.prep_numpy(numpy, mode = mode)
         
@@ -123,6 +122,7 @@ class Data_Preprocess(object):
         print('\nLoading nifti files...')
 
         patients = self.summary
+
         #TODO: take filenames as arguments...
         for patient in tqdm(patients):     
             # Ignore the pickle file in the data directory
@@ -131,6 +131,6 @@ class Data_Preprocess(object):
                 ld = self.create_paths(patient, self.ld_name)
                 # ct = self.create_paths(patient, self.ct_name)
             # ld[0] used for affine CT transformation
-            self.create_new_nifti(hd[0], hd[1], 'hd')
-            #self.create_new_nifti(ld[0], ld[0], ld[1], 'ld')
+            self.create_new_nifti(hd[0], ld[0], hd[1], 'hd')
+            self.create_new_nifti(ld[0], ld[0], ld[1], 'ld')
             # self.create_new_nifti(ct[0], ld[0], ct[1], 'ct')
