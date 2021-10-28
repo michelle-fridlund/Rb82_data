@@ -49,16 +49,16 @@ def check_dates(dir_path):
             name = get_name(dirname, regex='')
             # print(os.path.basename(ima))
             os.chdir(new_path)
-            os.system(f"dcmdump {ima1} --search StudyDate | (head -c 30; echo '{name}') \
-                      >> /homes/michellef/dates.txt")
-            os.system(f"dcmdump {ima1} --search RadionuclideTotalDose | (head -c 30; echo '{name}') \
-                      >> /homes/michellef/doses.txt")
+            os.system(f"dcmdump {ima1} --search PatientWeight | (head -c 30; echo '{name}') \
+                      >> /homes/michellef/weights.txt")
+            os.system(f"dcmdump {ima1} --search PatientSex | (head -c 30; echo '{name}') \
+                      >> /homes/michellef/sex.txt")
 
 
 def find_dates(dir_path):
-    # check_dates(dir_path)
+    #check_dates(dir_path)
     anon_patients = {}
-    with open('/homes/michellef/dates.txt') as f:
+    with open('/homes/michellef/sex.txt') as f:
         for line in tqdm(f.readlines(), desc="Checking dates..."):  # progress bar
             line_ = line.strip()
             name = get_name(line_, regex='txt')
@@ -77,6 +77,22 @@ def write_obj(dir_path):
     out.close()
 
 
+def find_occur(dir_path):
+    females = 0
+    males = 0
+    with open('/homes/michellef/test.txt') as f:
+        for line in tqdm(f.readlines(), desc="Checking dates..."):  # progress bar
+            line_ = line.strip()
+            #print(line_)
+            if str(line_) == 'F':
+                females +=1
+            elif str(line_) == 'M':
+                males +=1
+            else:
+                print('Alien :o')
+    print(f'Males: {males}, females: {females}')
+
+    
 if __name__ == "__main__":
     # Initiate the parser
     parser = argparse.ArgumentParser()
@@ -88,5 +104,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
     data_path = Path(args.data)
 
-    # find_dates(data_path)
+    #find_dates(data_path)
     write_obj(data_path)
+    find_occur(data_path)

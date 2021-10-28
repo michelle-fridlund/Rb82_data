@@ -23,7 +23,7 @@ def create_dir(output):
 
 def get_name(string, **name_):
     if name_.get("regex") == "date":
-        return (re.search('(\/homes\/michellef\/my_projects\/rb82_data\/PET_LMChopper_OCT8)\/(?<=\/)(.*)', string)).group(2)
+        return (re.search('(\/homes\/michellef\/my_projects\/rb82_data\/PET_OCT8_Anonymous_JSReconReady)\/(?<=\/)(.*)', string)).group(2)
     if name_.get("regex") == "path":
         return (re.search('\/homes\/michellef\/(.*)', string)).group(1)
     else:
@@ -39,10 +39,11 @@ def find_LM(pt, **name_):
     for f in p.iterdir():
         if 'ptd' in f.name:
             ptds.append(f)
-    if name_.get("number") == "one":
-        return ptds[14]
-    else:  # Custom
-        return ptds
+    if len(ptds) != 0:
+        if name_.get("number") == "one":
+            return ptds[1]
+        else:  # Custom
+            return ptds
 
 
 #Find paths
@@ -51,7 +52,11 @@ def get_paths(dir_path):
     for (dirpath, dirnames, filenames) in os.walk(dir_path):
         dirname = str(Path(dirpath).relative_to(dir_path))
         if '/REST' in str(dirname) and 'IMA' not in str(dirname) and 'CT' not in str(dirname) \
-                or '/STRESS' in str(dirname) and 'IMA' not in str(dirname) and 'CT' not in str(dirname):
+                and 'quadratic' not in str(dirname) and '_25' not in str(dirname) \
+                    and 'header' not in str(dirname) \
+                or '/STRESS' in str(dirname) and 'IMA' not in str(dirname) and 'CT' not in str(dirname) \
+                     and 'quadratic' not in str(dirname) and '_25' not in str(dirname) \
+                         and 'header' not in str(dirname):
             new_path = Path(os.path.join(dir_path, dirname))
             paths.append(new_path)
     return paths
@@ -63,7 +68,7 @@ def find_files(dir_path):
     for new_path in paths:
         try:
             name = get_name(str(new_path), regex='date')
-        except:
+        except: 
             continue
         ptds = find_LM(new_path, number = 'one')
         LM_list[name] = str(ptds)
@@ -74,34 +79,34 @@ def find_files(dir_path):
 def LM_chopper(data_path, new_path):
     name = get_name(data_path, regex='path')
     my_dir = name.replace("/", "\\")
-    # print(my_dir)
+
     string = f'cscript C:\\JSRecon12\\LMChopper64\\LMChopper64.js Z:\\{my_dir}'
     # create_dir(new_path)
     os.chdir(new_path)
+    os.remove('run.bat')
     f = open("run.bat", "w")
     # write line to output file
     f.write(string)
     f.close()
-    # # os.remove('run.bat')
 
 
 def prep_chopper(dir_path):
     l = find_files(dir_path)
     for k, v in l.items():
-        new_path = os.path.join('/homes/michellef/my_projects/rb82_data/PET_LMCopper_OCT8', k)
+        new_path = os.path.join('/homes/michellef/my_projects/rb82_data/PET_LMChopper_OCT8', k)
         LM_chopper(v, new_path)
 
 
 def delete_files(dir_path):
     paths = get_paths(dir_path)
     for new_path in paths:
-        ptds = find_LM(new_path, number='')
-        for p in ptds:
-            file = os.path.basename(str(p))
-        print(ptds[2]) # PLEASE MAKE SURE THE FILES ARE CORRECT FIRST!
+        #ptds = find_LM(new_path, number='')
+        #for p in ptds:
+        #    file = os.path.basename(str(p))
+        #print(ptds[2]) # PLEASE MAKE SURE THE FILES ARE CORRECT FIRST!
         #os.remove(ptds[2])
-        # os.chdir(str(new_path))
-        # os.remove('TempDicomHeader.IMA')
+        os.chdir(str(new_path))
+        os.remove('run.bat')
 
 
 # Copy selected low dose into previously structured/copied folder
@@ -141,6 +146,8 @@ if __name__ == "__main__":
     # Add long and short argument
     required_args.add_argument("--mode", "-m", help="delete/copy/prep", required=True)
     required_args.add_argument("--year", type=int, help="scan year", required=True)
+    parser.add_argument('--force', action='store_true',
+                        help="Force file deletion before copying")
     # Read arguments from the command line
     args = parser.parse_args()
     mode = str(args.mode)
@@ -152,7 +159,7 @@ if __name__ == "__main__":
     # Simulated data path
     dir_path = f'/homes/michellef/my_projects/rb82_data/PET_OCT8_Anonymous_JSReconReady/{year}'
     # Temporary data path
-    dst = f'/homes/michellef/my_projects/rb82_data/PET_LMChopper_OCT8/{year}_25p'
+    dst = f'/homes/michellef/my_projects/rb82_data/PET_LMChopper_OCT8/{year}'
 
    # ALSO USE THIS FOR DELETING ANY GIVEN DOSE LEVEL
     if mode == 'delete':
@@ -164,4 +171,4 @@ if __name__ == "__main__":
     else:
         # TODO: Use relative path
         # TODO: Read path from argument (maybe?)
-        prep_chopper('/homes/michellef/my_projects/paediatrics_fdg_data/fgd_lm_chopper/0630c6a2-1fd6-4d4e-bfaf-93a9d6fed142_test')
+        prep_chopper(dir_path)
