@@ -80,7 +80,7 @@ def rename_pet(data_path):
     for k, v in tqdm(patients.items()):
         dst = os.path.join(save_path, k)
         old = os.path.join(dst, os.path.basename(v))
-        new = os.path.join(dst, 'pet_100p_2mm_stat.nii.gz')
+        new = os.path.join(dst, 'pet_10p_stat.nii.gz')
         try:
             os.rename(old, new)
         except Exception as error:
@@ -228,7 +228,7 @@ if __name__ == "__main__":
 
     #ct = str(args.ct)
     #pet = str(args.pet)
-    #data_path = str(args.data_path)
+    data_path = str(args.data_path)
     #FORCE_DELETE = args.force
 
     #convert_nii(data_path)

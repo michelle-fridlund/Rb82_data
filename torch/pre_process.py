@@ -13,9 +13,10 @@ from sklearn.preprocessing import RobustScaler
 
 
 class Data_Preprocess(object):
-    def __init__(self, args, hd_name = 'pet_100p_2mm_stat', ld_name= 'pet_25p_2mm_stat',
+    def __init__(self, args, hd_name = 'pet_100p_stat', ld_name= 'pet_100p_ekg',
                  ct_name = 'ct', extension = '.nii.gz'):
-        #PET norm value from arguments
+        # PET norm value from arguments
+        # 232429.9 (25, 99.8)
         self.norm = args.norm 
         
         self.hd_name = hd_name
@@ -131,6 +132,6 @@ class Data_Preprocess(object):
                 ld = self.create_paths(patient, self.ld_name)
                 # ct = self.create_paths(patient, self.ct_name)
             # ld[0] used for affine CT transformation
-            self.create_new_nifti(hd[0], ld[0], hd[1], 'hd')
+            #self.create_new_nifti(hd[0], ld[0], hd[1], 'hd')
             self.create_new_nifti(ld[0], ld[0], ld[1], 'ld')
             # self.create_new_nifti(ct[0], ld[0], ct[1], 'ct')

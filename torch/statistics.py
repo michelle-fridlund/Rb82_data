@@ -8,6 +8,7 @@ import seaborn as sns
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy import stats
 
 extent_stress_100 = [10, 30, 29, 0, 3, 0, 13, 27, 1, 16, 1]
 extent_rest_100 = [1, 15, 0, 0, 2, 0, 2, 11, 0, 5, 0]
@@ -54,11 +55,18 @@ def corr(x, y, **kwargs):
     
     # Add the label to the plot
     ax = plt.gca()
-    ax.annotate(label, xy = (1.5, 1.8), size = 10, xycoords = ax.transAxes)
+    ax.annotate(label, xy = (0.2, 0.95), size = 105, xycoords = ax.transAxes)
 
-df = pd.DataFrame(list(zip(extent_stress_100, extent_stress_25)),columns =['Extent_stress_FD', 'Extent_stress_QD'])
-ax = sns.pairplot(df)
-ax = ax.map_upper(corr)
-
-
+df = pd.DataFrame(list(zip(tpd_stress_100, tpd_stress_25)),columns =['tpd_100', 'tpd_out'])
+#ax = sns.scat(df)
+##ax = ax.map_upper(corr)
+#line_kws={'color': 'red'}
+#(0.9826931011223417, 6.739136250708129e-08)
+print(stats.pearsonr(df['tpd_100'], df['tpd_out']))
+fgrid = sns.lmplot(x="tpd_100", y="tpd_out", line_kws={'color': 'blue'}, scatter_kws={"color": "blue"}, data=df)
+ax = fgrid.axes[0,0]
+ax.set(xlabel="TPD clinical dose [%]", ylabel="TPD quarter dose [%]") 
+#plt.title('Denoised')
+plt.text(3, 18,'R = 0.99', fontsize=15, color = 'blue')
+plt.text(3, 16,'p < 0.00001', fontsize=15, color = 'blue')
 plt.savefig('/homes/michellef/stats.png')
