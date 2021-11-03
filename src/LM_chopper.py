@@ -13,6 +13,7 @@ import re
 from pathlib import Path
 from shutil import copyfile
 from progress.bar import Bar
+from tqdm import tqdm
 import argparse
 
 
@@ -24,8 +25,10 @@ def create_dir(output):
 def get_name(string, **name_):
     if name_.get("regex") == "date":
         return (re.search('(\/homes\/michellef\/my_projects\/rb82_data\/PET_OCT8_Anonymous_JSReconReady)\/(?<=\/)(.*)', string)).group(2)
-    if name_.get("regex") == "path":
+    elif name_.get("regex") == "path":
         return (re.search('\/homes\/michellef\/(.*)', string)).group(1)
+    elif name_.get("regex") == "test":
+        return (re.search('\/(.*)', string)).group(1)
     else:
         return (re.search('^(.*?)\/', string)).group(1)
 
@@ -97,16 +100,20 @@ def prep_chopper(dir_path):
         LM_chopper(v, new_path)
 
 
-def delete_files(dir_path):
+def delete_files(dir_path, args):
     paths = get_paths(dir_path)
     for new_path in paths:
-        #ptds = find_LM(new_path, number='')
-        #for p in ptds:
-        #    file = os.path.basename(str(p))
+        ptds = find_LM(new_path, number='')
+        for p in tqdm(ptds):
+            print(p)
+            if '1-005.000' in str(p):
+                print(p)
+                if args.force:
+                    os.remove(p)
         #print(ptds[2]) # PLEASE MAKE SURE THE FILES ARE CORRECT FIRST!
         #os.remove(ptds[2])
-        os.chdir(str(new_path))
-        os.remove('run.bat')
+        #os.chdir(str(new_path))
+        #os.remove('run.bat')
 
 
 # Copy selected low dose into previously structured/copied folder
@@ -114,9 +121,8 @@ def copy_files(dir_path, dst):
     my_ptds = {}
     for (dirpath, dirnames, filenames) in os.walk(dir_path):
         dirname = str(Path(dirpath).relative_to(dir_path))
-        # if '/REST' in str(dirname) and 'IMA' not in str(dirname) and 'CT' not in str(dirname) \
-        #         or '/STRESS' in str(dirname) and 'IMA' not in str(dirname) and 'CT' not in str(dirname):
-        if '/REST_25' in str(dirname) or '/STRESS_25' in str(dirname):
+        if '/REST' in str(dirname) and 'IMA' not in str(dirname) and 'CT' not in str(dirname) \
+            or '/STRESS' in str(dirname) and 'IMA' not in str(dirname) and 'CT' not in str(dirname):
             new_path = Path(os.path.join(dir_path, dirname))
             ptds = find_LM(new_path, number='')
             # Get simulated LD -->
@@ -139,15 +145,49 @@ def copy_files(dir_path, dst):
     print('Done!!!')
 
 
+def test_files(dst):
+    my_ptds = {}
+
+    patients = os.listdir(dst)
+    dir_path = Path(dst).parent
+
+    for (dirpath, dirnames, filenames) in os.walk(dir_path):
+        dirname = str(Path(dirpath).relative_to(dir_path))
+        for p in patients:
+            if p in str(dirname) and 'REST' in str(dirname) \
+                and '_25p' not in str(dirname) and 'TEST' not in str(dirname) or \
+                p in str(dirname) and 'STRESS' in str(dirname) \
+                and '_25p' not in str(dirname) and 'TEST' not in str(dirname):
+                    new_path = Path(os.path.join(dir_path, dirname))
+                    ptds = find_LM(new_path, number='')
+                    if '1-010.000' in str(ptds[1]):
+                        my_ptds[get_name(str(dirname), regex = 'test')] = str(ptds[1])
+                    else:
+                        print(f'Wrong dose in {dirname}')
+
+    with Bar('Loading LISTMODE:', suffix='%(percent)d%%') as bar:
+        for k, v in my_ptds.items():  # Add progress bar here
+                save_path = os.path.join(dst, k)
+                copyfile(v, os.path.join(save_path, os.path.basename(v)))
+                bar.next()
+    print('Done!!!')
+
+
 if __name__ == "__main__":
     # Initiate the parser
     parser = argparse.ArgumentParser()
     required_args = parser.add_argument_group('required arguments')
     # Add long and short argument
-    required_args.add_argument("--mode", "-m", help="delete/copy/prep", required=True)
-    required_args.add_argument("--year", type=int, help="scan year", required=True)
+    required_args.add_argument("--mode", "-m", help="delete/copy/test/prep", 
+                               required=True)
+    required_args.add_argument("--year", help="dirname", required=True)
+
+    # TODO: introduce the two boolean arguments below
     parser.add_argument('--force', action='store_true',
                         help="Force file deletion before copying")
+    # Test patients
+    parser.add_argument('--test', action='store_true',
+                        help="only use the test set")                    
     # Read arguments from the command line
     args = parser.parse_args()
     mode = str(args.mode)
@@ -163,10 +203,12 @@ if __name__ == "__main__":
 
    # ALSO USE THIS FOR DELETING ANY GIVEN DOSE LEVEL
     if mode == 'delete':
-        delete_files(dst)  # Delete original LM file
+        delete_files(dst, args)  # Delete original LM file
     # One at a time
     elif mode == 'copy':
         copy_files(dir_path, dst)
+    elif mode == 'test':
+        test_files(dst)
     # Use original listmode data path here
     else:
         # TODO: Use relative path
