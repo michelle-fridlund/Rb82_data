@@ -22,6 +22,7 @@ import re
 
 
 inference_path = '/homes/michellef/my_projects/rhtorch/torch/rb82/inferences'
+input_path = '/homes/michellef/my_projects/rhtorch/torch/rb82/data'
 
 
 # Return all files of selected format in a directory
@@ -179,6 +180,23 @@ def np2dcm(nifty_file, dicom_container, dicom_output):
         print("Please set the environment claes_test")
         sys.exit(1) """
 
+# Plot test nifti files
+def plot_nifti(nifty, save_dir):
+    img = nib.load(nifty)
+    d_type = img.header.get_data_dtype()  # get data type from nifti header
+    img2 = np.array(img.get_fdata(), dtype=np.dtype(d_type))
+
+    (a, b, c) = img2.shape
+    for i in range(0, c):
+        im = plt.imshow(img2[:, :, i], cmap='plasma')
+        plt.axis('off')
+        plt.colorbar(im, label='MBq/L')
+        plt.savefig(f'{save_dir}/{i}')
+        plt.close("all")
+    
+def makedirs(save_path):
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
 
 # Convert user-defined model outputs to dicoms
 def convert_patient_dicom(args):
@@ -187,11 +205,14 @@ def convert_patient_dicom(args):
 
     for p in tqdm(patients):
         # Rest and stress inference dir paths
+        input_dir1 = f'{input_path}/{p}_rest'
+        input_dir2 = f'{input_path}/{p}_stress'
+        # Rest and stress inference dir paths
         output_dir1 = f'{inference_path}/{p}_rest'
         output_dir2 = f'{inference_path}/{p}_stress'
         # Full path to respective nifti files
-        nifty_file1 = os.path.join(output_dir1, str(args.nifty))
-        nifty_file2 = os.path.join(output_dir2, str(args.nifty))
+        nifty_file1 = os.path.join(input_dir1, str(args.nifty))
+        nifty_file2 = os.path.join(input_dir2, str(args.nifty))
         # Respective rest and stress original dicom paths
         dicom_container1 = os.path.join(str(args.data_path), p, 'REST')
         dicom_container2 = os.path.join(str(args.data_path), p, 'STRESS')
@@ -200,10 +221,19 @@ def convert_patient_dicom(args):
         # Create save dir in inference parent folders
         dicom_output1 = os.path.join(output_dir1, save_dir_name)
         dicom_output2 = os.path.join(output_dir2, save_dir_name)
+        # Create a separate subdir for images
+        image_output1 = os.path.join(output_dir1, 'images', save_dir_name)
+        image_output2 = os.path.join(output_dir2, 'images', save_dir_name)
+        
+        makedirs(image_output1)
+        makedirs(image_output2)
+        # Plot per slice for user-defined unference model
+        plot_nifti(nifty_file1, image_output1)
+        plot_nifti(nifty_file2, image_output2)
 
-        # Call nii2dcm on rest/stress from rhscripts 
-        np2dcm(nifty_file1, dicom_container1, dicom_output1)
-        np2dcm(nifty_file2, dicom_container2, dicom_output2)
+        ## Call nii2dcm on rest/stress from rhscripts 
+        #np2dcm(nifty_file1, dicom_container1, dicom_output1)
+        #np2dcm(nifty_file2, dicom_container2, dicom_output2)
 
         print(f'{p} converted to DICOM.')
 

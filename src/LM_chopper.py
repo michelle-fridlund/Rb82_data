@@ -101,15 +101,15 @@ def prep_chopper(dir_path):
 
 
 def delete_files(dir_path, args):
+    c = 0
     paths = get_paths(dir_path)
     for new_path in paths:
         ptds = find_LM(new_path, number='')
         for p in tqdm(ptds):
-            print(p)
-            if '1-005.000' in str(p):
-                print(p)
-                if args.force:
-                    os.remove(p)
+            if '1-012.500' in str(p) and args.force:
+                os.remove(p)
+                c+=1
+    print(f'{c} files removed.')
         #print(ptds[2]) # PLEASE MAKE SURE THE FILES ARE CORRECT FIRST!
         #os.remove(ptds[2])
         #os.chdir(str(new_path))
@@ -160,16 +160,16 @@ def test_files(dst):
                 and '_25p' not in str(dirname) and 'TEST' not in str(dirname):
                     new_path = Path(os.path.join(dir_path, dirname))
                     ptds = find_LM(new_path, number='')
-                    if '1-010.000' in str(ptds[1]):
-                        my_ptds[get_name(str(dirname), regex = 'test')] = str(ptds[1])
+                    # 5p = [0], 10p = [1], 25p = [2], 50p = [3], 12.5p = [4]
+                    if '1-005.000' in str(ptds[0]):
+                        my_ptds[get_name(str(dirname), regex = 'test')] = str(ptds[0])
                     else:
                         print(f'Wrong dose in {dirname}')
 
-    with Bar('Loading LISTMODE:', suffix='%(percent)d%%') as bar:
-        for k, v in my_ptds.items():  # Add progress bar here
-                save_path = os.path.join(dst, k)
-                copyfile(v, os.path.join(save_path, os.path.basename(v)))
-                bar.next()
+    for k, v in tqdm(my_ptds.items()):  # Add progress bar here
+        # print(v)
+        save_path = os.path.join(dst, k)
+        copyfile(v, os.path.join(save_path, os.path.basename(v)))
     print('Done!!!')
 
 
