@@ -130,17 +130,9 @@ def get_stats(args):
     psnr3, ssim3, nrmse3 = return_values(metrics_inference2)
     psnr4, ssim4, nrmse4 = return_values(metrics_inference3)
     psnr5, ssim5, nrmse5 = return_values(metrics_inference4)
-    # data = pd.DataFrame.from_dict(metrics)
-    # data2 = pd.DataFrame.from_dict(metrics_inference1)
-    # data3 = pd.DataFrame.from_dict(metrics_inference2)
-    # data4 = pd.DataFrame.from_dict(metrics_inference3)
-    #
-    # concatenated = pd.concat([data.assign(image='LD'), data2.assign(image='Residual'),
-    #                            data3.assign(image='3DUNet'),
-    #                            data4.assign(image='Res3DUNet')])
-    # sns.boxplot(x=concatenated.image, y = concatenated.nrmse, data = concatenated)
-    # plt.savefig('/homes/michellef/7Sep.png')
-    print('\n\n')
+    return metrics, metrics_inference3
+
+"""     print('\n\n')
     print('Original (2mm vs 6mm): \n\n')
     print(f"PSNR value is: {np.mean(psnr):.4f} + {err(psnr):.4f}")
     print(f"SSIM value is: {np.mean(ssim):.4f} + {err(ssim):.4f}")
@@ -168,11 +160,18 @@ def get_stats(args):
     print('Inference: ')
     print(f"PSNR value is: {np.mean(psnr5):.4f} + {err(psnr5):.4f}")
     print(f"SSIM value is: {np.mean(ssim5):.4f} + {err(ssim5):.4f}")
-    print(f"NRMSE value is: {np.mean(nrmse5):.4f} + {err(nrmse5):.4f}")
-
-    return psnr, ssim, nrmse
+    print(f"NRMSE value is: {np.mean(nrmse5):.4f} + {err(nrmse5):.4f}") """
 
 
+
+def print_values(args):
+    metrics, metrics_inference3 = get_stats(args)
+    data = pd.DataFrame.from_dict(metrics)
+    data2 = pd.DataFrame.from_dict(metrics_inference3)
+
+    concatenated = pd.concat([data.assign(image='Original'), data2.assign(image='AI-Improved')])
+    sns.boxplot(x=concatenated.image, y = concatenated.psnr, data = concatenated)
+    plt.savefig('/homes/michellef/16Nov_stats.png')
 
 if __name__ == "__main__":
     # Initiate the parser
@@ -196,6 +195,6 @@ if __name__ == "__main__":
     # Read arguments from the command line
     args = parser.parse_args()
 
-    get_stats(args)
+    print_values(args)
 
     print('Done.')
