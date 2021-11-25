@@ -13,11 +13,14 @@ from sklearn.preprocessing import RobustScaler
 
 
 class Data_Preprocess(object):
-    def __init__(self, args, hd_name = 'pet_100p_stat', ld_name= 'pet_100p_ekg',
+    def __init__(self, args, hd_name = 'pet_100p_stat', ld_name= 'pet_50p_stat',
                  ct_name = 'ct', extension = '.nii.gz'):
         # PET norm value from arguments
         # 232429.9 (25, 99.8)
         self.norm = args.norm 
+
+        # Scale factor for different dose levels
+        self.scale = args.scale
         
         self.hd_name = hd_name
         self.ld_name = ld_name
@@ -42,12 +45,12 @@ class Data_Preprocess(object):
         except:
             return None
         
-        
+
     # Scale low-dose input
     def scale_pet_dose(self, pixels):
-        return pixels*4.0  # 1/4 factor for 25% dose 
-    
+        return pixels*self.scale  # 1/4 factor for 25% dose 
         
+
     # PET hard normalisation
     def normalise_pet(self, pixels):
         return pixels/self.norm

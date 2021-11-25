@@ -19,6 +19,11 @@ FORCE_DELETE = False
 save_path = '/homes/michellef/my_projects/rhtorch/torch/rb82/data'
 
 
+def create_dir(output):
+    if not os.path.exists(output):
+        os.makedirs(output)
+
+
 def get_name(string, **name_):
     if name_.get("regex") == "name":  # Getting date from DICOM header
         return (re.search('^(.*)\/', string)).group(1)
@@ -80,7 +85,7 @@ def rename_pet(data_path):
     for k, v in tqdm(patients.items()):
         dst = os.path.join(save_path, k)
         old = os.path.join(dst, os.path.basename(v))
-        new = os.path.join(dst, 'pet_10p_stat.nii.gz')
+        new = os.path.join(dst, 'pet_50p_stat.nii.gz')
         try:
             os.rename(old, new)
         except Exception as error:
@@ -203,6 +208,28 @@ def convert_nii(dir_path):
 
     print(f'{c} patients converted.')
 
+
+def prep_nnunet(dir_path, nn_path):
+    patients = os.listdir(dir_path)  # pet path
+
+    c = 0
+    for p in tqdm(patients):
+        if 'pickle' not in str(p):
+            src = os.path.join(dir_path, p, 'ct.nii.gz')
+            dst = os.path.join(nn_path, 'ct.nii.gz')
+        try:
+            copy(src, dst)
+        except Exception as error:
+            print(error)
+            print(f'Cannot copy {src} to {dst}')
+            continue
+
+        new_name = f'{nn_path}/{p}_{c}_0000.nii.gz'
+        os.rename(dst, new_name)
+        c += 1
+    print('Done!')
+    
+
 if __name__ == "__main__":
     # Initiate the parser
     parser = argparse.ArgumentParser()
@@ -222,6 +249,8 @@ if __name__ == "__main__":
         "--data_path", dest='data_path', help="nii.gz. data directory")
     parser.add_argument(
         "--norm", dest='norm', type=float, help="PET norm factor")
+    parser.add_argument(
+        "--scale", dest='scale', type=float, help="Dose scale factor")
 
     # Read arguments from the command line
     args = parser.parse_args()
@@ -238,3 +267,5 @@ if __name__ == "__main__":
 
     processor = pre_process.Data_Preprocess(args)
     processor.load_data()
+
+    #prep_nnunet(data_path, '/homes/michellef/my_projects/ct_thorax/nnUNet_raw_data_base/nnUNet_raw_data/Task055_SegTHOR')
