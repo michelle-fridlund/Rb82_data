@@ -71,7 +71,7 @@ def find_patients(args):
     patient_dict = {}
     patients = read_pickle(str(args.pkl_path))
 
-    hd = f'pet_100p_2mm_stat_norm.nii.gz'
+    hd = f'pet_100p_stat_norm.nii.gz'
     ld = f'pet_25p_2mm_stat_norm.nii.gz'
     out1 = f'test_LightningAE_FAN2D_v1_TIODataModule_bz1_128x128x1_k0_e400_e=80.nii.gz'
     out2 = f'test_LightningAE_Res3DUnet_2mm_6mm_TIODataModule_bz4_128x128x16_k0_e600_e=572.nii.gz'
@@ -130,15 +130,21 @@ def get_stats(args):
     psnr3, ssim3, nrmse3 = return_values(metrics_inference2)
     psnr4, ssim4, nrmse4 = return_values(metrics_inference3)
     psnr5, ssim5, nrmse5 = return_values(metrics_inference4)
-    return metrics, metrics_inference3
 
-"""     print('\n\n')
+    print('\n\n')
     print('Original (2mm vs 6mm): \n\n')
     print(f"PSNR value is: {np.mean(psnr):.4f} + {err(psnr):.4f}")
     print(f"SSIM value is: {np.mean(ssim):.4f} + {err(ssim):.4f}")
     print(f"NRMSE value is: {np.mean(nrmse):.4f} + {err(nrmse):.4f}")
 
-    print('\n\n FAN')
+
+    print('\n\n 2mm/2mm')
+    print('Inference: ')
+    print(f"PSNR value is: {np.mean(psnr4):.4f} + {err(psnr4):.4f}")
+    print(f"SSIM value is: {np.mean(ssim4):.4f} + {err(ssim4):.4f}")
+    print(f"NRMSE value is: {np.mean(nrmse4):.4f} + {err(nrmse4):.4f}")
+    
+"""     print('\n\n FAN')
     print('Inference: ')
     print(f"PSNR value is: {np.mean(psnr2):.4f} + {err(psnr2):.4f}")
     print(f"SSIM value is: {np.mean(ssim2):.4f} + {err(ssim2):.4f}")
@@ -150,18 +156,13 @@ def get_stats(args):
     print(f"SSIM value is: {np.mean(ssim3):.4f} + {err(ssim3):.4f}")
     print(f"NRMSE value is: {np.mean(nrmse3):.4f} + {err(nrmse3):.4f}")
 
-    print('\n\n 2mm/2mm')
-    print('Inference: ')
-    print(f"PSNR value is: {np.mean(psnr4):.4f} + {err(psnr4):.4f}")
-    print(f"SSIM value is: {np.mean(ssim4):.4f} + {err(ssim4):.4f}")
-    print(f"NRMSE value is: {np.mean(nrmse4):.4f} + {err(nrmse4):.4f}")
-
     print('\n\n GAN')
     print('Inference: ')
     print(f"PSNR value is: {np.mean(psnr5):.4f} + {err(psnr5):.4f}")
     print(f"SSIM value is: {np.mean(ssim5):.4f} + {err(ssim5):.4f}")
-    print(f"NRMSE value is: {np.mean(nrmse5):.4f} + {err(nrmse5):.4f}") """
+    print(f"NRMSE value is: {np.mean(nrmse5):.4f} + {err(nrmse5):.4f}")
 
+    return metrics, metrics_inference3 """
 
 
 def print_values(args):
@@ -195,6 +196,6 @@ if __name__ == "__main__":
     # Read arguments from the command line
     args = parser.parse_args()
 
-    print_values(args)
+    get_stats(args)
 
     print('Done.')
