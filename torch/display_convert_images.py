@@ -211,8 +211,9 @@ def convert_patient_dicom(args):
         output_dir1 = f'{inference_path}/{p}_rest'
         output_dir2 = f'{inference_path}/{p}_stress'
         # Full path to respective nifti files
-        nifty_file1 = os.path.join(input_dir1, str(args.nifty))
-        nifty_file2 = os.path.join(input_dir2, str(args.nifty))
+        # Directories: input_dir = data, output_dir = inferences
+        nifty_file1 = os.path.join(output_dir1, str(args.nifty))
+        nifty_file2 = os.path.join(output_dir2, str(args.nifty))
         # Respective rest and stress original dicom paths
         dicom_container1 = os.path.join(str(args.data_path), p, 'REST')
         dicom_container2 = os.path.join(str(args.data_path), p, 'STRESS')
@@ -255,6 +256,6 @@ if __name__ == "__main__":
     # Read arguments from the command line
     args = parser.parse_args()
 
-    #find_patients(args)
+    #convert_patient_dicom(args)
 
-    convert_patient_dicom(args)
+    plot_nifti('/homes/michellef/my_projects/rb82_data/Dicoms_OCT8/5p_STAT/0ef7e890-6586-4876-a630-a3af8e7fd736/3_rest-lm-00-psftof_000_000_ctmv_4i_21s.nii.gz', '/homes/michellef/my_projects/rhtorch/torch/rb82/inferences/0ef7e890-6586-4876-a630-a3af8e7fd736_rest/images/pet_5p_stat_norm')
