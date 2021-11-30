@@ -119,51 +119,50 @@ def plot_dicom(args):
         plt.close("all")
 
 
-# Sort cardiac gates with hard-coded dicom indeces       
+# Sort cardiac gates with hard-coded dicom indeces
 def sort_gates(data_path):
-    for i in range(778,889): # Make sure the gate number matches indeces!!!
-        src = f'{data_path}/PSFTOF-{i}.ima'
-        # TODO: User-defined gates and index ranges???
-        # Copy selected dicoms over to user-defined gates 
-        save_path = create_save_dir(data_path,gate_number = 8)
-        dst = f'{save_path}/PSFTOF-{i}.ima'
-        try:
-            shutil.copy(src, dst)
-            #print(f"{i}. File copied successfully.")
-        # For other errors
-        except:
-            print("Error occurred while copying file.")
+    # (1,112)(112,223)(223,334)(334,445)(445,556)(556,667)(667,778)(778,889)
+    for i in range(0,8): 
+        # Create save dirs in the src folder
+        save_path = create_save_dir(data_path, gate_number = i+1)
+        for j in range(1+111*i, 112+111*i):
+            src = f'{data_path}/PSFTOF-{j}.ima'
+            dst = f'{save_path}/PSFTOF-{j}.ima'
+            # Copy selected dicoms over to user-defined gates
+            try:
+                shutil.copy(src, dst)
+            # For other errors
+            except:
+                print("Error occurred while copying file.")
+        # Check for correct slice length
+        files = find_files(save_path, format='ima')
+        assert len(files) == 111
 
 
 # Get a list of patients or read from pickle
 def return_patient_list(args):
     patients = read_pickle(str(args.pkl_path)) if args.pkl_path \
-               else os.listdir(args.data_path)
-    print(patients)
+    else os.listdir(args.data_path)
+    # Return a single test name
+    if args.test:
+        patients = [p.split('_rest')[0] for p in patients[::2]]
 
+    return patients
 
 # Call gate sorting on selected patients
 def find_patients(args):
     data_path = str(args.data_path)
     # Always start with the same index as last index of preceeding sequence
-    patients = os.listdir(data_path)[153:173]
+    #patients = os.listdir(data_path)[153:173]
+    patients = return_patient_list(args)
+
     for p in tqdm(patients):
         print(p)
         new_path = os.path.join(data_path, p, 'REST')
         new_path2 = os.path.join(data_path, p, 'STRESS')
         sort_gates(new_path)
         sort_gates(new_path2)
-    # TODO: Run check for file length alongside sorting and output error if wrong
-"""     for (dirpath, dirnames, filenames) in os.walk(data_path):
-        dirname = str(Path(dirpath).relative_to(data_path))
-        if '/REST' in dirname and '/Sinograms' not in dirname \
-            or '/STRESS' in dirname and '/Sinograms' not in dirname:
-            new_path = str(os.path.join(data_path, dirname))
-            files = find_files(new_path, format='ima')
-            if int(len(files)) != 888:
-                print(dirname)
-    print(f'{len(patients)} patients found...') """
-    
+
 
 # Convert nifti to dicom
 def np2dcm(nifty_file, dicom_container, dicom_output):
@@ -172,13 +171,6 @@ def np2dcm(nifty_file, dicom_container, dicom_output):
             dicom_output,
             verbose=True)
             
-"""     # Check for correct venv
-    try:
-        print(os.environ["claes_test"])
-        print('Environment OK')
-    except KeyError:
-        print("Please set the environment claes_test")
-        sys.exit(1) """
 
 # Plot test nifti files
 def plot_nifti(nifty, save_dir):
@@ -252,10 +244,12 @@ if __name__ == "__main__":
     parser.add_argument('--pkl_path', dest='pkl_path', help="pickle filepath")
     # Specify a pkl file for list of patients
     parser.add_argument('--nifty', dest='nifty', help="input nifti filename")
+    parser.add_argument('--test', action='store_true',
+                        help="extract single taest patient names")
 
     # Read arguments from the command line
     args = parser.parse_args()
 
-    #convert_patient_dicom(args)
+    find_patients(args)
 
-    plot_nifti('/homes/michellef/my_projects/rb82_data/Dicoms_OCT8/5p_STAT/0ef7e890-6586-4876-a630-a3af8e7fd736/3_rest-lm-00-psftof_000_000_ctmv_4i_21s.nii.gz', '/homes/michellef/my_projects/rhtorch/torch/rb82/inferences/0ef7e890-6586-4876-a630-a3af8e7fd736_rest/images/pet_5p_stat_norm')
+    #plot_nifti('/homes/michellef/my_projects/rb82_data/Dicoms_OCT8/5p_STAT/0ef7e890-6586-4876-a630-a3af8e7fd736/3_rest-lm-00-psftof_000_000_ctmv_4i_21s.nii.gz', '/homes/michellef/my_projects/rhtorch/torch/rb82/inferences/0ef7e890-6586-4876-a630-a3af8e7fd736_rest/images/pet_5p_stat_norm')
