@@ -186,9 +186,11 @@ def plot_nifti(nifty, save_dir):
         plt.savefig(f'{save_dir}/{i}')
         plt.close("all")
     
+
 def makedirs(save_path):
     if not os.path.exists(save_path):
         os.makedirs(save_path)
+
 
 # Convert user-defined model outputs to dicoms
 def convert_patient_dicom(args):
@@ -220,7 +222,7 @@ def convert_patient_dicom(args):
         
         makedirs(image_output1)
         makedirs(image_output2)
-        # Plot per slice for user-defined unference model
+        # Plot per slice for user-defined inference model
         plot_nifti(nifty_file1, image_output1)
         plot_nifti(nifty_file2, image_output2)
 
@@ -245,11 +247,11 @@ if __name__ == "__main__":
     # Specify a pkl file for list of patients
     parser.add_argument('--nifty', dest='nifty', help="input nifti filename")
     parser.add_argument('--test', action='store_true',
-                        help="extract single taest patient names")
+                        help="extract single test patient names")
 
     # Read arguments from the command line
     args = parser.parse_args()
 
-    find_patients(args)
+    convert_patient_dicom(args)
 
     #plot_nifti('/homes/michellef/my_projects/rb82_data/Dicoms_OCT8/5p_STAT/0ef7e890-6586-4876-a630-a3af8e7fd736/3_rest-lm-00-psftof_000_000_ctmv_4i_21s.nii.gz', '/homes/michellef/my_projects/rhtorch/torch/rb82/inferences/0ef7e890-6586-4876-a630-a3af8e7fd736_rest/images/pet_5p_stat_norm')
