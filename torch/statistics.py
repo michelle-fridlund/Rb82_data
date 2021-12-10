@@ -188,29 +188,31 @@ df2 = pd.DataFrame({'tpd_stress_100': [8,22,21,1,2,0,10,20,1,12],
                            '500cfb2b-e287-4e4c-8143-273524f7564b'])
 
 df = pd.DataFrame(columns=['clinical','low','dose'])
-for k,v in zip(ef_stress_100,ef_stress_25):
+for k,v in zip(tpd_stress_100,tpd_stress_25):
     df = df.append({'clinical': k, 'low':v, 'dose':'25%'},ignore_index=True)
-for k,v in zip(ef_stress_100,ef_stress_10): # HERE!!!
-    df = df.append({'clinical': k, 'low':v, 'dose':'10%'},ignore_index=True) # HERE!!!
+for k,v in zip(tpd_stress_100,tpd_stress_2mm): # HERE!!!
+    df = df.append({'clinical': k, 'low':v, 'dose':'25% (Denoised)'},ignore_index=True) # HERE!!!
 df.clinical = df.clinical.astype('float')
 df.low = df.low.astype('float')
 
 #line_kws={'label':"y={0:.2f}x+{1:.2f}".format(slope,intercept)}    # HERE!!!
-slope, intercept, r_value, p_value, std_err = stats.linregress(df2['ef_stress_100'],df2['ef_stress_25'])  
-slope2, intercept2, r_value2, p_value2, std_err2 = stats.linregress(df2['ef_stress_100'],df2['ef_stress_10']) # HERE!!!
+""" slope, intercept, r_value, p_value, std_err = stats.linregress(df2['tpd_stress_100'],df2['tpd_stress_25'])  
+slope2, intercept2, r_value2, p_value2, std_err2 = stats.linregress(df2['tpd_stress_100'],df2['tpd_stress_2mm']) # HERE!!!
 print(p_value, p_value2)
 
-""" fgrid = sns.lmplot(x="clinical", y="low", data=df, hue = 'dose', palette="Set1")
+fgrid = sns.lmplot(x="clinical", y="low", data=df, hue = 'dose', palette="Set1")
 ax = fgrid.axes[0,0]   # HERE!!! p={0:.4f}".format(p_value)
 #ax.set(xlabel="Clinical MBF rest [mL/(min·g)]", ylabel="Low-Dose MBF rest [mL/(min·g)]") 
-ax.set(xlabel="Clinical LVEF stress [%]", ylabel="Low-Dose LVEF stress [%]") 
-plt.text(38, 78, "y={0:.2f}x+{1:.2f}".format(slope,intercept), horizontalalignment='left', size='medium', color='crimson', weight='semibold')
-plt.text(38, 74, "R={0:.2f}".format(r_value), horizontalalignment='left', size='medium', color='crimson', weight='semibold')
-plt.text(38, 70, "2.24e-05", horizontalalignment='left', size='medium', color='crimson', weight='semibold')
-plt.text(60, 42, "y={0:.2f}x+{1:.2f}".format(slope2,i                    extent_stress_2mm = [5,37,31,1,2,0,14,29,2,15]
-extent_rest_2mm = [1,15,0,0,2,0,3,10,0,4]ntercept2), horizontalalignment='left', size='medium', color='steelblue', weight='semibold')
-plt.text(60, 38, "R={0:.2f}".format(r_value2), horizontalalignment='left', size='medium', color='steelblue', weight='semibold')
-plt.text(60, 34, "3.86e-05", horizontalalignment='left', size='medium', color='steelblue', weight='semibold')
+ax.set(xlabel="Clinical TPD stress [%]", ylabel="Low-Dose TPD stress [%]") 
+plt.text(3, 22, "y={0:.2f}x+{1:.2f}".format(slope,intercept), horizontalalignment='left', size='medium', color='crimson', weight='semibold')
+plt.text(3, 20, "R={0:.2f}".format(r_value), horizontalalignment='left', size='medium', color='crimson', weight='semibold')
+plt.text(3, 18, "p=3.5937e-08", horizontalalignment='left', size='medium', color='crimson', weight='semibold')
+plt.text(14, 7.5, "y={0:.2f}x{1:.2f}".format(slope2, intercept2), horizontalalignment='left', size='medium', color='steelblue', weight='semibold')
+plt.text(14, 5.5, "R={0:.2f}".format(r_value2), horizontalalignment='left', size='medium', color='steelblue', weight='semibold')
+plt.text(14, 3.5, "p=7.2873e-08", horizontalalignment='left', size='medium', color='steelblue', weight='semibold')
+list1 = [i for i in range (1,25)]
+plt.plot(list1, linewidth=2, linestyle='--', color = 'black')
+plt.plot(list1)
 plt.savefig('/homes/michellef/clinical_eval/TEST.png')
 plt.close() """
 
@@ -219,28 +221,28 @@ my_range=range(1,len(df2.index)+1)
 
 ordered_df = df2.sort_values(by='tpd_stress_100')
 
-plt.hlines(y=my_range, xmin=ordered_df['tpd_stress_100'], xmax=ordered_df['tpd_stress_2mm'], color='grey', alpha=0.4)
+plt.hlines(y=my_range, xmin=ordered_df['tpd_stress_100'], xmax=ordered_df['tpd_stress_25'], color='grey', alpha=0.4)
 plt.scatter(ordered_df['tpd_stress_100'], my_range, color='crimson', alpha=0.4 , label='100%')
-plt.scatter(ordered_df['tpd_stress_2mm'], my_range, color='skyblue', alpha=1, label='25% (Denoised)')
+plt.scatter(ordered_df['tpd_stress_25'], my_range, color='skyblue', alpha=1, label='25%')
 
-plt.legend(loc='upper right')
+plt.legend(loc='lower right')
 plt.xlabel('TPD stress [%]')
 plt.ylabel('Patient')
 
 plt.axvline(x=0.0, color='g', linestyle='--', alpha = 0.4)
 plt.axvline(x=5.0, color='g', linestyle='--', alpha = 0.4)
-plt.text(1.5, 11.2, "Normal", horizontalalignment='left', size='medium', color='g', alpha = 0.5)
+plt.text(0.8, 11.2, "Normal", horizontalalignment='left', size='medium', color='g', alpha = 0.5)
 plt.axvline(x=5.0, color='orange', linestyle='--', alpha = 0.4)
 plt.axvline(x=9.0, color='orange', linestyle='--', alpha = 0.4)
-plt.text(6.2, 11.5, "Slight", horizontalalignment='left', size='medium', color='orange', alpha = 0.5)
-plt.text(5.4, 11.0, "abnormality", horizontalalignment='left', size='medium', color='orange', alpha = 0.5)
+plt.text(5.8, 11.5, "Slight", horizontalalignment='left', size='medium', color='orange', alpha = 0.5)
+plt.text(4.5, 11.0, "abnormality", horizontalalignment='left', size='medium', color='orange', alpha = 0.5)
 plt.axvline(x=10.0, color='r', linestyle='--', alpha = 0.4)
 plt.axvline(x=14.0, color='r', linestyle='--', alpha = 0.4)
-plt.text(10.7, 11.5, "Moderate", horizontalalignment='left', size='medium', color='r', alpha = 0.5)
-plt.text(10.2, 11.0, "abnormality", horizontalalignment='left', size='medium', color='r', alpha = 0.5) 
+plt.text(10.6, 11.5, "Moderate", horizontalalignment='left', size='medium', color='r', alpha = 0.5)
+plt.text(10.0, 11.0, "abnormality", horizontalalignment='left', size='medium', color='r', alpha = 0.5) 
 plt.axvline(x=15.0, color='brown', linestyle='--', alpha = 0.4)
-plt.text(16.4, 11.5, "Severe", horizontalalignment='left', size='medium', color='brown', alpha = 0.5)
-plt.text(15.6, 11.0, "abnormality", horizontalalignment='left', size='medium', color='brown', alpha = 0.5) 
+plt.text(19.4, 11.5, "Severe", horizontalalignment='left', size='medium', color='brown', alpha = 0.5)
+plt.text(18.6, 11.0, "abnormality", horizontalalignment='left', size='medium', color='brown', alpha = 0.5) 
 
 
 """ plt.axvline(x=1.5, color='r', linestyle='--', alpha = 0.4)
