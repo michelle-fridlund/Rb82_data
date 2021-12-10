@@ -145,7 +145,7 @@ def return_patient_list(args):
     else os.listdir(args.data_path)
     # Return a single test name
     if args.test:
-        patients = [p.split('_rest')[0] for p in patients[::2]]
+        patients = [p.split('_rest')[0] for p in sorted(patients[::2])]
 
     return patients
 
@@ -154,7 +154,10 @@ def find_patients(args):
     data_path = str(args.data_path)
     # Always start with the same index as last index of preceeding sequence
     #patients = os.listdir(data_path)[153:173]
-    patients = return_patient_list(args)
+    patients1 = return_patient_list(args)
+    patients2 = os.listdir('/homes/michellef/my_projects/rb82_data/Dicoms_OCT8/10p_EKG')
+    # Patients other than the 10 test subjects
+    patients = set(patients1) - set(patients2)
 
     for p in tqdm(patients):
         print(p)
@@ -192,6 +195,21 @@ def makedirs(save_path):
         os.makedirs(save_path)
 
 
+def copy_gated_dicom(data_path):
+    patients = os.listdir('/homes/michellef/my_projects/rb82_data/Dicoms_OCT8/10p_EKG')
+    save_dir = 'GATE_LightningRAE_Res3DUnet_residual_TIODataModule_bz4_128x128x16_k0_e600_e=506'
+    for p in tqdm(patients):
+        input_dir1 = f'{inference_path}/{p}_rest'
+        input_dir2 = f'{inference_path}/{p}_stress'
+        for i in range(1,9): 
+            my_dir = f'gate{i}_LightningRAE_Res3DUnet_residual_TIODataModule_bz4_128x128x16_k0_e600_e=506'
+            src1 = os.path.join(input_dir1, my_dir)
+            src2 = os.path.join(input_dir2, my_dir)
+            dst1 = os.path.join(input_dir1, save_dir)
+            dst2 = os.path.join(input_dir2, save_dir)
+            print(src1)
+            # TODO: make dst + copy entire src dir into dst
+
 # Convert user-defined model outputs to dicoms
 def convert_patient_dicom(args):
     # Hard-coded for test patients
@@ -209,8 +227,8 @@ def convert_patient_dicom(args):
         nifty_file1 = os.path.join(output_dir1, str(args.nifty))
         nifty_file2 = os.path.join(output_dir2, str(args.nifty))
         # Respective rest and stress original dicom paths
-        dicom_container1 = os.path.join(str(args.data_path), p, 'REST')
-        dicom_container2 = os.path.join(str(args.data_path), p, 'STRESS')
+        dicom_container1 = os.path.join(str(args.data_path), p, 'REST/Gate3')
+        dicom_container2 = os.path.join(str(args.data_path), p, 'STRESS/Gate3')
         # Get dirname from nifti/model input
         save_dir_name = str((re.search('^(.*?)\.nii.gz', args.nifty)).group(1))
         # Create save dir in inference parent folders
@@ -220,15 +238,16 @@ def convert_patient_dicom(args):
         image_output1 = os.path.join(output_dir1, 'images', save_dir_name)
         image_output2 = os.path.join(output_dir2, 'images', save_dir_name)
         
-        makedirs(image_output1)
-        makedirs(image_output2)
-        # Plot per slice for user-defined inference model
-        plot_nifti(nifty_file1, image_output1)
-        plot_nifti(nifty_file2, image_output2)
+        #makedirs(image_output1)
+        #makedirs(image_output2)
 
-        ## Call nii2dcm on rest/stress from rhscripts 
-        #np2dcm(nifty_file1, dicom_container1, dicom_output1)
-        #np2dcm(nifty_file2, dicom_container2, dicom_output2)
+        # Plot per slice for user-defined inference model
+        #plot_nifti(nifty_file1, image_output1)
+        #plot_nifti(nifty_file2, image_output2)
+
+        # Call nii2dcm on rest/stress from rhscripts 
+        np2dcm(nifty_file1, dicom_container1, dicom_output1)
+        np2dcm(nifty_file2, dicom_container2, dicom_output2)
 
         print(f'{p} converted to DICOM.')
 
@@ -252,6 +271,7 @@ if __name__ == "__main__":
     # Read arguments from the command line
     args = parser.parse_args()
 
-    convert_patient_dicom(args)
-
+    #find_patients(args)
+    #convert_patient_dicom(args)
+    copy_gated_dicom(args)
     #plot_nifti('/homes/michellef/my_projects/rb82_data/Dicoms_OCT8/5p_STAT/0ef7e890-6586-4876-a630-a3af8e7fd736/3_rest-lm-00-psftof_000_000_ctmv_4i_21s.nii.gz', '/homes/michellef/my_projects/rhtorch/torch/rb82/inferences/0ef7e890-6586-4876-a630-a3af8e7fd736_rest/images/pet_5p_stat_norm')
