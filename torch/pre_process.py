@@ -13,7 +13,7 @@ from sklearn.preprocessing import RobustScaler
 
 
 class Data_Preprocess(object):
-    def __init__(self, args, hd_name = 'pet_100p_stat', ld_name= 'pet_50p_stat',
+    def __init__(self, args, hd_name = 'pet_100p_stat', ld_name= 'pet_100p_ekg_gate8',
                  ct_name = 'ct', extension = '.nii.gz'):
         # PET norm value from arguments
         # 232429.9 (25, 99.8)
@@ -30,8 +30,12 @@ class Data_Preprocess(object):
         # Paths to original files
         self.data_path = args.data_path
         # List of patients in data dir
+
+        #Test group
+        pk = pickle.load(open('/homes/michellef/my_projects/rhtorch/torch/rb82/data/rb82_70patients_fold0.pickle', 'rb'))
+        #self.summary = pk['test_0']
+
         self.summary = os.listdir(self.data_path)
-       
         
     def load_nifti(self, file):
         return nib.load(file)
@@ -136,5 +140,5 @@ class Data_Preprocess(object):
                 # ct = self.create_paths(patient, self.ct_name)
             # ld[0] used for affine CT transformation
             #self.create_new_nifti(hd[0], ld[0], hd[1], 'hd')
-            self.create_new_nifti(ld[0], ld[0], ld[1], 'ld')
+            self.create_new_nifti(ld[0], ld[0], ld[1], 'hd') 
             # self.create_new_nifti(ct[0], ld[0], ct[1], 'ct')
