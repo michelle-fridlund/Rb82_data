@@ -195,6 +195,16 @@ def makedirs(save_path):
         os.makedirs(save_path)
 
 
+def copy_files_gate(files, dst):
+    for f in files:
+        print(os.path.join(dst,os.path.basename(f)))
+        try:
+            shutil.copy(os.path.join(f), os.path.join(dst,os.path.basename(f)))
+        except Exception as error:
+                print(error)
+                continue
+
+
 def copy_gated_dicom(data_path):
     patients = os.listdir('/homes/michellef/my_projects/rb82_data/Dicoms_OCT8/10p_EKG')
     save_dir = 'GATE_LightningRAE_Res3DUnet_residual_TIODataModule_bz4_128x128x16_k0_e600_e=506'
@@ -207,8 +217,15 @@ def copy_gated_dicom(data_path):
             src2 = os.path.join(input_dir2, my_dir)
             dst1 = os.path.join(input_dir1, save_dir)
             dst2 = os.path.join(input_dir2, save_dir)
-            print(src1)
-            # TODO: make dst + copy entire src dir into dst
+            files1 = find_files(src1, format = 'dcm')
+            files2 = find_files(src2, format = 'dcm')
+
+            makedirs(dst1)
+            makedirs(dst2)
+
+            copy_files_gate(files1, dst1)
+            copy_files_gate(files2, dst2)
+
 
 # Convert user-defined model outputs to dicoms
 def convert_patient_dicom(args):
@@ -227,8 +244,8 @@ def convert_patient_dicom(args):
         nifty_file1 = os.path.join(output_dir1, str(args.nifty))
         nifty_file2 = os.path.join(output_dir2, str(args.nifty))
         # Respective rest and stress original dicom paths
-        dicom_container1 = os.path.join(str(args.data_path), p, 'REST/Gate3')
-        dicom_container2 = os.path.join(str(args.data_path), p, 'STRESS/Gate3')
+        dicom_container1 = os.path.join(str(args.data_path), p, 'REST/Gate8')
+        dicom_container2 = os.path.join(str(args.data_path), p, 'STRESS/Gate8')
         # Get dirname from nifti/model input
         save_dir_name = str((re.search('^(.*?)\.nii.gz', args.nifty)).group(1))
         # Create save dir in inference parent folders
