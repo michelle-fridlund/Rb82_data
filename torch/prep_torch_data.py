@@ -7,6 +7,7 @@ Created on Mon Jun 28 16:00:22 2021
 
 import os
 import re
+import glob
 from shutil import copy, rmtree
 from tqdm import tqdm
 from pathlib import Path
@@ -29,6 +30,8 @@ def get_name(string, **name_):
         return (re.search('^(.*)\/', string)).group(1)
     elif name_.get("regex") == "phase":  # When reading from text file
         return (re.search('\/(.*)', string)).group(1)
+    elif name_.get("regex") == "mask":  # When reading from text file
+        return (re.search('(.*)_', string)).group(1)
     else:
         print('Unknown regex')
 
@@ -49,8 +52,7 @@ def find_patients(data_path):
     return patients """
 
 
-# Create a dictionary where save dirname is key and full path to nii.gz is value
-# Gated version
+# Find masked patients
 def find_patients(data_path):
     patients = {}
     for (dirpath, dirnames, filenames) in os.walk(data_path):
@@ -66,9 +68,42 @@ def find_patients(data_path):
     return patients
 
 
+# Create a dictionary where name_phase is key and full path to mask is value
+def find_patients_mask(data_path):
+    patient_masks = {}
+    patient_list = os.listdir(save_path)
+    mask_path = '/homes/michellef/my_projects/ct_thorax/test'
+    # Get full path to mask
+    masks =  [i for i in glob.glob("{}/*.nii.gz".format(mask_path),
+                                     recursive=True)]
+
+    #for m in masks:
+    #    m1= get_name(m, regex='mask')
+    #    m1 = f'{m1}.nii.gz'
+    #    try:
+    #        os.rename(m, m1)
+    #    except Exception as error:
+    #        print(error)
+    #        print(f'Cannot rename {m} to {m1}')
+    #        continue
+
+    # Get a list of patient names
+    patients = []
+    for patient in patient_list:
+        if '.pickle' not in str(patient):
+            patients.append(patient)
+    
+    # Match patients with their respective mask
+    for p, m in zip(sorted(patients), sorted(masks)):
+        if str(p) in str(m):
+            patient_masks[p] = m
+
+    return patient_masks
+
+
 # Copy pet to new directory
 def copy_pet(data_path):
-    patients = find_patients(data_path)
+    patients = find_patients_mask(data_path)
     for k, v in tqdm(patients.items()):
         dst = os.path.join(save_path, k)
         try:
@@ -81,11 +116,11 @@ def copy_pet(data_path):
 
 
 def rename_pet(data_path):
-    patients = find_patients(data_path)
+    patients = find_patients_mask(data_path)
     for k, v in tqdm(patients.items()):
         dst = os.path.join(save_path, k)
         old = os.path.join(dst, os.path.basename(v))
-        new = os.path.join(dst, 'pet_50p_stat.nii.gz')
+        new = os.path.join(dst, 'mask.nii.gz')
         try:
             os.rename(old, new)
         except Exception as error:
@@ -262,9 +297,9 @@ if __name__ == "__main__":
     #convert_nii_gate(data_path)
     #rename_gates(data_path)
     #copy_pet(data_path)
-    #rename_pet(data_path)
+    rename_pet(data_path)
 
-    processor = pre_process.Data_Preprocess(args)
-    processor.load_data()
+    #processor = pre_process.Data_Preprocess(args)
+    #processor.load_data()
 
     #prep_nnunet(data_path, '/homes/michellef/my_projects/ct_thorax/nnUNet_raw_data_base/nnUNet_raw_data/Task055_SegTHOR')
