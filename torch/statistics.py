@@ -18,7 +18,7 @@ patients = ['6db1c5da-8e89-4287-8a8b-57c64ed0109b', '6fa399c0-ad77-4e0c-bea8-37c
 '7b4979e9-767d-422c-9cec-f80f787ded49',
 '500cfb2b-e287-4e4c-8143-273524f7564b']
 
-# Static
+""" # Static
 extent_stress_100 = [10, 30, 29, 0, 3, 0, 13, 27, 1, 16, 1]
 extent_rest_100 = [1, 15, 0, 0, 2, 0, 2, 11, 0, 5, 0]
 tpd_stress_100 = [8,22,21,1,2,0,10,20,1,12,1]
@@ -126,56 +126,20 @@ mfr_10 = [2.42,2.1,1.47,2.15,2.78,2.92,2.31,1.31,2.94,2.46]
 
 mbf_stress_5 = [3.34,3.08,1.97,3.13,2.65,3.94,2.48,1.55,3.56,3.1]
 mbf_rest_5 = [1.27,1.23,1.1,1.3,1.07,1.16,1,1.13,1.11,1.08]
-mfr_5 = [2.63,2.5,1.8,2.41,2.54,3.55,2.57,1.34,3.27,2.97]
+mfr_5 = [2.63,2.5,1.8,2.41,2.54,3.55,2.57,1.34,3.27,2.97] """
 
+ef_resnet_gate_stress = [47,75,43,66,67,83,68,37,71]
+ef_resnet_gate_rest = [52,65,61,73,60,79,50,38,74]
 
+ef_stress_100 = [48,73,42,53,55,82,63,29,70]
+ef_rest_100 = [48,65,61,72,54,79,44,40,71]
 
-df2 = pd.DataFrame({'tpd_stress_100': [8,22,21,1,2,0,10,20,1,12],
-                    'tpd_rest_100': [2,10,0,0,1,0,2,8,0,6],
-                    'tpd_stress_25': [6,23,24,2,4,1,10,22,2,13],
-                    'tpd_rest_25': [1,11,0,0,2,0,3,8,0,5],
-                    'tpd_stress_12': [8, 22, 25, 6, 5, 2, 13, 25, 3, 16],
-                    'tpd_rest_12': [3, 12, 2, 1, 2, 0, 4, 9, 1, 7],
-                    'tpd_stress_10': [6,23,29,9,5,2,16,29,4,13],
-                    'tpd_rest_10': [2,12,3,2,2,0,6,12,1,5],
-                    'tpd_stress_2mm': [5,26,22,1,2,1,11,22,1,12],
-                    'tpd_rest_2mm': [1,11,0,0,1,0,3,8,0,5],
-                    'edv_stress_100': [145,53,94,104,82,76,98,165,83,111],
-                    'edv_stress_25': [144,56,76,93,106,66,76,100,87,135],
-                    'edv_stress_12': [138,55,62,91,80,66,85,124,73,106],
-                    'edv_stress_10': [118,54,93,79,102,75,87,180,90,113],
-                    'edv_rest_100': [112,46,63,73,72,44,53,115,46,72],
-                    'edv_rest_25': [109,46,66,72,106,43,91,139,52,66],
-                    'edv_rest_12': [105,46,58,53,85,42,68,107,48,74],
-                    'edv_rest_10': [101,50,43,64,77,41,59,120,45,63],
-                    'esv_stress_100': [75,14,54,49,37,14,37,118,25,47],
-                    'esv_stress_25': [72,18,44,35,41,12,25,72,30,61],
-                    'esv_stress_12': [74,15,43,35,36,12,37,92,24,47],
-                    'esv_stress_10': [69,16,59,33,38,17,35,128,34,49],
-                    'esv_rest_100': [58,16,24,20,33,9,30,69,13,21],
-                    'esv_rest_25': [57,15,31,22,51,10,40,90,17,31],
-                    'esv_rest_12': [60,18,26,18,38,11,34,70,15,37],
-                    'esv_rest_10': [60,22,21,21,29,8,35,75,13,34],
-                    'ef_stress_100': [48,73,42,53,55,82,63,29,70,58],
-                    'ef_rest_100': [48,65,61,72,54,79,44,40,71,71],
-                    'ef_stress_25': [50,68,42,62,61,82,68,28,65,54],
-                    'ef_rest_25': [48,68,52,69,52,77,56,35,67,53],
-                    'ef_stress_10': [42,70,37,59,63,78,59,29,62,57],
-                    'ef_rest_10': [41,57,51,68,62,79,41,38,94,46],
-                    'ef_stress_5': [38,70,29,67,59,80,51,22,64,45],
-                    'ef_rest_5': [45,60,53,64,60,77,92,36,50,84],
-                    'mbf_stress_100': [2.98,3.01,1.66,3.66,3.32,4.34,2.52,2.13,3.98,2.78],
-                    'mbf_rest_100': [1.42,1.59,1.25,2,1.36,1.5,1.31,1.56,1.4,1.06],
-                    'mfr_100': [2.11,1.89,1.36,1.82,2.52,2.91,1.94,1.33,2.88,2.66],
-                    'mbf_stress_25': [2.79,3.04,1.87,3.18,3.09,3.96,2.47,2.17,3.71,2.63],
-                    'mbf_rest_25': [1.29,1.28,1.17,1.44,1.24,1.32,1.27,1.26,1.25,1.02],
-                    'mfr_25': [2.09,2.36,1.62,2.2,2.51,3,1.94,1.67,2.99,2.66],
-                    'mbf_stress_10': [3.05,2.75,1.5,2.84,3.46,3.78,2.59,1.63,3.57,2.44],
-                    'mbf_rest_10': [1.26,1.31,1.02,1.31,1.24,1.29,1.16,1.23,1.22,1.01],
-                    'mfr_10': [2.42,2.1,1.47,2.15,2.78,2.92,2.31,1.31,2.94,2.46],
-                    'mbf_stress_5': [3.34,3.08,1.97,3.13,2.65,3.94,2.48,1.55,3.56,3.1],
-                    'mbf_rest_5': [1.27,1.23,1.1,1.3,1.07,1.16,1,1.13,1.11,1.08],
-                    'mfr_5': [2.63,2.5,1.8,2.41,2.54,3.55,2.57,1.34,3.27,2.97]},
+ef_stress_25 = [50,68,42,62,61,82,68,28,65]
+ef_rest_25 = [48,68,52,69,52,77,56,35,67]
+
+df2 = pd.DataFrame({'ef_resnet_gate_stress': [47,75,43,66,67,83,68,37,71],
+                    'ef_stress_100': [48,73,42,53,55,82,63,29,70],
+                    'ef_stress_25': [50,68,42,62,61,82,68,28,65],},
                     index=['6db1c5da-8e89-4287-8a8b-57c64ed0109b', 
                            '6fa399c0-ad77-4e0c-bea8-37ce8ab36dbf', 
                            '28c4f1c2-2cbb-489e-ab57-09b13a60231c', 
@@ -184,39 +148,37 @@ df2 = pd.DataFrame({'tpd_stress_100': [8,22,21,1,2,0,10,20,1,12],
                            '4019e4ab-b8bd-40b3-bb1d-f176feb13384',
                            'b48007ee-dbe4-4fe9-a7e2-7c3020f468b7',
                            '0ef7e890-6586-4876-a630-a3af8e7fd736',
-                           '7b4979e9-767d-422c-9cec-f80f787ded49',
-                           '500cfb2b-e287-4e4c-8143-273524f7564b'])
+                           '7b4979e9-767d-422c-9cec-f80f787ded49'])
 
 df = pd.DataFrame(columns=['clinical','low','dose'])
-for k,v in zip(tpd_stress_100,tpd_stress_25):
+for k,v in zip(ef_stress_100,ef_stress_25):
     df = df.append({'clinical': k, 'low':v, 'dose':'25%'},ignore_index=True)
-for k,v in zip(tpd_stress_100,tpd_stress_2mm): # HERE!!!
+for k,v in zip(ef_stress_100,ef_resnet_gate_stress): # HERE!!!
     df = df.append({'clinical': k, 'low':v, 'dose':'25% (Denoised)'},ignore_index=True) # HERE!!!
 df.clinical = df.clinical.astype('float')
 df.low = df.low.astype('float')
 
 #line_kws={'label':"y={0:.2f}x+{1:.2f}".format(slope,intercept)}    # HERE!!!
-""" slope, intercept, r_value, p_value, std_err = stats.linregress(df2['tpd_stress_100'],df2['tpd_stress_25'])  
-slope2, intercept2, r_value2, p_value2, std_err2 = stats.linregress(df2['tpd_stress_100'],df2['tpd_stress_2mm']) # HERE!!!
+slope, intercept, r_value, p_value, std_err = stats.linregress(df2['ef_stress_100'],df2['ef_stress_25'])  
+slope2, intercept2, r_value2, p_value2, std_err2 = stats.linregress(df2['ef_stress_100'],df2['ef_resnet_gate_stress']) # HERE!!!
 print(p_value, p_value2)
 
 fgrid = sns.lmplot(x="clinical", y="low", data=df, hue = 'dose', palette="Set1")
 ax = fgrid.axes[0,0]   # HERE!!! p={0:.4f}".format(p_value)
 #ax.set(xlabel="Clinical MBF rest [mL/(min·g)]", ylabel="Low-Dose MBF rest [mL/(min·g)]") 
-ax.set(xlabel="Clinical TPD stress [%]", ylabel="Low-Dose TPD stress [%]") 
-plt.text(3, 22, "y={0:.2f}x+{1:.2f}".format(slope,intercept), horizontalalignment='left', size='medium', color='crimson', weight='semibold')
-plt.text(3, 20, "R={0:.2f}".format(r_value), horizontalalignment='left', size='medium', color='crimson', weight='semibold')
-plt.text(3, 18, "p=3.5937e-08", horizontalalignment='left', size='medium', color='crimson', weight='semibold')
-plt.text(14, 7.5, "y={0:.2f}x{1:.2f}".format(slope2, intercept2), horizontalalignment='left', size='medium', color='steelblue', weight='semibold')
-plt.text(14, 5.5, "R={0:.2f}".format(r_value2), horizontalalignment='left', size='medium', color='steelblue', weight='semibold')
-plt.text(14, 3.5, "p=7.2873e-08", horizontalalignment='left', size='medium', color='steelblue', weight='semibold')
-list1 = [i for i in range (1,25)]
-plt.plot(list1, linewidth=2, linestyle='--', color = 'black')
-plt.plot(list1)
-plt.savefig('/homes/michellef/clinical_eval/TEST.png')
-plt.close() """
+ax.set(xlabel="Clinical LVEF stress [%]", ylabel="Low-Dose LVEF stress [%]") 
+plt.text(20, 80, "y={0:.2f}x+{1:.2f}".format(slope,intercept), horizontalalignment='left', size='medium', color='crimson', weight='semibold')
+plt.text(20, 75, "R={0:.2f}".format(r_value), horizontalalignment='left', size='medium', color='crimson', weight='semibold')
+plt.text(20, 70, "p=5.0484e-05", horizontalalignment='left', size='medium', color='crimson', weight='semibold')
+plt.text(50, 40, "y={0:.2f}x+{1:.2f}".format(slope2, intercept2), horizontalalignment='left', size='medium', color='steelblue', weight='semibold')
+plt.text(50, 35, "R={0:.2f}".format(r_value2), horizontalalignment='left', size='medium', color='steelblue', weight='semibold')
+plt.text(50, 30, "p=8.7527e-05", horizontalalignment='left', size='medium', color='steelblue', weight='semibold')
+#list1 = [i for i in range (1,25)]
+#plt.plot(list1, linewidth=2, linestyle='--', color = 'black')
+plt.savefig('/homes/michellef/clinical_eval/DEC15.png')
+plt.close()
 
-# The horizontal plot is made using the hline function
+""" # The horizontal plot is made using the hline function
 my_range=range(1,len(df2.index)+1)
 
 ordered_df = df2.sort_values(by='tpd_stress_100')
@@ -242,7 +204,7 @@ plt.text(10.6, 11.5, "Moderate", horizontalalignment='left', size='medium', colo
 plt.text(10.0, 11.0, "abnormality", horizontalalignment='left', size='medium', color='r', alpha = 0.5) 
 plt.axvline(x=15.0, color='brown', linestyle='--', alpha = 0.4)
 plt.text(19.4, 11.5, "Severe", horizontalalignment='left', size='medium', color='brown', alpha = 0.5)
-plt.text(18.6, 11.0, "abnormality", horizontalalignment='left', size='medium', color='brown', alpha = 0.5) 
+plt.text(18.6, 11.0, "abnormality", horizontalalignment='left', size='medium', color='brown', alpha = 0.5)  """
 
 
 """ plt.axvline(x=1.5, color='r', linestyle='--', alpha = 0.4)
@@ -267,5 +229,5 @@ plt.text(72.0, 11.2, "Hyperdynamic", horizontalalignment='left', size='medium', 
 
 plt.xlim(25,85) """
 
-plt.savefig('/homes/michellef/clinical_eval/TEST2.png')
-plt.close()
+#plt.savefig('/homes/michellef/clinical_eval/TEST2.png')
+#plt.close()
