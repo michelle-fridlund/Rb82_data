@@ -105,8 +105,8 @@ def delete_files(dir_path, args):
     paths = get_paths(dir_path)
     for new_path in paths:
         ptds = find_LM(new_path, number='')
-        for p in tqdm(ptds):
-            if '1-012.500' in str(p) and args.force:
+        for p in ptds:
+            if '1-25.000' in str(p) and args.force:
                 os.remove(p)
                 c+=1
     print(f'{c} files removed.')
@@ -116,8 +116,12 @@ def delete_files(dir_path, args):
         #os.remove('run.bat')
 
 
-# Copy selected low dose into previously structured/copied folder
-def copy_files(dir_path, dst):
+# Create a dict where patient/STATE is key and full path
+# to .ptd is value
+def get_files(dir_path):
+    # Can use this option as an alternative to loop
+    #patients = os.listdir(dst)
+    #dir_path = Path(dst).parent
     my_ptds = {}
     for (dirpath, dirnames, filenames) in os.walk(dir_path):
         dirname = str(Path(dirpath).relative_to(dir_path))
@@ -127,49 +131,32 @@ def copy_files(dir_path, dst):
             ptds = find_LM(new_path, number='')
             # Get simulated LD -->
             # 5p = [0], 10p = [1], 25p = [2], 50p = [3]
-            dirname = str(Path(dirname).parents[0]) # Remove this later
-            my_ptds[dirname] = str(ptds[0])
-            # if len(ptds) == 4:
-            #     my_ptds[dirname] = str(ptds[2])
-            # else:
-            #     print(f'{dirname} has {len(ptds)} files!!!')
-            #     pass
-        print(my_ptds.keys())
-        with Bar('Loading LISTMODE:', suffix='%(percent)d%%') as bar:
-            for k, v in my_ptds.items():  # Add progress bar here
-                save_path = os.path.join(dst, k)
-                create_dir(save_path)
-                copyfile(v, os.path.join(save_path, os.path.basename(v)))
-                print(v, os.path.join(save_path, os.path.basename(v)))
-                bar.next()
-    print('Done!!!')
+            dirname = str(Path(dirname)) 
+            my_ptds[dirname] = str(ptds)
+            if len(ptds) == 4:
+                my_ptds[dirname] = str(ptds[2])
+            else:
+                print(f'{dirname} has {len(ptds)} files!!!')
+                pass
+    #print(my_ptds)
+    return my_ptds
 
 
-def test_files(dst):
-    my_ptds = {}
-
-    patients = os.listdir(dst)
-    dir_path = Path(dst).parent
-
-    for (dirpath, dirnames, filenames) in os.walk(dir_path):
-        dirname = str(Path(dirpath).relative_to(dir_path))
-        for p in patients:
-            if p in str(dirname) and 'REST' in str(dirname) \
-                and '_25p' not in str(dirname) and 'TEST' not in str(dirname) or \
-                p in str(dirname) and 'STRESS' in str(dirname) \
-                and '_25p' not in str(dirname) and 'TEST' not in str(dirname):
-                    new_path = Path(os.path.join(dir_path, dirname))
-                    ptds = find_LM(new_path, number='')
-                    # 5p = [0], 10p = [1], 25p = [2], 50p = [3], 12.5p = [4]
-                    if '1-005.000' in str(ptds[0]):
-                        my_ptds[get_name(str(dirname), regex = 'test')] = str(ptds[0])
-                    else:
-                        print(f'Wrong dose in {dirname}')
-
-    for k, v in tqdm(my_ptds.items()):  # Add progress bar here
-        # print(v)
+def copy_files(dir_path, dst):
+    my_ptds = get_files(dir_path)
+    for k, v in my_ptds.items(): 
+        # Check if correct dose is being copied - hardcoded
+        if '1-025.000' not in str(v):
+            print(k)
         save_path = os.path.join(dst, k)
-        copyfile(v, os.path.join(save_path, os.path.basename(v)))
+        create_dir(save_path)
+        try:
+            copyfile(v, os.path.join(save_path, os.path.basename(v)))
+        except Exception as error:
+            print(error)
+            continue
+            #print(v, os.path.join(save_path, os.path.basename(v)))
+        print('.')
     print('Done!!!')
 
 
@@ -194,12 +181,13 @@ if __name__ == "__main__":
     year = str(args.year)
 
     # TODO: Use relative paths
-    # TODO: Read relative path from script arguments using an argument parser
+    # TODO: Read relative path argument parser
 
     # Simulated data path
-    dir_path = f'/homes/michellef/my_projects/rb82_data/PET_OCT8_Anonymous_JSReconReady/{year}'
+    #dir_path = f'/homes/michellef/my_projects/rb82_data/PET_OCT8_Anonymous_JSReconReady/{year}'
+    dir_path = f'/homes/michellef/my_projects/rb82_data/PET_LMChopper_OCT8/{year}'
     # Temporary data path
-    dst = f'/homes/michellef/my_projects/rb82_data/PET_LMChopper_OCT8/{year}'
+    dst = f'/homes/michellef/my_projects/rb82_data/PET_LMChopper_OCT8/{year}_25p'
 
    # ALSO USE THIS FOR DELETING ANY GIVEN DOSE LEVEL
     if mode == 'delete':
@@ -207,8 +195,6 @@ if __name__ == "__main__":
     # One at a time
     elif mode == 'copy':
         copy_files(dir_path, dst)
-    elif mode == 'test':
-        test_files(dst)
     # Use original listmode data path here
     else:
         # TODO: Use relative path
