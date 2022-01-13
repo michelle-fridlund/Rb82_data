@@ -72,20 +72,20 @@ def find_patients(args):
     patients = read_pickle(str(args.pkl_path))
 
     hd = f'pet_100p_stat_norm.nii.gz'
-    ld = f'pet_100p_ekg_norm.nii.gz'
+    ld = f'pet_25p_stat_norm.nii.gz'
     #out1 = f'test_LightningAE_UNET3D_newsplit_v1_TIODataModule_bz4_128x128x16_k0_e600_e=490.nii.gz'
     #out2 = f'test_LightningAE_ResUNET3D_newsplit_TIODataModule_bz4_128x128x16_k0_e600_e=506.nii.gz'
-    #out3 = f'test_LightningRAE_UNET3D_RAE_newsplit_TIODataModule_bz4_128x128x16_k0_e600_e=578.nii.gz'
     #out4 = f'test_LightningRAE_Res3DUnet_residual_TIODataModule_bz4_128x128x16_k0_e600_e=506.nii.gz'
-    out1 = f'random_gate_LightningRAE_Res3DUnet_residual_TIODataModule_bz4_128x128x16_k0_e600_e=506.nii.gz'
-    out2 = f'random_gate_LightningRAE_Res3DUnet_RAE_random_gate_unscaled_TIODataModule_bz4_128x128x16_k0_e600_e=554.nii.gz'
+    out1 = f'test_LightningAE_FAN2D_v2_TIODataModule_bz4_128x128x1_k0_e400_e=112.nii.gz'
+    out2 = f'test_LightningAE_FAN2D_v3_TIODataModule_bz16_128x128x1_k0_e400_e=192.nii.gz'
+    out3 = f'FAN_LightningAE_FAN2D_v4_TIODataModule_bz16_128x128x1_k0_e400_e=228.nii.gz'
 
     for p in patients:
         patient_dict[p] = {'hd': os.path.join(
             str(args.data), p, hd), 'ld': os.path.join(str(args.data), p, ld),
             'out1': os.path.join(str(args.inference), p, out1),
             'out2': os.path.join(str(args.inference), p, out2),
-            #'out3': os.path.join(str(args.inference), p, out3),
+            'out3': os.path.join(str(args.inference), p, out3),
             #'out4': os.path.join(str(args.inference), p, out4)
             }
 
@@ -123,13 +123,13 @@ def get_stats(args):
     metrics = get_metrics(args, ld_type = 'ld')
     metrics_inference1 = get_metrics(args, ld_type = 'out1')
     metrics_inference2 = get_metrics(args, ld_type = 'out2')
-    #metrics_inference3 = get_metrics(args, ld_type = 'out3')
+    metrics_inference3 = get_metrics(args, ld_type = 'out3')
     #metrics_inference4 = get_metrics(args, ld_type = 'out4')
 
     psnr, ssim, nrmse = return_values(metrics)
     psnr2, ssim2, nrmse2 = return_values(metrics_inference1)
     psnr3, ssim3, nrmse3 = return_values(metrics_inference2)
-    #psnr4, ssim4, nrmse4 = return_values(metrics_inference3)
+    psnr4, ssim4, nrmse4 = return_values(metrics_inference3)
     #psnr5, ssim5, nrmse5 = return_values(metrics_inference4)
 
     print('\n\n')
@@ -138,31 +138,31 @@ def get_stats(args):
     print(f"SSIM value is: {np.mean(ssim):.4f} + {err(ssim):.4f}")
     print(f"NRMSE value is: {np.mean(nrmse):.4f} + {err(nrmse):.4f}")
 
-    print('\n\n Static target')
+    print('\n\n 2')
     print('Inference: ')
     print(f"PSNR value is: {np.mean(psnr2):.4f} + {err(psnr2):.4f}")
     print(f"SSIM value is: {np.mean(ssim2):.4f} + {err(ssim2):.4f}")
     print(f"NRMSE value is: {np.mean(nrmse2):.4f} + {err(nrmse2):.4f}")
 
-    print('\n\n Random Gate')
-    print('Inference: ')
+    print('\n\n 3')
+    print('3')
     print(f"PSNR value is: {np.mean(psnr3):.4f} + {err(psnr3):.4f}")
     print(f"SSIM value is: {np.mean(ssim3):.4f} + {err(ssim3):.4f}")
     print(f"NRMSE value is: {np.mean(nrmse3):.4f} + {err(nrmse3):.4f}")
     
-    return metrics
-"""     print('\n\n complex')
+    print('\n\n 4')
     print('Inference: ')
     print(f"PSNR value is: {np.mean(psnr4):.4f} + {err(psnr4):.4f}")
     print(f"SSIM value is: {np.mean(ssim4):.4f} + {err(ssim4):.4f}")
     print(f"NRMSE value is: {np.mean(nrmse4):.4f} + {err(nrmse4):.4f}")
 
-    print('\n\n residual')
+    return metrics
+"""     print('\n\n residual')
     print('Inference: ')
     print(f"PSNR value is: {np.mean(psnr5):.4f} + {err(psnr5):.4f}")
     print(f"SSIM value is: {np.mean(ssim5):.4f} + {err(ssim5):.4f}")
-    print(f"NRMSE value is: {np.mean(nrmse5):.4f} + {err(nrmse5):.4f}")
- """
+    print(f"NRMSE value is: {np.mean(nrmse5):.4f} + {err(nrmse5):.4f}") """
+
 
 
 def print_values(args):
