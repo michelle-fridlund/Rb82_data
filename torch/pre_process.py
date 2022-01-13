@@ -13,8 +13,8 @@ from sklearn.preprocessing import RobustScaler
 
 
 class Data_Preprocess(object):
-    def __init__(self, args, hd_name = 'pet_100p_stat', ld_name= 'pet_100p_ekg_gate8',
-                 ct_name = 'ct', extension = '.nii.gz'):
+    def __init__(self, args, hd_name = 'pet_100p_stat', ld_name= 'pet_25p_stat',
+                 ct_name = 'mask', extension = '.nii.gz'):
         # PET norm value from arguments
         # 232429.9 (25, 99.8)
         self.norm = args.norm 
@@ -121,7 +121,7 @@ class Data_Preprocess(object):
         
         if str(mode) == 'ct':
             print('ct')
-            #self.transform_nifti(nifti, nifti_pet, norm, save_path)
+            self.transform_nifti(nifti, nifti_pet, norm, save_path)
         else:
             self.save_nifti(nifti, norm, save_path)
         
@@ -137,8 +137,8 @@ class Data_Preprocess(object):
             if not 'pickle' in str(patient):
                 hd = self.create_paths(patient, self.hd_name)
                 ld = self.create_paths(patient, self.ld_name)
-                # ct = self.create_paths(patient, self.ct_name)
+                ct = self.create_paths(patient, self.ct_name)
             # ld[0] used for affine CT transformation
             #self.create_new_nifti(hd[0], ld[0], hd[1], 'hd')
-            self.create_new_nifti(ld[0], ld[0], ld[1], 'hd') 
-            # self.create_new_nifti(ct[0], ld[0], ct[1], 'ct')
+            #self.create_new_nifti(ld[0], ld[0], ld[1], 'hd') 
+            self.create_new_nifti(ct[0], ld[0], ct[1], 'ct')
