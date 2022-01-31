@@ -58,7 +58,16 @@ def find_nifti(path):
 def read_pickle(pkl_file):
     summary = pickle.load(open('%s' % pkl_file, 'rb'))
     # Test patients are alist of a list
-    return summary['test'][0]
+    #return summary['test'][0]
+    new_sum1 = summary['test_0']
+    new_sum2 = summary['train_0']
+    patients = []
+    for p in new_sum1:
+        patients.append(p)
+    for p in new_sum2:
+        patients.append(p)
+    print(len(patients))
+    return patients
 
 
 def find_patients(args):
@@ -66,8 +75,8 @@ def find_patients(args):
     dir_path = str(args.data)
     # Read from pickle
     if args.pkl_path:
-        patients = read_pickle(str(args.pkl_path))
-
+        patients2 = read_pickle(str(args.pkl_path))
+        patients = [p.split('_rest')[0] for p in sorted(patients2[::2])]
         for p in patients:
             paths.append(os.path.join(dir_path, p))
     # Find paths manually
@@ -109,7 +118,7 @@ def load_patients(args):
 
     for p in im_path:
         im = find_nifti(p)
-        print(im)
+        #print(im)
         if not len(im) == 0:
             for i in im:
                 images.append(i)

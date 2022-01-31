@@ -8,11 +8,20 @@ import numpy as np
 import data_generator as data
 from sklearn.model_selection import train_test_split, KFold
 from collections import defaultdict
+from plotting import find_patients
 
 
-def find_patients(data_path):
-    pts = os.listdir(data_path)
+data_path = ("/homes/michellef/rb82_doses.xlsx")
+
+def find_patients2(data_path):
+    pts = find_patients(data_path)
+    print(pts)
     return np.array(pts)
+
+
+""" def find_patients(data_path):
+    pts = os.listdir(data_path)
+    return np.array(pts) """
 
 
 def train_test(pts):
@@ -21,7 +30,7 @@ def train_test(pts):
 
 
 def write_summary(args, data_path):
-    pts = find_patients(data_path)
+    pts = find_patients2(data_path)
     # This function is only used when a test set needs to be created separately
     pts_train_t, pts_test_t = train_test(pts)
 
@@ -84,16 +93,17 @@ def sort_rb_phase(args, data_path):
 
 
 def build_pickle(args, data_path):
-    output = str(Path(data_path).parent)
+    #output = str(Path(data_path).parent)
+    output = '/homes/michellef/my_projects/rhtorch/torch/rb82/data'
     os.chdir(output)
     print(f'Saved in {output}')
 
     data = sort_rb_phase(args, data_path) if args.extend \
         else write_summary(args, data_path)
 
-    with open('rb82_6fold_sorted.pickle', 'wb') as p:
+    with open('rb82_6fold_scaled.pickle', 'wb') as p:
         pickle.dump(data, p)
-    data = pickle.load(open('rb82_6fold_sorted.pickle', 'rb'))
+    data = pickle.load(open('rb82_6fold_scaled.pickle', 'rb'))
 
     t = len(data['train_0'])
     v = len(data['test_0'])
@@ -107,12 +117,12 @@ if __name__ == "__main__":
     required_args = parser.add_argument_group('required arguments')
     # Add long and short argument
     required_args.add_argument(
-        "--data", "-d", help="patient directory path", required=True)
+        "--data", "-d", help="patient directory path")
     required_args.add_argument("--extend", "-e", help="extend for rest/stress suffix?",
                                required=True, type=data.ParseBoolean)
 
     # Read arguments from the command line
     args = parser.parse_args()
-    data_path = str(args.data)
+    #data_path = str(args.data)
 
     build_pickle(args, data_path)
