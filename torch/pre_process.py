@@ -13,7 +13,7 @@ from sklearn.preprocessing import RobustScaler
 
 
 class Data_Preprocess(object):
-    def __init__(self, args, hd_name = 'pet_100p_stat', ld_name= 'pet_25p_stat',
+    def __init__(self, args, hd_name = 'pet_100p_ekg_gate8', ld_name= 'pet_25p_ekg_gate8',
                  ct_name = 'mask', extension = '.nii.gz'):
         # PET norm value from arguments
         # 232429.9 (25, 99.8)
@@ -32,7 +32,7 @@ class Data_Preprocess(object):
         # List of patients in data dir
 
         #Test group
-        pk = pickle.load(open('/homes/michellef/my_projects/rhtorch/torch/rb82/data/rb82_70patients_fold0.pickle', 'rb'))
+        pk = pickle.load(open('/homes/michellef/my_projects/rhtorch/torch/rb82/data/rb82_6fold_sorted.pickle', 'rb'))
         #self.summary = pk['test_0']
 
         self.summary = os.listdir(self.data_path)
@@ -67,11 +67,24 @@ class Data_Preprocess(object):
         pixels = scaler.fit_transform(pixels.reshape(-1, pixels.shape[-1])).reshape(pixels.shape)
         print(f'After: {np.mean(pixels)}')
         return pixels
+
     
     def normalise_ct(self, pixels):
-        return (pixels + 1024.0) / 4095.0
-    
-    
+        #return (pixels + 1024.0) / 4095.0
+        return 1.0 if pixels.any()==2 else 0.0
+
+
+    # Normalise binary mask
+    def normalise_mask(self, pixels):
+        mask = np.where(pixels == 2)
+        no_mask = np.where(pixels != 2)
+
+        pixels[mask] = 1.0
+        pixels[no_mask] = 0.0
+
+        return np.array(pixels) 
+
+
     # Choose normalisation based on input type
     def prep_numpy(self, numpy, **mode):
         if mode.get("mode") == "hd":
@@ -81,9 +94,9 @@ class Data_Preprocess(object):
         elif mode.get("mode") == "ct":
             # Some CTs have an extra slice at the end
             if numpy.shape[2] == 112:
-                return self.normalise_ct(numpy)[:,:,0:111] 
+                return self.normalise_mask(numpy)[:,:,0:111] 
             elif numpy.shape[2] == 111:
-                return self.normalise_ct(numpy) 
+                return self.normalise_mask(numpy) 
             else:
                 print('Oddly-sized numpy array')
         else:
@@ -95,11 +108,13 @@ class Data_Preprocess(object):
         load_path = '%s/%s/%s%s' % (self.data_path, patient, filename, self.extension)
         save_path = '%s/%s/%s%s%s' % (self.data_path, patient, filename, '_norm', self.extension)
         return [load_path, save_path]
+
             
     # Create normalised PET nifti
     def save_nifti(self, nifti, numpy, save_path):
         image = nib.Nifti1Image(numpy, nifti.affine, nifti.header)
         nib.save(image, save_path)
+        
         
     # Create normalised CT nifti
     def transform_nifti(self, nifti, nifti_pet, numpy, save_path):
@@ -133,6 +148,7 @@ class Data_Preprocess(object):
 
         #TODO: take filenames as arguments...
         for patient in tqdm(patients):     
+            print(patient)
             # Ignore the pickle file in the data directory
             if not 'pickle' in str(patient):
                 hd = self.create_paths(patient, self.hd_name)
@@ -140,5 +156,5 @@ class Data_Preprocess(object):
                 ct = self.create_paths(patient, self.ct_name)
             # ld[0] used for affine CT transformation
             #self.create_new_nifti(hd[0], ld[0], hd[1], 'hd')
-            #self.create_new_nifti(ld[0], ld[0], ld[1], 'hd') 
+            #self.create_new_nifti(ld[0], ld[0], ld[1], 'ld') 
             self.create_new_nifti(ct[0], ld[0], ct[1], 'ct')
