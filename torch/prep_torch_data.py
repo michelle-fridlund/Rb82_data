@@ -62,7 +62,7 @@ def find_patients(data_path):
             new_path = str(Path(os.path.join(data_path, dirname)))
             patient_name = get_name(dirname, regex='name')
             phase = (get_name(dirname, regex='phase')).lower()
-            filename = 'pet_100p_ekg_gate8.nii.gz'
+            filename = 'pet_25p_ekg_gate8.nii.gz'
             patients[f'{patient_name}_{phase}'] = os.path.join(
                 new_path, filename)
     return patients
@@ -103,9 +103,10 @@ def find_patients_mask(data_path):
 
 # Copy pet to new directory
 def copy_pet(data_path):
-    patients = find_patients_mask(data_path)
+    patients = find_patients(data_path)
     for k, v in tqdm(patients.items()):
         dst = os.path.join(save_path, k)
+        print(dst)
         try:
             copy(v, dst)
         except Exception as error:
@@ -116,7 +117,8 @@ def copy_pet(data_path):
 
 
 def rename_pet(data_path):
-    patients = find_patients_mask(data_path)
+    patients = find_patients(data_path)
+    print(patients)
     for k, v in tqdm(patients.items()):
         dst = os.path.join(save_path, k)
         old = os.path.join(dst, os.path.basename(v))
@@ -188,7 +190,7 @@ def rename_gates(dir_path):
     for gate in tqdm(gates):
         dst = str(Path(gate).parent)
         old = os.path.join(dir_path, dst, '3_psftof.nii.gz')
-        new = os.path.join(dir_path, dst, 'pet_100p_ekg_gate8.nii.gz')
+        new = os.path.join(dir_path, dst, 'pet_25p_ekg_gate8.nii.gz')
         try:
             os.rename(old, new)
         except Exception as error:
@@ -199,7 +201,7 @@ def rename_gates(dir_path):
 
 def convert_nii_gate(dir_path):
     gates = find_gates(dir_path)
-    #print(gates)
+    print(gates)
     c = 1
     for gate in tqdm(gates):
         #Create output path in parent dir for all gates
@@ -263,7 +265,30 @@ def prep_nnunet(dir_path, nn_path):
         os.rename(dst, new_name)
         c += 1
     print('Done!')
-    
+
+
+def random_gate(dir_path, gate_number: int=8):
+    patients = os.listdir(dir_path)  # pet path
+    patients2 = patients[325:341] # [0:341]
+    print(patients2)
+    c=0
+    for p in tqdm(patients2):
+        if 'pickle' not in str(p):
+            src = os.path.join(dir_path, p, f'pet_25p_ekg_gate{gate_number}_norm.nii.gz')
+            print(src)
+            dst = os.path.join(dir_path, p, 'pet_25p_ekg_random_norm.nii.gz')
+            src1 = os.path.join(dir_path, p, f'pet_100p_ekg_gate{gate_number}_norm.nii.gz')
+            dst1 = os.path.join(dir_path, p, 'pet_100p_ekg_random_norm.nii.gz')
+        try:
+            copy(src, dst)
+            copy(src1, dst1)
+            c += 1
+        except Exception as error:
+            print(error)
+            continue
+
+    print(f'Done! {c} patients.')
+
 
 if __name__ == "__main__":
     # Initiate the parser
@@ -303,3 +328,4 @@ if __name__ == "__main__":
     processor.load_data()
 
     #prep_nnunet(data_path, '/homes/michellef/my_projects/ct_thorax/nnUNet_raw_data_base/nnUNet_raw_data/Task055_SegTHOR')
+    #random_gate(data_path)
