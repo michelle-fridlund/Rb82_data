@@ -13,10 +13,22 @@ from sklearn.preprocessing import RobustScaler
 
 
 class Data_Preprocess(object):
-    def __init__(self, args, hd_name = 'pet_100p_ekg_gate8', ld_name= 'pet_25p_ekg_gate8',
+    def __init__(self, args, hd_name = 'pet_100p_ekg_gate2', ld_name= 'pet_25p_ekg_gate2',
                  ct_name = 'mask', extension = '.nii.gz'):
         # PET norm value from arguments
         # 232429.9 (25, 99.8)
+
+        # 98th percentile of max intensity values: 
+        # 476607.5
+        # Gates:
+        # 1. 685338.8
+        # 2. 631516.4
+        # 3. 615104.3
+        # 4. 627283.3
+        # 5. 695705.4
+        # 6. 692625.1
+        # 7. 624938.6
+        # 8. 670900.2
         self.norm = args.norm 
 
         # Scale factor for different dose levels
@@ -32,7 +44,7 @@ class Data_Preprocess(object):
         # List of patients in data dir
 
         #Test group
-        pk = pickle.load(open('/homes/michellef/my_projects/rhtorch/torch/rb82/data/rb82_6fold_sorted.pickle', 'rb'))
+        pk = pickle.load(open('/homes/michellef/my_projects/rhtorch/torch/rb82/data/rb82_6fold_scaled.pickle', 'rb'))
         #self.summary = pk['test_0']
 
         self.summary = os.listdir(self.data_path)
@@ -106,7 +118,7 @@ class Data_Preprocess(object):
     # Concatenate load/save path strings
     def create_paths(self, patient, filename):
         load_path = '%s/%s/%s%s' % (self.data_path, patient, filename, self.extension)
-        save_path = '%s/%s/%s%s%s' % (self.data_path, patient, filename, '_norm', self.extension)
+        save_path = '%s/%s/%s%s%s' % (self.data_path, patient, filename, '_norm2', self.extension)
         return [load_path, save_path]
 
             
@@ -153,8 +165,8 @@ class Data_Preprocess(object):
             if not 'pickle' in str(patient):
                 hd = self.create_paths(patient, self.hd_name)
                 ld = self.create_paths(patient, self.ld_name)
-                ct = self.create_paths(patient, self.ct_name)
+                #ct = self.create_paths(patient, self.ct_name)
             # ld[0] used for affine CT transformation
-            #self.create_new_nifti(hd[0], ld[0], hd[1], 'hd')
-            #self.create_new_nifti(ld[0], ld[0], ld[1], 'ld') 
-            self.create_new_nifti(ct[0], ld[0], ct[1], 'ct')
+            self.create_new_nifti(hd[0], ld[0], hd[1], 'hd')
+            self.create_new_nifti(ld[0], ld[0], ld[1], 'ld') 
+            #self.create_new_nifti(ct[0], ld[0], ct[1], 'ct')
