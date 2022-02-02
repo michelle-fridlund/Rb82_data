@@ -13,13 +13,17 @@ from sklearn.preprocessing import RobustScaler
 
 
 class Data_Preprocess(object):
-    def __init__(self, args, hd_name = 'pet_100p_ekg_gate2', ld_name= 'pet_25p_ekg_gate2',
+    def __init__(self, args, hd_name = 'pet_100p_2mm_stat', ld_name= 'pet_25p_2mm_stat',
                  ct_name = 'mask', extension = '.nii.gz'):
         # PET norm value from arguments
         # 232429.9 (25, 99.8)
 
         # 98th percentile of max intensity values: 
         # 476607.5
+
+        #2mm:
+        #776167.7
+
         # Gates:
         # 1. 685338.8
         # 2. 631516.4
