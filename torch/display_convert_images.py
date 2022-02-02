@@ -21,7 +21,7 @@ import sys
 import re
 
 
-inference_path = '/homes/michellef/my_projects/rhtorch/torch/rb82/inferences'
+inference_path = '/homes/michellef/my_projects/rhtorch/torch/rb82/inferences_2022'
 input_path = '/homes/michellef/my_projects/rhtorch/torch/rb82/data'
 
 
@@ -154,8 +154,8 @@ def find_patients(args):
     data_path = str(args.data_path)
     # Always start with the same index as last index of preceeding sequence
     #patients = os.listdir(data_path)[153:173]
-    patients = return_patient_list(args)
-    #patients2 = os.listdir('/homes/michellef/my_projects/rb82_data/Dicoms_OCT8/10p_EKG')
+    #patients = return_patient_list(args)
+    patients = os.listdir('/homes/michellef/my_projects/rb82_data/Dicoms_OCT8/100p_STAT')
     # Patients other than the 10 test subjects
     #patients = set(patients1) - set(patients2)
 
@@ -205,20 +205,31 @@ def copy_files_gate(files, dst):
 
 
 def copy_gated_dicom(data_path):
-    patients = os.listdir('/homes/michellef/my_projects/rb82_data/Dicoms_OCT8/10p_EKG')
-    save_dir = 'GATE_LightningRAE_Res3DUnet_residual_TIODataModule_bz4_128x128x16_k0_e600_e=506'
+    #patients = os.listdir('/homes/michellef/my_projects/rb82_data/Dicoms_OCT8/10p_EKG')
+    patients = return_patient_list(args) #[0:10]
+
+    save_dir = 'GATE_LightningRAE_Res3DUnet_randomgate_dosescaled_TIODataModule_bz4_128x128x16_k0_e600_e=470'
+
     for p in tqdm(patients):
         input_dir1 = f'{inference_path}/{p}_rest'
         input_dir2 = f'{inference_path}/{p}_stress'
         for i in range(1,9):
-            my_dir = f'gate{i}_GATE_LightningRAE_Res3DUnet_residual_TIODataModule_bz4_128x128x16_k0_e600_e=506'
+            my_dir = f'gate{i}_LightningRAE_Res3DUnet_randomgate_dosescaled_TIODataModule_bz4_128x128x16_k0_e600_e=470'
             src1 = os.path.join(input_dir1, my_dir)
             src2 = os.path.join(input_dir2, my_dir)
+            #try:
+            #    shutil.rmtree(src1)
+            #except Exception as e:
+            #    print(e)
+            #    print(p)
+            #    continue
             dst1 = os.path.join(input_dir1, save_dir)
             dst2 = os.path.join(input_dir2, save_dir)
-            files1 = find_files(src1, format = 'dcm')
-            files2 = find_files(src2, format = 'dcm')
-            
+            files1 = find_files(src1, format = 'nifti')
+            files2 = find_files(src2, format = 'nifti')
+
+            #print(files1)
+
             makedirs(dst1)
             makedirs(dst2)
 
@@ -226,11 +237,15 @@ def copy_gated_dicom(data_path):
             copy_files_gate(files2, dst2)
 
 
+# Sort files in the inference dir
+def move_remove_inference(data_path):
+   save_dir = 'RAE_randomgate&AE_random_static'
+
 # Convert user-defined model outputs to dicoms
 def convert_patient_dicom(args):
     # Hard-coded for test patients
-    patients = os.listdir('/homes/michellef/my_projects/rb82_data/Dicoms_OCT8/10p_EKG')
-
+    #patients = os.listdir('/homes/michellef/my_projects/rb82_data/Dicoms_OCT8/10p_EKG')
+    patients = return_patient_list(args)[0:2]
     for p in tqdm(patients):
         # Rest and stress inference dir paths
         input_dir1 = f'{input_path}/{p}_rest'
@@ -240,11 +255,11 @@ def convert_patient_dicom(args):
         output_dir2 = f'{inference_path}/{p}_stress'
         # Full path to respective nifti files
         # Directories: input_dir = data, output_dir = inferences
-        nifty_file1 = os.path.join(output_dir1, str(args.nifty))
-        nifty_file2 = os.path.join(output_dir2, str(args.nifty))
+        nifty_file1 = os.path.join(input_dir1, str(args.nifty))
+        nifty_file2 = os.path.join(input_dir2, str(args.nifty))
         # Respective rest and stress original dicom paths
-        dicom_container1 = os.path.join(str(args.data_path), p, 'REST')
-        dicom_container2 = os.path.join(str(args.data_path), p, 'STRESS')
+        dicom_container1 = os.path.join(str(args.data_path), p, 'REST/Gate1')
+        dicom_container2 = os.path.join(str(args.data_path), p, 'STRESS/Gate1')
         # Get dirname from nifti/model input
         save_dir_name = str((re.search('^(.*?)\.nii.gz', args.nifty)).group(1))
         # Create save dir in inference parent folders
@@ -288,7 +303,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     #find_patients(args)
-    convert_patient_dicom(args)
-    #copy_gated_dicom(args)
+    #convert_patient_dicom(args)
+    copy_gated_dicom(args)
 
     #plot_nifti('/homes/michellef/my_projects/rb82_data/Dicoms_OCT8/5p_STAT/0ef7e890-6586-4876-a630-a3af8e7fd736/3_rest-lm-00-psftof_000_000_ctmv_4i_21s.nii.gz', '/homes/michellef/my_projects/rhtorch/torch/rb82/inferences/0ef7e890-6586-4876-a630-a3af8e7fd736_rest/images/pet_5p_stat_norm')

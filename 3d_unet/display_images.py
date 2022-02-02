@@ -51,7 +51,7 @@ def output_dir(args, i):
 
 # Return all nifti files in a directory
 def find_nifti(path):
-    return [i for i in glob.glob("{}/*gate8.nii.gz".format(path), recursive=True)]
+    return [i for i in glob.glob("{}/*.nii.gz".format(path), recursive=True)]
 
 
 # Read test patient names from a pkl file
@@ -78,8 +78,8 @@ def find_patients(args):
         patients2 = read_pickle(str(args.pkl_path))
         patients = [p.split('_rest')[0] for p in sorted(patients2[::2])]
         for p in patients:
-            paths.append(os.path.join(dir_path, p, 'REST'))
-            paths.append(os.path.join(dir_path, p, 'STRESS'))
+            paths.append(os.path.join(dir_path, p))
+            #paths.append(os.path.join(dir_path, p, 'STRESS'))
     # Find paths manually
     else:
         for (dirpath, dirnames, filenames) in os.walk(dir_path):
