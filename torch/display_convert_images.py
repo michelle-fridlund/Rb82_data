@@ -204,9 +204,9 @@ def copy_files_gate(files, dst):
                 continue
 
 
-def copy_gated_dicom(data_path):
+def copy_gated_dicom(args):
     #patients = os.listdir('/homes/michellef/my_projects/rb82_data/Dicoms_OCT8/10p_EKG')
-    patients = return_patient_list(args) #[0:10]
+    patients = return_patient_list(args) #[0:2]
 
     save_dir = 'GATE_LightningRAE_Res3DUnet_randomgate_dosescaled_TIODataModule_bz4_128x128x16_k0_e600_e=470'
 
@@ -214,15 +214,9 @@ def copy_gated_dicom(data_path):
         input_dir1 = f'{inference_path}/{p}_rest'
         input_dir2 = f'{inference_path}/{p}_stress'
         for i in range(1,9):
-            my_dir = f'gate{i}_LightningRAE_Res3DUnet_randomgate_dosescaled_TIODataModule_bz4_128x128x16_k0_e600_e=470'
+            my_dir = f'gate{i}_LightningAE_Res3DUnet_randomgate_static_scaled_v1_TIODataModule_bz8_128x128x16_k0_e600_e=320'
             src1 = os.path.join(input_dir1, my_dir)
             src2 = os.path.join(input_dir2, my_dir)
-            #try:
-            #    shutil.rmtree(src1)
-            #except Exception as e:
-            #    print(e)
-            #    print(p)
-            #    continue
             dst1 = os.path.join(input_dir1, save_dir)
             dst2 = os.path.join(input_dir2, save_dir)
             files1 = find_files(src1, format = 'nifti')
@@ -239,13 +233,40 @@ def copy_gated_dicom(data_path):
 
 # Sort files in the inference dir
 def move_remove_inference(data_path):
-   save_dir = 'RAE_randomgate&AE_random_static'
+    save_dir = 'RAE_randomgate&AE_random_static'
+"""     if args.delete:
+        try:
+            shutil.rmtree(src1)
+            #os.remove(src1)
+        except Exception as e:
+            print(e)
+            print(p)
+            continue
+        try:
+            shutil.rmtree(src2)
+            #os.remove(src1)
+        except Exception as e:
+            print(e)
+            print(p)
+            continue """
+
 
 # Convert user-defined model outputs to dicoms
 def convert_patient_dicom(args):
     # Hard-coded for test patients
     #patients = os.listdir('/homes/michellef/my_projects/rb82_data/Dicoms_OCT8/10p_EKG')
     patients = return_patient_list(args)[0:2]
+    #patients = ['0d64ef76-5f71-4485-b481-613f17beedfe_02',
+    #'1c9d3af1-f408-400c-b59e-583435fa1b9e',
+    #'06fb290d-9666-47fb-a780-f796a9ca8e03_02',
+    #'7b015a52-0f80-47df-8c12-a9a0d45becf8',
+    #'6af03e0e-f2c7-483a-b617-b1563cfad550',
+    #'19bf5adc-30df-44d9-a95d-9fd77b1a02ce',
+    #'90361ba0-2a3c-4da5-8b35-62d3d718146b',
+    #'72a5cb53-6e9a-42d6-a6e5-827db88257aa',
+    #'3708dcc9-bce3-444d-b106-2909bf7a973b',
+    #'41309e5d-a63d-4150-b7c4-753f08143a3c']
+
     for p in tqdm(patients):
         # Rest and stress inference dir paths
         input_dir1 = f'{input_path}/{p}_rest'
@@ -255,11 +276,11 @@ def convert_patient_dicom(args):
         output_dir2 = f'{inference_path}/{p}_stress'
         # Full path to respective nifti files
         # Directories: input_dir = data, output_dir = inferences
-        nifty_file1 = os.path.join(input_dir1, str(args.nifty))
-        nifty_file2 = os.path.join(input_dir2, str(args.nifty))
+        nifty_file1 = os.path.join(output_dir1, str(args.nifty))
+        nifty_file2 = os.path.join(output_dir2, str(args.nifty))
         # Respective rest and stress original dicom paths
-        dicom_container1 = os.path.join(str(args.data_path), p, 'REST/Gate1')
-        dicom_container2 = os.path.join(str(args.data_path), p, 'STRESS/Gate1')
+        dicom_container1 = os.path.join(str(args.data_path), p, 'REST/Gate8')
+        dicom_container2 = os.path.join(str(args.data_path), p, 'STRESS/Gate8')
         # Get dirname from nifti/model input
         save_dir_name = str((re.search('^(.*?)\.nii.gz', args.nifty)).group(1))
         # Create save dir in inference parent folders
@@ -298,12 +319,14 @@ if __name__ == "__main__":
     parser.add_argument('--nifty', dest='nifty', help="input nifti filename")
     parser.add_argument('--test', action='store_true',
                         help="extract single test patient names")
+    parser.add_argument('--delete', action='store_true',
+                        help="delete bad models")
 
     # Read arguments from the command line
     args = parser.parse_args()
 
     #find_patients(args)
-    #convert_patient_dicom(args)
-    copy_gated_dicom(args)
+    convert_patient_dicom(args)
+    #copy_gated_dicom(args)
 
     #plot_nifti('/homes/michellef/my_projects/rb82_data/Dicoms_OCT8/5p_STAT/0ef7e890-6586-4876-a630-a3af8e7fd736/3_rest-lm-00-psftof_000_000_ctmv_4i_21s.nii.gz', '/homes/michellef/my_projects/rhtorch/torch/rb82/inferences/0ef7e890-6586-4876-a630-a3af8e7fd736_rest/images/pet_5p_stat_norm')

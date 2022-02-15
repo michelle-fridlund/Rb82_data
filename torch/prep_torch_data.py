@@ -267,25 +267,28 @@ def prep_nnunet(dir_path, nn_path):
     print('Done!')
 
 
-def random_gate(dir_path, gate_number: int=8):
+def random_gate(args, gate_number: int=1):
+    dir_path = str(args.data_path)
     patients = os.listdir(dir_path)  # pet path
-    patients2 = patients[325:341] # [0:341]
-    print(patients2)
-    c=0
-    for p in tqdm(patients2):
-        if 'pickle' not in str(p):
-            src = os.path.join(dir_path, p, f'pet_25p_ekg_gate{gate_number}_norm.nii.gz')
-            print(src)
-            dst = os.path.join(dir_path, p, 'pet_25p_ekg_random_norm.nii.gz')
-            src1 = os.path.join(dir_path, p, f'pet_100p_ekg_gate{gate_number}_norm.nii.gz')
-            dst1 = os.path.join(dir_path, p, 'pet_100p_ekg_random_norm.nii.gz')
-        try:
-            copy(src, dst)
-            copy(src1, dst1)
-            c += 1
-        except Exception as error:
-            print(error)
-            continue
+    patients2 = patients[302:342] # [0:342]
+
+    if args.test:
+        print(patients2)
+    else:
+        c=0
+        for p in tqdm(patients):
+            if 'pickle' not in str(p):
+                src = os.path.join(dir_path, p, f'pet_25p_ekg_gate{gate_number}_norm2.nii.gz')
+                dst = os.path.join(dir_path, p, 'pet_25p_ekg_random_norm2.nii.gz')
+                src1 = os.path.join(dir_path, p, f'pet_100p_ekg_gate{gate_number}_norm2.nii.gz')
+                dst1 = os.path.join(dir_path, p, 'pet_100p_ekg_random_norm2.nii.gz')
+            try:
+                copy(src, dst)
+                copy(src1, dst1)
+                c += 1
+            except Exception as error:
+                print(error)
+                continue
 
     print(f'Done! {c} patients.')
 
@@ -311,21 +314,22 @@ if __name__ == "__main__":
         "--norm", dest='norm', type=float, help="PET norm factor")
     parser.add_argument(
         "--scale", dest='scale', type=float, help="Dose scale factor")
+    #This is used to check the number of processed patients during random gate selection
+    parser.add_argument('--test', action='store_true',
+                        help="extract single test patient names")
 
     # Read arguments from the command line
     args = parser.parse_args()
 
-    #ct = str(args.ct)
-    #pet = str(args.pet)
-    data_path = str(args.data_path)
+    #data_path = str(args.data_path)
  
     #convert_nii_gate(data_path)
     #rename_gates(data_path)
     #copy_pet(data_path)
     #rename_pet(data_path)
 
-    processor = pre_process.Data_Preprocess(args)
-    processor.load_data()
+    #processor = pre_process.Data_Preprocess(args)
+    #processor.load_data()
 
     #prep_nnunet(data_path, '/homes/michellef/my_projects/ct_thorax/nnUNet_raw_data_base/nnUNet_raw_data/Task055_SegTHOR')
-    #random_gate(data_path)
+    #random_gate(args)
