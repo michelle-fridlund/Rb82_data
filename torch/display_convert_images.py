@@ -21,7 +21,7 @@ import sys
 import re
 
 
-inference_path = '/homes/michellef/my_projects/rhtorch/torch/rb82/inferences'
+inference_path = '/homes/michellef/my_projects/rhtorch/torch/rb82/inferences_2022'
 input_path = '/homes/michellef/my_projects/rhtorch/torch/rb82/data'
 
 
@@ -119,66 +119,61 @@ def plot_dicom(args):
         plt.close("all")
 
 
-# Sort cardiac gates with hard-coded dicom indeces       
+# Sort cardiac gates with hard-coded dicom indeces
 def sort_gates(data_path):
-    for i in range(778,889): # Make sure the gate number matches indeces!!!
-        src = f'{data_path}/PSFTOF-{i}.ima'
-        # TODO: User-defined gates and index ranges???
-        # Copy selected dicoms over to user-defined gates 
-        save_path = create_save_dir(data_path,gate_number = 8)
-        dst = f'{save_path}/PSFTOF-{i}.ima'
-        try:
-            shutil.copy(src, dst)
-            #print(f"{i}. File copied successfully.")
-        # For other errors
-        except:
-            print("Error occurred while copying file.")
+    # (1,112)(112,223)(223,334)(334,445)(445,556)(556,667)(667,778)(778,889)
+    for i in range(0,8): 
+        # Create save dirs in the src folder
+        save_path = create_save_dir(data_path, gate_number = i+1)
+        for j in range(1+111*i, 112+111*i):
+            src = f'{data_path}/PSFTOF-{j}.ima'
+            dst = f'{save_path}/PSFTOF-{j}.ima'
+            # Copy selected dicoms over to user-defined gates
+            try:
+                shutil.copy(src, dst)
+            # For other errors
+            except:
+                print("Error occurred while copying file.")
+        # Check for correct slice length
+        files = find_files(save_path, format='ima')
+        assert len(files) == 111
 
 
 # Get a list of patients or read from pickle
 def return_patient_list(args):
     patients = read_pickle(str(args.pkl_path)) if args.pkl_path \
-               else os.listdir(args.data_path)
-    print(patients)
+    else os.listdir(args.data_path)
+    # Return a single test name
+    if args.test:
+        patients = [p.split('_rest')[0] for p in sorted(patients[::2])]
 
+    return patients
 
 # Call gate sorting on selected patients
 def find_patients(args):
     data_path = str(args.data_path)
     # Always start with the same index as last index of preceeding sequence
-    patients = os.listdir(data_path)[153:173]
+    #patients = os.listdir(data_path)[153:173]
+    #patients = return_patient_list(args)
+    patients = os.listdir('/homes/michellef/my_projects/rb82_data/Dicoms_OCT8/100p_STAT')
+    # Patients other than the 10 test subjects
+    #patients = set(patients1) - set(patients2)
+
     for p in tqdm(patients):
         print(p)
         new_path = os.path.join(data_path, p, 'REST')
         new_path2 = os.path.join(data_path, p, 'STRESS')
         sort_gates(new_path)
         sort_gates(new_path2)
-    # TODO: Run check for file length alongside sorting and output error if wrong
-"""     for (dirpath, dirnames, filenames) in os.walk(data_path):
-        dirname = str(Path(dirpath).relative_to(data_path))
-        if '/REST' in dirname and '/Sinograms' not in dirname \
-            or '/STRESS' in dirname and '/Sinograms' not in dirname:
-            new_path = str(os.path.join(data_path, dirname))
-            files = find_files(new_path, format='ima')
-            if int(len(files)) != 888:
-                print(dirname)
-    print(f'{len(patients)} patients found...') """
-    
+
 
 # Convert nifti to dicom
 def np2dcm(nifty_file, dicom_container, dicom_output):
     nifty_to_dcm(nifty_file,
             dicom_container,
             dicom_output,
-            verbose=True)
+            verbose=False)
             
-"""     # Check for correct venv
-    try:
-        print(os.environ["claes_test"])
-        print('Environment OK')
-    except KeyError:
-        print("Please set the environment claes_test")
-        sys.exit(1) """
 
 # Plot test nifti files
 def plot_nifti(nifty, save_dir):
@@ -194,15 +189,83 @@ def plot_nifti(nifty, save_dir):
         plt.savefig(f'{save_dir}/{i}')
         plt.close("all")
     
+
 def makedirs(save_path):
     if not os.path.exists(save_path):
         os.makedirs(save_path)
 
+
+def copy_files_gate(files, dst):
+    for f in files:
+        try:
+            shutil.copy(os.path.join(f), os.path.join(dst,os.path.basename(f)))
+        except Exception as error:
+                print(error)
+                continue
+
+
+def copy_gated_dicom(args):
+    #patients = os.listdir('/homes/michellef/my_projects/rb82_data/Dicoms_OCT8/10p_EKG')
+    patients = return_patient_list(args) #[0:2]
+
+    save_dir = 'GATE_LightningRAE_Res3DUnet_randomgate_dosescaled_TIODataModule_bz4_128x128x16_k0_e600_e=470'
+
+    for p in tqdm(patients):
+        input_dir1 = f'{inference_path}/{p}_rest'
+        input_dir2 = f'{inference_path}/{p}_stress'
+        for i in range(1,9):
+            my_dir = f'gate{i}_LightningAE_Res3DUnet_randomgate_static_scaled_v1_TIODataModule_bz8_128x128x16_k0_e600_e=320'
+            src1 = os.path.join(input_dir1, my_dir)
+            src2 = os.path.join(input_dir2, my_dir)
+            dst1 = os.path.join(input_dir1, save_dir)
+            dst2 = os.path.join(input_dir2, save_dir)
+            files1 = find_files(src1, format = 'nifti')
+            files2 = find_files(src2, format = 'nifti')
+
+            #print(files1)
+
+            makedirs(dst1)
+            makedirs(dst2)
+
+            copy_files_gate(files1, dst1)
+            copy_files_gate(files2, dst2)
+
+
+# Sort files in the inference dir
+def move_remove_inference(data_path):
+    save_dir = 'RAE_randomgate&AE_random_static'
+"""     if args.delete:
+        try:
+            shutil.rmtree(src1)
+            #os.remove(src1)
+        except Exception as e:
+            print(e)
+            print(p)
+            continue
+        try:
+            shutil.rmtree(src2)
+            #os.remove(src1)
+        except Exception as e:
+            print(e)
+            print(p)
+            continue """
+
+
 # Convert user-defined model outputs to dicoms
 def convert_patient_dicom(args):
     # Hard-coded for test patients
-    patients = os.listdir('/homes/michellef/my_projects/rb82_data/Dicoms_OCT8/10p_EKG')
-
+    #patients = os.listdir('/homes/michellef/my_projects/rb82_data/Dicoms_OCT8/10p_EKG')
+    patients = return_patient_list(args)[2:4]
+    #patients = ['06fb290d-9666-47fb-a780-f796a9ca8e03_02',
+     #           '0d64ef76-5f71-4485-b481-613f17beedfe_02',
+      #          '3708dcc9-bce3-444d-b106-2909bf7a973b',
+       #         '41309e5d-a63d-4150-b7c4-753f08143a3c',
+        #        'a853b89f-e179-4a91-8f38-71298b5616d8',
+         #       '19bf5adc-30df-44d9-a95d-9fd77b1a02ce',
+          #      '6af03e0e-f2c7-483a-b617-b1563cfad550',
+           #     '72a5cb53-6e9a-42d6-a6e5-827db88257aa',
+            #    'b7b93d03-ad94-44cc-b581-3b07c9742c68',
+             #   '1c9d3af1-f408-400c-b59e-583435fa1b9e']
     for p in tqdm(patients):
         # Rest and stress inference dir paths
         input_dir1 = f'{input_path}/{p}_rest'
@@ -212,8 +275,8 @@ def convert_patient_dicom(args):
         output_dir2 = f'{inference_path}/{p}_stress'
         # Full path to respective nifti files
         # Directories: input_dir = data, output_dir = inferences
-        nifty_file1 = os.path.join(output_dir1, str(args.nifty))
-        nifty_file2 = os.path.join(output_dir2, str(args.nifty))
+        nifty_file1 = os.path.join(input_dir1, str(args.nifty))
+        nifty_file2 = os.path.join(input_dir2, str(args.nifty))
         # Respective rest and stress original dicom paths
         dicom_container1 = os.path.join(str(args.data_path), p, 'REST')
         dicom_container2 = os.path.join(str(args.data_path), p, 'STRESS')
@@ -228,11 +291,12 @@ def convert_patient_dicom(args):
         
         makedirs(image_output1)
         makedirs(image_output2)
-        # Plot per slice for user-defined unference model
+
+        # Plot per slice for user-defined inference model
         plot_nifti(nifty_file1, image_output1)
         plot_nifti(nifty_file2, image_output2)
 
-        ## Call nii2dcm on rest/stress from rhscripts 
+        # Call nii2dcm on rest/stress from rhscripts 
         #np2dcm(nifty_file1, dicom_container1, dicom_output1)
         #np2dcm(nifty_file2, dicom_container2, dicom_output2)
 
@@ -252,10 +316,16 @@ if __name__ == "__main__":
     parser.add_argument('--pkl_path', dest='pkl_path', help="pickle filepath")
     # Specify a pkl file for list of patients
     parser.add_argument('--nifty', dest='nifty', help="input nifti filename")
+    parser.add_argument('--test', action='store_true',
+                        help="extract single test patient names")
+    parser.add_argument('--delete', action='store_true',
+                        help="delete bad models")
 
     # Read arguments from the command line
     args = parser.parse_args()
 
-    #convert_patient_dicom(args)
+    #find_patients(args)
+    convert_patient_dicom(args)
+    #copy_gated_dicom(args)
 
-    plot_nifti('/homes/michellef/my_projects/rb82_data/Dicoms_OCT8/5p_STAT/0ef7e890-6586-4876-a630-a3af8e7fd736/3_rest-lm-00-psftof_000_000_ctmv_4i_21s.nii.gz', '/homes/michellef/my_projects/rhtorch/torch/rb82/inferences/0ef7e890-6586-4876-a630-a3af8e7fd736_rest/images/pet_5p_stat_norm')
+    #plot_nifti('/homes/michellef/my_projects/rb82_data/Dicoms_OCT8/5p_STAT/0ef7e890-6586-4876-a630-a3af8e7fd736/3_rest-lm-00-psftof_000_000_ctmv_4i_21s.nii.gz', '/homes/michellef/my_projects/rhtorch/torch/rb82/inferences/0ef7e890-6586-4876-a630-a3af8e7fd736_rest/images/pet_5p_stat_norm')

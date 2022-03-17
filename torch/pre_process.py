@@ -13,10 +13,26 @@ from sklearn.preprocessing import RobustScaler
 
 
 class Data_Preprocess(object):
-    def __init__(self, args, hd_name = 'pet_100p_stat', ld_name= 'pet_50p_stat',
-                 ct_name = 'ct', extension = '.nii.gz'):
+    def __init__(self, args, hd_name = 'pet_100p_2mm_stat', ld_name= 'pet_25p_2mm_stat',
+                 ct_name = 'mask', extension = '.nii.gz'):
         # PET norm value from arguments
         # 232429.9 (25, 99.8)
+
+        # 98th percentile of max intensity values: 
+        # 476607.5
+
+        #2mm:
+        #776167.7
+
+        # Gates:
+        # 1. 685338.8
+        # 2. 631516.4
+        # 3. 615104.3
+        # 4. 627283.3
+        # 5. 695705.4
+        # 6. 692625.1
+        # 7. 624938.6
+        # 8. 670900.2
         self.norm = args.norm 
 
         # Scale factor for different dose levels
@@ -30,8 +46,12 @@ class Data_Preprocess(object):
         # Paths to original files
         self.data_path = args.data_path
         # List of patients in data dir
+
+        #Test group
+        pk = pickle.load(open('/homes/michellef/my_projects/rhtorch/torch/rb82/data/rb82_6fold_scaled.pickle', 'rb'))
+        #self.summary = pk['test_0']
+
         self.summary = os.listdir(self.data_path)
-       
         
     def load_nifti(self, file):
         return nib.load(file)
@@ -63,11 +83,24 @@ class Data_Preprocess(object):
         pixels = scaler.fit_transform(pixels.reshape(-1, pixels.shape[-1])).reshape(pixels.shape)
         print(f'After: {np.mean(pixels)}')
         return pixels
+
     
     def normalise_ct(self, pixels):
-        return (pixels + 1024.0) / 4095.0
-    
-    
+        #return (pixels + 1024.0) / 4095.0
+        return 1.0 if pixels.any()==2 else 0.0
+
+
+    # Normalise binary mask
+    def normalise_mask(self, pixels):
+        mask = np.where(pixels == 2)
+        no_mask = np.where(pixels != 2)
+
+        pixels[mask] = 1.0
+        pixels[no_mask] = 0.0
+
+        return np.array(pixels) 
+
+
     # Choose normalisation based on input type
     def prep_numpy(self, numpy, **mode):
         if mode.get("mode") == "hd":
@@ -77,9 +110,9 @@ class Data_Preprocess(object):
         elif mode.get("mode") == "ct":
             # Some CTs have an extra slice at the end
             if numpy.shape[2] == 112:
-                return self.normalise_ct(numpy)[:,:,0:111] 
+                return self.normalise_mask(numpy)[:,:,0:111] 
             elif numpy.shape[2] == 111:
-                return self.normalise_ct(numpy) 
+                return self.normalise_mask(numpy) 
             else:
                 print('Oddly-sized numpy array')
         else:
@@ -89,13 +122,15 @@ class Data_Preprocess(object):
     # Concatenate load/save path strings
     def create_paths(self, patient, filename):
         load_path = '%s/%s/%s%s' % (self.data_path, patient, filename, self.extension)
-        save_path = '%s/%s/%s%s%s' % (self.data_path, patient, filename, '_norm', self.extension)
+        save_path = '%s/%s/%s%s%s' % (self.data_path, patient, filename, '_norm2', self.extension)
         return [load_path, save_path]
+
             
     # Create normalised PET nifti
     def save_nifti(self, nifti, numpy, save_path):
         image = nib.Nifti1Image(numpy, nifti.affine, nifti.header)
         nib.save(image, save_path)
+        
         
     # Create normalised CT nifti
     def transform_nifti(self, nifti, nifti_pet, numpy, save_path):
@@ -117,7 +152,7 @@ class Data_Preprocess(object):
         
         if str(mode) == 'ct':
             print('ct')
-            #self.transform_nifti(nifti, nifti_pet, norm, save_path)
+            self.transform_nifti(nifti, nifti_pet, norm, save_path)
         else:
             self.save_nifti(nifti, norm, save_path)
         
@@ -129,12 +164,13 @@ class Data_Preprocess(object):
 
         #TODO: take filenames as arguments...
         for patient in tqdm(patients):     
+            print(patient)
             # Ignore the pickle file in the data directory
             if not 'pickle' in str(patient):
                 hd = self.create_paths(patient, self.hd_name)
                 ld = self.create_paths(patient, self.ld_name)
-                # ct = self.create_paths(patient, self.ct_name)
+                #ct = self.create_paths(patient, self.ct_name)
             # ld[0] used for affine CT transformation
-            #self.create_new_nifti(hd[0], ld[0], hd[1], 'hd')
-            self.create_new_nifti(ld[0], ld[0], ld[1], 'ld')
-            # self.create_new_nifti(ct[0], ld[0], ct[1], 'ct')
+            self.create_new_nifti(hd[0], ld[0], hd[1], 'hd')
+            self.create_new_nifti(ld[0], ld[0], ld[1], 'ld') 
+            #self.create_new_nifti(ct[0], ld[0], ct[1], 'ct')

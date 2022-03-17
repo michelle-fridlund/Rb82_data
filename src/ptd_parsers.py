@@ -85,7 +85,11 @@ class ListmodeFileParser(BackwardParser):
     def get_secondary_info(self):
         info2 = [l.strip() for l in self.lines if '=' not in l]
         # StudyInstanceUID located 1 above 'HFS'
-        uid_idx = info2.index('HFS') - 1
+        if 'HFS' in info2:
+            uid_idx = info2.index('HFS') - 1
+        # Some patients don't have the 'HFS' flag
+        else:
+            uid_idx = info2.index('FFS') - 1
         self.info['StudyInstanceUID'] = info2.pop(uid_idx)[3:].strip()
         
         for i, v in enumerate(info2):

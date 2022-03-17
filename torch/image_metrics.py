@@ -9,6 +9,7 @@ import os
 import argparse
 import pickle
 import numpy as np
+import scipy
 import nibabel as nib
 from math import log10, sqrt
 import matplotlib.pyplot as plt
@@ -70,22 +71,22 @@ def get_numpy(file_path):
 def find_patients(args):
     patient_dict = {}
     patients = read_pickle(str(args.pkl_path))
-
-    hd = f'pet_100p_stat_norm.nii.gz'
-    ld = f'pet_25p_2mm_stat_norm.nii.gz'
-    out1 = f'test_LightningAE_FAN2D_v1_TIODataModule_bz1_128x128x1_k0_e400_e=80.nii.gz'
-    out2 = f'test_LightningAE_Res3DUnet_2mm_6mm_TIODataModule_bz4_128x128x16_k0_e600_e=572.nii.gz'
-    out3 = f'test_LightningAE_Res3DUnet_2mm_2mm_TIODataModule_bz4_128x128x16_k0_e600_e=214.nii.gz'
-    out4 = f'test_LightningPix2Pix_GAN_ResNet_HD_TIODataModule_bz4_128x128x16_k0_e600_e=322.nii.gz'
-
-
+    gate_num = args.gate_num
+    hd = f'pet_100p_stat_norm2.nii.gz'
+    ld = f'pet_25p_stat_norm2.nii.gz'
+    out1 = f'static_LightningAE_Res3DUnetAE_stat_ct_1e-4_TIODataModule_bz4_128x128x16_k0_e600_e=374.nii.gz'
+    out2 = f'static_LightningAE_Res3DUnetAE_stat_bz4_1e-4_TIODataModule_bz4_128x128x16_k0_e600_e=380.nii.gz'
+    #out3 = f'gate{gate_num}_LightningAE_Res3DUnet_random_stat_lre-3_v3_TIODataModule_bz8_128x128x16_k0_e600_e=296.nii.gz'
+    #out4 = f'gate{gate_num}_LightningAE_Res3DUnet_randomgate_static_scaled_test_TIODataModule_bz8_128x128x16_k0_e600_e=500.nii.gz'
+    #out5 = f'gate{gate_num}_LightningAE_Res3DUnet_random_stat_bz4_1e-4_TIODataModule_bz4_128x128x16_k0_e600_e=400.nii.gz'
     for p in patients:
         patient_dict[p] = {'hd': os.path.join(
             str(args.data), p, hd), 'ld': os.path.join(str(args.data), p, ld),
             'out1': os.path.join(str(args.inference), p, out1),
             'out2': os.path.join(str(args.inference), p, out2),
-            'out3': os.path.join(str(args.inference), p, out3),
-            'out4': os.path.join(str(args.inference), p, out4)
+            #'out3': os.path.join(str(args.inference), p, out3),
+            #'out4': os.path.join(str(args.inference), p, out4),
+            #'out5': os.path.join(str(args.inference), p, out5),
             }
 
     return patient_dict
@@ -104,9 +105,9 @@ def get_metrics(args, **ld_type):
         hd = get_numpy(v['hd'])
         ld = get_numpy(v[ld_type])
 
-        metrics['psnr'].append(psnr_(hd,ld))
-        metrics['ssim'].append(ssim_(hd,ld))
-        metrics['nrmse'].append(rmse_(hd,ld))
+        metrics['psnr'].append(psnr_(hd, ld))
+        metrics['ssim'].append(ssim_(hd, ld))
+        metrics['nrmse'].append(rmse_(hd, ld))
 
     return metrics
 
@@ -122,57 +123,89 @@ def get_stats(args):
     metrics = get_metrics(args, ld_type = 'ld')
     metrics_inference1 = get_metrics(args, ld_type = 'out1')
     metrics_inference2 = get_metrics(args, ld_type = 'out2')
-    metrics_inference3 = get_metrics(args, ld_type = 'out3')
-    metrics_inference4 = get_metrics(args, ld_type = 'out4')
+    #metrics_inference3 = get_metrics(args, ld_type = 'out3')
+    #metrics_inference4 = get_metrics(args, ld_type = 'out4')
+    #metrics_inference5 = get_metrics(args, ld_type = 'out5')
 
     psnr, ssim, nrmse = return_values(metrics)
     psnr2, ssim2, nrmse2 = return_values(metrics_inference1)
     psnr3, ssim3, nrmse3 = return_values(metrics_inference2)
-    psnr4, ssim4, nrmse4 = return_values(metrics_inference3)
-    psnr5, ssim5, nrmse5 = return_values(metrics_inference4)
+    #psnr4, ssim4, nrmse4 = return_values(metrics_inference3)
+    #psnr5, ssim5, nrmse5 = return_values(metrics_inference4)
+    #psnr6, ssim6, nrmse6 = return_values(metrics_inference5)
 
-    print('\n\n')
-    print('Original (2mm vs 6mm): \n\n')
+    print('Original: \n\n')
     print(f"PSNR value is: {np.mean(psnr):.4f} + {err(psnr):.4f}")
     print(f"SSIM value is: {np.mean(ssim):.4f} + {err(ssim):.4f}")
     print(f"NRMSE value is: {np.mean(nrmse):.4f} + {err(nrmse):.4f}")
 
-
-    print('\n\n 2mm/2mm')
-    print('Inference: ')
-    print(f"PSNR value is: {np.mean(psnr4):.4f} + {err(psnr4):.4f}")
-    print(f"SSIM value is: {np.mean(ssim4):.4f} + {err(ssim4):.4f}")
-    print(f"NRMSE value is: {np.mean(nrmse4):.4f} + {err(nrmse4):.4f}")
-    
-"""     print('\n\n FAN')
-    print('Inference: ')
+    print('\n\n stat + ct 1e-5')
     print(f"PSNR value is: {np.mean(psnr2):.4f} + {err(psnr2):.4f}")
     print(f"SSIM value is: {np.mean(ssim2):.4f} + {err(ssim2):.4f}")
     print(f"NRMSE value is: {np.mean(nrmse2):.4f} + {err(nrmse2):.4f}")
 
-    print('\n\n 2mm/6mm')
-    print('Inference: ')
+    print('\n\n stat 1e-4')
     print(f"PSNR value is: {np.mean(psnr3):.4f} + {err(psnr3):.4f}")
     print(f"SSIM value is: {np.mean(ssim3):.4f} + {err(ssim3):.4f}")
     print(f"NRMSE value is: {np.mean(nrmse3):.4f} + {err(nrmse3):.4f}")
 
-    print('\n\n GAN')
+
+    return metrics, metrics_inference1, metrics_inference2  
+
+"""    
+    print('\n\n Gate + stat 1e-3')
+    print(f"PSNR value is: {np.mean(psnr4):.4f} + {err(psnr4):.4f}")
+    print(f"SSIM value is: {np.mean(ssim4):.4f} + {err(ssim4):.4f}")
+    print(f"NRMSE value is: {np.mean(nrmse4):.4f} + {err(nrmse4):.4f}")
+
+    print('\n\n Gate + stat 1e-4')
     print('Inference: ')
     print(f"PSNR value is: {np.mean(psnr5):.4f} + {err(psnr5):.4f}")
     print(f"SSIM value is: {np.mean(ssim5):.4f} + {err(ssim5):.4f}")
-    print(f"NRMSE value is: {np.mean(nrmse5):.4f} + {err(nrmse5):.4f}")
+    print(f"NRMSE value is: {np.mean(nrmse5):.4f} + {err(nrmse5):.4f}") 
 
-    return metrics, metrics_inference3 """
+    print('\n\n Gate + stat 1e-4 bz4')
+    print('Inference: ')
+    print(f"PSNR value is: {np.mean(psnr6):.4f} + {err(psnr6):.4f}")
+    print(f"SSIM value is: {np.mean(ssim6):.4f} + {err(ssim6):.4f}")
+    print(f"NRMSE value is: {np.mean(nrmse6):.4f} + {err(nrmse6):.4f}") 
+
+    diff1 = np.mean(psnr3) - np.mean(psnr)
+    diff2 = np.mean(ssim3) - np.mean(ssim)
+    diff3 = np.mean(nrmse3) - np.mean(nrmse)
+
+    print(f"PSNR: {diff1}")
+    print(f"SSIM: {diff2}")
+    print(f"NRMSE: {diff3}")"""
+
 
 
 def print_values(args):
-    metrics, metrics_inference3 = get_stats(args)
+    gate_num = args.gate_num
+    metrics, metrics_inference1, metrics_inference2 = get_stats(args)
     data = pd.DataFrame.from_dict(metrics)
-    data2 = pd.DataFrame.from_dict(metrics_inference3)
+    data1 = pd.DataFrame.from_dict(metrics_inference1)
+    data2 = pd.DataFrame.from_dict(metrics_inference2)
 
-    concatenated = pd.concat([data.assign(image='Original'), data2.assign(image='AI-Improved')])
-    sns.boxplot(x=concatenated.image, y = concatenated.psnr, data = concatenated)
-    plt.savefig('/homes/michellef/16Nov_stats.png')
+    
+    concatenated = pd.concat([data.assign(image='Low-Dose Gate'), data2.assign(image='Denoised Random Gate')])
+    sns.boxplot(x=concatenated.image, y = concatenated.nrmse, data = concatenated)
+    plt.title(f'NRMSE')
+    plt.xlabel('Image Type')
+    plt.ylabel('NRMSE')
+    plt.savefig(f'/homes/michellef/clinical_eval/8march_2022_gated_nrmse{gate_num}.png')
+
+"""     df = pd.DataFrame(columns=['before','after',])
+    for k,v in zip(metrics['psnr'], metrics_inference1['psnr']):
+        df = df.append({'before': k, 'after':v},ignore_index=True)
+    df.before = df.before.astype('float')
+    df.after = df.after.astype('float')
+
+    # Paired t-test
+    from bioinfokit.analys import stat
+    res = stat()
+    res.ttest(df = df, res = ['after', 'before'], test_type = 3)
+    print(res.summary) """
 
 if __name__ == "__main__":
     # Initiate the parser
@@ -188,6 +221,8 @@ if __name__ == "__main__":
 
     # Specify a pkl file for list of patients
     parser.add_argument('--pkl', dest='pkl_path', help="pickle file path")
+    # Select gate number
+    parser.add_argument('--gate', dest='gate_num', type=int, help="Gate number")
 
     # Force delete old pickle files
     parser.add_argument('--delete', dest='delete', type=ParseBoolean,
@@ -197,5 +232,5 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     get_stats(args)
-
+    #print_values(args)
     print('Done.')

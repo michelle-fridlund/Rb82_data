@@ -58,7 +58,16 @@ def find_nifti(path):
 def read_pickle(pkl_file):
     summary = pickle.load(open('%s' % pkl_file, 'rb'))
     # Test patients are alist of a list
-    return summary['test'][0]
+    #return summary['test'][0]
+    new_sum1 = summary['test_0']
+    new_sum2 = summary['train_0']
+    patients = []
+    for p in new_sum1:
+        patients.append(p)
+    for p in new_sum2:
+        patients.append(p)
+    print(len(patients))
+    return patients
 
 
 def find_patients(args):
@@ -66,10 +75,11 @@ def find_patients(args):
     dir_path = str(args.data)
     # Read from pickle
     if args.pkl_path:
-        patients = read_pickle(str(args.pkl_path))
-
+        patients2 = read_pickle(str(args.pkl_path))
+        patients = [p.split('_rest')[0] for p in sorted(patients2[::2])]
         for p in patients:
             paths.append(os.path.join(dir_path, p))
+            #paths.append(os.path.join(dir_path, p, 'STRESS'))
     # Find paths manually
     else:
         for (dirpath, dirnames, filenames) in os.walk(dir_path):
@@ -109,7 +119,7 @@ def load_patients(args):
 
     for p in im_path:
         im = find_nifti(p)
-        print(im)
+        #print(im)
         if not len(im) == 0:
             for i in im:
                 images.append(i)
@@ -129,7 +139,7 @@ def gen_color(n):
 
 def get_iqr(vals):
     from scipy.stats import iqr
-    my_iqr = iqr(vals, rng=(25, 95))
+    my_iqr = iqr(vals, rng=(25, 98))
     print(f'IQR value is: {my_iqr}')
     return my_iqr
 
@@ -149,26 +159,28 @@ def plot_slices(img, save_dir):
 def get_stats(args):
     im_dict = load_nib(args)
     keys = list(im_dict.keys())
-    vals = [im_dict[k] for k in keys]
+    vals = [np.max(im_dict[k]) for k in keys]
     my_iqr = get_iqr(vals)
     print(len(keys))
 
-    # s = sns.boxplot(vals)
-    # s = sns.distplot(vals, label=keys, kde=False, bins=10)
-    # s.set(xlim=(-1000, 100000))
+    #s = sns.boxplot(vals)
+    #s = sns.distplot(vals, label=keys, kde=False, bins=10)
+    #s.set(xlim=(-1000, 100000))
 
-    # colors_list = gen_color(len(keys))
-    # plt.hist(vals, bins = 10, color = colors_list, label = keys)
+    #colors_list = gen_color(len(keys))
+    #plt.hist(vals, bins = 10, color = colors_list, label = keys)
     # plt.xlim([-1000,50000])
-    # plt.legend(prop={'size':5})
-    # plt.legend(['Maximal pixel values'])
-    # plt.savefig('/homes/michellef/box_all.png')
+    #plt.legend(prop={'size':5})
+    #plt.legend(['Maximal pixel values'])
+    #plt.title('100% Static')
+    #plt.xlabel('Maximal pixel intensity')
+    #plt.savefig('/homes/michellef/100_stat.png')
     
 
 # Plot and save individual images with matplotlib
 def load_nib(args):
     images = load_patients(args)
-    print(images)
+    #print(images)
     im_dict = {}
 
     for i in images:
