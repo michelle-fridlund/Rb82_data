@@ -47,7 +47,7 @@ def parse_lm(pt):
             name = l.stem
 
             os.system(
-                f'lmparser.py "{l}" --out_dicom header/"{name}".dcm')
+                f'lmparser.py --ptd_file "{l}" --out_dicom header/"{name}".dcm')
 
 
 # Identify .ptd file type from generated header
@@ -86,9 +86,11 @@ def retain_lm(pt, dose):
             print(v)
             ptd_path = '%s/%s.ptd' % (str(pt), k)
             c += 1
+            print(ptd_path)
             if dose is not None:
                 os.system(
-                    f'lmparser.py --ptd_file "{ptd_path}" --verbose --retain "{dose}" --out_folder "{save_dir}"')
+                    f'lmparser.py --ptd_file "{ptd_path}" --verbose --fake_retain "{dose}"') # only update the header
+                    #f'lmparser.py --ptd_file "{ptd_path}" --verbose --retain "{dose}" --out_folder "{save_dir}"')
             else:
                 print('.', end='', flush=True)
         if 'CALIB' in v:
@@ -111,15 +113,19 @@ def find_patients_fdg(data_path, dose):
 # Same as above, but accomodates Rb82 folder structure
 def find_patients_rb(dir_path, dose):
     c = 1
+    # Only need the following directories
+    directories = ['2016_25p', '2017_25p', '2018_25p', '2019_25p', '2020_25p']
     for (dirpath, dirnames, filenames) in os.walk(dir_path):
         dirname = str(Path(dirpath).relative_to(dir_path))
         if '/REST' in str(dirname) and 'IMA' not in str(dirname) and 'CT' not in str(dirname) \
-                or '/STRESS' in str(dirname) and 'IMA' not in str(dirname) and 'CT' not in str(dirname):
+            and dirname.split('/')[0] in directories \
+            or '/STRESS' in str(dirname) and 'IMA' not in str(dirname) and 'CT' not in str(dirname) \
+            and dirname.split('/')[0] in directories:
             new_path = Path(os.path.join(dir_path, dirname))
-            save_dir = str((re.search(
-                '\/homes\/michellef\/my_projects\/rb82_data\/PET_OCT8_Anonymous_JSReconReady\/(.*)', str(new_path))).group(1))
-            print(f'{c}. WE ARE IN {save_dir}')
-            # if (new_path/'header').exists():
+            #save_dir = str((re.search(
+            #    '\/homes\/michellef\/my_projects\/rb82_data\/PET_LMChopper_OCT8/(.*)', str(new_path))).group(1))
+            #print(f'{c}. WE ARE IN {save_dir}')
+            #if (new_path/'header').exists():
             #     rmtree(os.path.join(new_path,'header'))
             retain_lm(new_path, dose)
             c += 1
