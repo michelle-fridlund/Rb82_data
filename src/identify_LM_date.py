@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Created on Mon Nov 16 12:45:51 2020
 
@@ -17,7 +15,7 @@ from datetime import datetime
 import re
 from tqdm import tqdm
 from progress.bar import Bar
-from time import sleep 
+from time import sleep
 import argparse
 
 
@@ -32,13 +30,26 @@ def find_LM(pt):
             ptds.append(f)
     return ptds[0]
 
-#Writes the contents of the listmode files into dump.txt
-def get_LM_date(pt):
-    patients = find_LM(pt)
-    if patients:
-        os.system(f'strings {patients.absolute()} | tail -200 > {pt}/dump.txt')
+# This structure work for files sorted into rest/stress
+def find_LM(p):
+    pt = Path(p)
+    ptds = []
+    if not pt.is_dir():
+        return None
+    for f in pt.iterdir():
+        if 'LISTMODE' in f.name or '.LM.' in f.name:
+            ptds.append(f)
+    return ptds[0]
 
-#Applies regex and takes some custom arguments on demand
+
+# Writes the contents of the listmode files into dump.txt
+def get_LM_date(pt):
+    patients = str(find_LM(pt))
+
+    if patients:
+        os.system(f'strings {patients.absolute()} | tail -100 > {pt}/dump.txt')
+
+# Applies regex and takes some custom arguments on demand
 def get_name(string, **name_):
     if name_.get("regex") == "date": #Getting date from DICOM header
        return (re.search('(?<=\[)(.*)(?=\])', string)).group(0)
@@ -142,6 +153,62 @@ def get_info(dir_path):
     # for k, v in sorted_ptd.items():
     #     print(f'{k} is at {v}')
 
+
+
+# This part of code is for checking dose in original Rb82 files - March 2022
+
+def find_LM_unsorted(p):
+    pt = Path(p)
+    ptds = []
+    if not pt.is_dir():
+        return None
+    for f in pt.iterdir():
+        if 'LISTMODE' in f.name or '.LM.' in f.name:
+            ptds.append(f)
+    return ptds
+
+
+#Writes the contents of the listmode files into dump.txt
+def get_LM_dose(pt):
+    patients = find_LM_unsorted(pt)
+    
+    for patient in patients:
+
+        if patient:
+            # Hack for () in filenames
+            patient = str(re.sub('\(', '\\(', str(patient)))
+            patient = Path(re.sub('\)', '\\)', patient))
+
+            os.system(f'strings {patient.absolute()} | tail -100 > {pt}/dump.txt')
+
+
+def check_tracer(dir_path): 
+    my_tracers = {}
+    patients = os.listdir(dir_path)
+    for patient in tqdm(patients): 
+        new_path = Path(os.path.join(dir_path, patient))
+        if not (new_path/'dump.txt').exists():
+            get_LM_dose(new_path)
+        if (new_path/'dump.txt').exists():
+            with open(new_path/'dump.txt') as f:
+                for line in f.readlines():
+                    line_ = line.strip()
+                    if line_.startswith('radiopharmaceutical:='):
+                        d = line_.split(':=')[1]
+                        if 'Rubidium' not in d:
+                            print(f'Wrong tracer for patient {patient}: {d}')
+                        my_tracers[patient] = d
+                #os.remove(new_path/'dump.txt')
+    print(my_tracers)
+    return my_tracers
+
+
+def write_csv(dir_path):
+    import pandas as pd
+    my_tracers = check_tracer(dir_path)
+    df = pd.DataFrame(my_tracers).transpose()
+    df.to_csv('/homes/michellef/TRACERS.csv')
+
 if __name__ == "__main__":
     # Initiate the parser
     parser = argparse.ArgumentParser()
@@ -154,5 +221,7 @@ if __name__ == "__main__":
     data_path = Path(args.data)
     
     #get_info(data_path)
-    check_dates(data_path)
+    #check_tracer(data_path)
+    write_csv(data_path)
 
+ 
