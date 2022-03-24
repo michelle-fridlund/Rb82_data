@@ -7,6 +7,7 @@ Created on Tue Oct 27 14:33:19 2020
 """
 
 import os
+import csv
 import re
 import uuid
 from pathlib import Path
@@ -38,14 +39,30 @@ def find_patients(dir_path):
 
 def anon_pt(dir_path):
     patients = find_patients(dir_path)
+    c = 0
+    names = []
+    names_anon = []
     for patient_name, patient_path in tqdm(patients.items()):
-        randomized_name = generate_random_name()
+        #randomized_name = generate_random_name()
+        randomized_name = f'rb82_{c:0>4d}'
+        names.append(patient_name)
+        names_anon.append(randomized_name)
+        c+=1
         for num, current_path in enumerate(patient_path, start=1):
             new_name = f'{randomized_name}_{num:02}' if len(patient_path) > 1 else randomized_name
             new_path = os.path.join(f'{dir_path}_anonymous', new_name)
             #print(f'{current_path} IS NOW {new_path}')
             #Call anonymize.exe via wine locally
             os.system(f'wine anonymize.exe -i {current_path} -o {new_path} -p -n {new_name}')
+
+    return names, names_anon
+
+def pseudo_anon(dir_path):
+    names, names_anon = anon_pt(dir_path)
+
+    with open('/homes/michellef/my_projects/rb82_data/TEST/some.csv', 'w') as f:
+        writer = csv.writer(f)
+        writer.writerows(zip(names, names_anon))
 
 
 if __name__ == "__main__":
