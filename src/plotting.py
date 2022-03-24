@@ -18,6 +18,7 @@ loc = ("/homes/michellef/rb82_doses.xlsx")
 data_path = "/homes/michellef/my_projects/rb82_data/Dicoms_OCT8/100p_STAT"
 file_name = "REST/Sinograms/REST-LM-00-sino-0.s.hdr"
 
+
 # Extract indivudual column values from excel file
 def read_x(loc):
     wb = xlrd.open_workbook(loc)
@@ -105,3 +106,15 @@ def plot_counts(loc):
     plt.close("all")
 
 plot_counts(loc)
+
+
+""" # Another method
+import pyexcel
+# Reading 
+sheet = pyexcel.iget_records(file_name="excel.xlsx")
+for row in sheet:
+    print(row["Name"], row["Age"])
+# Writing
+data = [["Name", "Age"], ["Walker", 22], ["Leon", 24]]
+sheet = pyexcel.Sheet(data, "Sheet1")
+sheet.save_as("test.xlsx") """

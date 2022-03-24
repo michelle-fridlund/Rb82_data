@@ -74,8 +74,8 @@ def find_patients(args):
     gate_num = args.gate_num
     hd = f'pet_100p_stat_norm2.nii.gz'
     ld = f'pet_25p_stat_norm2.nii.gz'
-    out1 = f'static_LightningAE_Res3DUnetAE_stat_ct_1e-4_TIODataModule_bz4_128x128x16_k0_e600_e=374.nii.gz'
-    out2 = f'static_LightningAE_Res3DUnetAE_stat_bz4_1e-4_TIODataModule_bz4_128x128x16_k0_e600_e=380.nii.gz'
+    out1 = f'static_LightningAE_ResAE_stat_bz8_1e-4_TIODataModule_bz8_128x128x16_k0_e600_e=290.nii.gz'
+    out2 = f'static_LightningAE_ResAE_stat_ct_bz8_1e-4_TIODataModule_bz8_128x128x16_k0_e600_e=434.nii.gz'
     #out3 = f'gate{gate_num}_LightningAE_Res3DUnet_random_stat_lre-3_v3_TIODataModule_bz8_128x128x16_k0_e600_e=296.nii.gz'
     #out4 = f'gate{gate_num}_LightningAE_Res3DUnet_randomgate_static_scaled_test_TIODataModule_bz8_128x128x16_k0_e600_e=500.nii.gz'
     #out5 = f'gate{gate_num}_LightningAE_Res3DUnet_random_stat_bz4_1e-4_TIODataModule_bz4_128x128x16_k0_e600_e=400.nii.gz'
@@ -139,12 +139,12 @@ def get_stats(args):
     print(f"SSIM value is: {np.mean(ssim):.4f} + {err(ssim):.4f}")
     print(f"NRMSE value is: {np.mean(nrmse):.4f} + {err(nrmse):.4f}")
 
-    print('\n\n stat + ct 1e-5')
+    print('\n\n stat')
     print(f"PSNR value is: {np.mean(psnr2):.4f} + {err(psnr2):.4f}")
     print(f"SSIM value is: {np.mean(ssim2):.4f} + {err(ssim2):.4f}")
     print(f"NRMSE value is: {np.mean(nrmse2):.4f} + {err(nrmse2):.4f}")
 
-    print('\n\n stat 1e-4')
+    print('\n\n stat + ct')
     print(f"PSNR value is: {np.mean(psnr3):.4f} + {err(psnr3):.4f}")
     print(f"SSIM value is: {np.mean(ssim3):.4f} + {err(ssim3):.4f}")
     print(f"NRMSE value is: {np.mean(nrmse3):.4f} + {err(nrmse3):.4f}")
