@@ -15,8 +15,8 @@ from datetime import datetime
 import re
 from tqdm import tqdm
 from progress.bar import Bar
-from time import sleep
 import argparse
+import pickle
 
 
 #Returns the first .ptd file in the parsed directory
@@ -27,17 +27,6 @@ def find_LM(pt):
         return None
     for f in p.iterdir():
         if 'ptd' in f.name:
-            ptds.append(f)
-    return ptds[0]
-
-# This structure work for files sorted into rest/stress
-def find_LM(p):
-    pt = Path(p)
-    ptds = []
-    if not pt.is_dir():
-        return None
-    for f in pt.iterdir():
-        if 'LISTMODE' in f.name or '.LM.' in f.name:
             ptds.append(f)
     return ptds[0]
 
@@ -109,7 +98,6 @@ def find_ct(dir_path):
               #name = get_name(name1, regex='') #IF SORTED BY YEAR
               scan_date = get_name(line_, regex = 'date')
               anon_patients[name1] = scan_date
-              sleep(.001)
     os.remove('/homes/michellef/anon.txt')
     print(anon_patients)
 
@@ -194,20 +182,46 @@ def check_tracer(dir_path):
                 for line in f.readlines():
                     line_ = line.strip()
                     if line_.startswith('radiopharmaceutical:='):
+                        t = line_.split(':=')[1]
+                    if line_.startswith('tracer activity at time of injection'):
                         d = line_.split(':=')[1]
-                        if 'Rubidium' not in d:
-                            print(f'Wrong tracer for patient {patient}: {d}')
-                        my_tracers[patient] = d
+                        my_tracers[patient] = {'tracer': t, 'dose':d}
                 #os.remove(new_path/'dump.txt')
-    print(my_tracers)
     return my_tracers
 
 
-def write_csv(dir_path):
-    import pandas as pd
-    my_tracers = check_tracer(dir_path)
-    df = pd.DataFrame(my_tracers).transpose()
-    df.to_csv('/homes/michellef/TRACERS.csv')
+def write_pickle(dir_path, pkl_path):
+    if not Path(pkl_path).exists():
+        my_tracers = check_tracer(dir_path)
+        with open(pkl_path, 'wb') as p:
+            pickle.dump(my_tracers, p)
+
+
+def sort_patients(dir_path, pkl_name):
+    pkl_path = os.path.join(dir_path, pkl_name)
+
+    if not Path(pkl_path).exists():
+        write_pickle(dir_path, pkl_path)
+
+    data = pickle.load(open(pkl_path, 'rb'))
+    # Lists for incorrect tracers and doses  
+    tracer, dose = [], []
+    t, d = 0, 0
+
+    for patient, info in data.items():
+        #dose = float(info['dose'])
+        #print(f'{dose}')
+        if 'Rubidium' not in info['tracer']:
+            tracer.append(patient) 
+            t+=1
+        if float(info['dose']) <= 1000000000.0 or float(info['dose']) >= 1200000000.0:
+            dose.append(patient)
+            d+=1
+
+    print(f'\n {t} patients with wrong tracer: \n {tracer} \n')
+    print(f'{d} patients in incorrect dose range: \n {dose}')
+    return tracer, dose
+
 
 if __name__ == "__main__":
     # Initiate the parser
@@ -215,13 +229,13 @@ if __name__ == "__main__":
     required_args = parser.add_argument_group('required arguments')
     # Add long and short argument
     required_args.add_argument("--data", "-d", help="Data source directory path", required=True)
+    required_args.add_argument("--pkl", "-p", help=".pickle file name", required=True)
 
     # Read arguments from the command line
     args = parser.parse_args()
     data_path = Path(args.data)
     
-    #get_info(data_path)
-    #check_tracer(data_path)
-    write_csv(data_path)
+    
+    sort_patients(data_path)
 
  
