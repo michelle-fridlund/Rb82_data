@@ -7,38 +7,58 @@ Created on Wed Oct  7 11:05:11 2020
 """
 # import pickle
 from pathlib import Path
-from shutil import copyfile
+from shutil import copyfile, move
 import glob
 import os
 import re
 import argparse
 
-
+# Replaced with move for efficiency 
 def copy_file(input_dir, output_dir, filename):
     copyfile(os.path.join(input_dir, filename), os.path.join(output_dir, filename))
 
+def move_file(input_dir, output_dir, filename):
+    move(os.path.join(input_dir, filename), os.path.join(output_dir, filename))
 
-def order_files(patients, input_dir, output_dir):
+def delete_file(input_dir, filename):
+    os.remove(os.path.join(input_dir, filename))
+
+
+def order_files(patients, input_dir, output_dir, args):
     for patient_dir, types in patients.items():
         patient_input_dir = os.path.join(str(input_dir), str(patient_dir))
+        rest_output_dir = os.path.join(str(output_dir), str(patient_dir), 'REST')
+        stress_output_dir = os.path.join(str(output_dir), str(patient_dir), 'STRESS')
+
         try:
             rest_output_dir = os.path.join(str(output_dir), str(patient_dir), 'REST')
             stress_output_dir = os.path.join(str(output_dir), str(patient_dir), 'STRESS')
-            os.makedirs(rest_output_dir)
-            os.makedirs(stress_output_dir)
+
+            if args.mode=='move':
+                os.makedirs(rest_output_dir)
+                os.makedirs(stress_output_dir)
 
             for type_name, files in types.items():
                 if not files:
                     continue
 
-                if type_name == 'LISTMODE' or type_name == 'PHYSIO':
-                    sorted_files = sorted(files)
-                    copy_file(patient_input_dir, rest_output_dir, sorted_files[0])
-                    copy_file(patient_input_dir, stress_output_dir, sorted_files[1])
-                elif type_name == 'CALIBRATION':
-                    copy_file(patient_input_dir, rest_output_dir, files[0])
-                    copy_file(patient_input_dir, stress_output_dir, files[0])
-                # TODO: Maybe copy OTHER?
+                if args.mode == 'clean':
+                    if type_name == 'OTHER':
+                        for filename in files:
+                            delete_file(patient_input_dir, filename)
+
+                elif args.mode=='move':
+
+                    if type_name == 'LISTMODE' or type_name == 'PHYSIO':
+                        sorted_files = sorted(files)
+                        copy_file(patient_input_dir, rest_output_dir, sorted_files[0])
+                        copy_file(patient_input_dir, stress_output_dir, sorted_files[1])
+                    elif type_name == 'CALIBRATION':
+                        copy_file(patient_input_dir, rest_output_dir, files[0])
+                        copy_file(patient_input_dir, stress_output_dir, files[0])
+                else:
+                    print('Wrong input')
+
         except FileExistsError:
             print(f'Directory "{patient_dir}" already exists. Skipping...')
             pass
@@ -128,6 +148,8 @@ if __name__ == "__main__":
     # Add long and short argument
     required_args.add_argument("--data", "-d", help="Data source directory path with pdt files", required=True)
     required_args.add_argument("--output", "-o", help="Sorted data output directory path", required=True)
+    parser.add_argument("-p", "--purge", help="delete OTHER .ptd file types", action="store_true")
+    parser.add_argument("-m", "--mode", help="move/clean", type=str)
 
     # Read arguments from the command line
     args = parser.parse_args()
@@ -137,8 +159,9 @@ if __name__ == "__main__":
     if not os.path.exists(data_path):
         raise 'Data source directory does not exist'
 
-    if not os.path.exists(output_path):
-        os.makedirs(output_path)
+    #if not os.path.exists(output_path):
+    #    os.makedirs(output_path)
 
     patients = id_files(data_path)
-    order_files(patients, data_path, output_path)
+    #print(patients)
+    order_files(patients, data_path, output_path, args)
