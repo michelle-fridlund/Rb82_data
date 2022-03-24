@@ -83,10 +83,10 @@ def retain_lm(pt, dose):
     c = 0
     for k, v in tags.items():
         if 'LISTMODE' in v:
-            print(v)
+            #print(v)
             ptd_path = '%s/%s.ptd' % (str(pt), k)
             c += 1
-            print(ptd_path)
+            #print(ptd_path)
             if dose is not None:
                 os.system(
                     f'lmparser.py --ptd_file "{ptd_path}" --verbose --fake_retain "{dose}"') # only update the header
@@ -127,7 +127,8 @@ def find_patients_rb(dir_path, dose):
             #print(f'{c}. WE ARE IN {save_dir}')
             #if (new_path/'header').exists():
             #     rmtree(os.path.join(new_path,'header'))
-            retain_lm(new_path, dose)
+            #retain_lm(new_path, dose)
+            print(new_path)
             c += 1
 
 
