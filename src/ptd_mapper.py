@@ -7,15 +7,27 @@ Created on Wed Oct  7 11:05:11 2020
 """
 # import pickle
 from pathlib import Path
-from shutil import copyfile, move
+from shutil import copyfile, copytree, move, rmtree
 import glob
 import os
 import re
 import argparse
 
+from cv2 import KeyPoint_overlap
+
+def makedirs_(dest):
+    if os.path.exists(dest) and len(os.listdir(dest) == 0):
+        rmtree(dest)
+
+    if not os.path.exists(dest):
+        os.makedirs(dest)
+
 # Replaced with move for efficiency 
 def copy_file(input_dir, output_dir, filename):
     copyfile(os.path.join(input_dir, filename), os.path.join(output_dir, filename))
+
+def copy_dir(input_dir, output_dir):
+    copytree(input_dir, output_dir)
 
 def move_file(input_dir, output_dir, filename):
     move(os.path.join(input_dir, filename), os.path.join(output_dir, filename))
@@ -23,46 +35,53 @@ def move_file(input_dir, output_dir, filename):
 def delete_file(input_dir, filename):
     os.remove(os.path.join(input_dir, filename))
 
+# Find patients by tag
+def find_cts(dir_path):
+    for (dirpath, dirnames, filenames) in os.walk(dir_path): 
+        dirname = str(Path(dirpath).relative_to(dir_path)) 
+        if 'ACCT/' in str(dirname): 
+            ct_path = os.path.join(dir_path, dirname)
+    return ct_path
 
-def order_files(patients, input_dir, output_dir, args):
+
+def order_files(patients, input_dir, output_dir):
     for patient_dir, types in patients.items():
         patient_input_dir = os.path.join(str(input_dir), str(patient_dir))
+        ct_path = find_cts(patient_input_dir)
+        #Output
         rest_output_dir = os.path.join(str(output_dir), str(patient_dir), 'REST')
         stress_output_dir = os.path.join(str(output_dir), str(patient_dir), 'STRESS')
+        rest_output_ct = os.path.join(str(output_dir), str(patient_dir), 'REST', 'CT')
+        stress_output_ct = os.path.join(str(output_dir), str(patient_dir), 'STRESS', 'CT')
 
         try:
-            rest_output_dir = os.path.join(str(output_dir), str(patient_dir), 'REST')
-            stress_output_dir = os.path.join(str(output_dir), str(patient_dir), 'STRESS')
-
-            if args.mode=='move':
-                os.makedirs(rest_output_dir)
-                os.makedirs(stress_output_dir)
 
             for type_name, files in types.items():
                 if not files:
                     continue
 
-                if args.mode == 'clean':
-                    if type_name == 'OTHER':
-                        for filename in files:
-                            delete_file(patient_input_dir, filename)
+                makedirs_(rest_output_dir)
+                makedirs_(stress_output_dir)
+                makedirs_(rest_output_ct)
+                makedirs_(stress_output_ct)
 
-                elif args.mode=='move':
+                copy_dir(ct_path, rest_output_ct)
+                copy_dir(ct_path, stress_output_ct)
 
-                    if type_name == 'LISTMODE' or type_name == 'PHYSIO':
-                        sorted_files = sorted(files)
-                        copy_file(patient_input_dir, rest_output_dir, sorted_files[0])
-                        copy_file(patient_input_dir, stress_output_dir, sorted_files[1])
-                    elif type_name == 'CALIBRATION':
-                        copy_file(patient_input_dir, rest_output_dir, files[0])
-                        copy_file(patient_input_dir, stress_output_dir, files[0])
-                else:
-                    print('Wrong input')
+                if type_name == 'LISTMODE' or type_name == 'PHYSIO':
+                    sorted_files = sorted(files)
+                    move_file(patient_input_dir, rest_output_dir, sorted_files[0])
+                    move_file(patient_input_dir, stress_output_dir, sorted_files[1])
+                elif type_name == 'CALIBRATION':
+                    copy_file(patient_input_dir, rest_output_dir, files[0])
+                    copy_file(patient_input_dir, stress_output_dir, files[0])
 
         except FileExistsError:
             print(f'Directory "{patient_dir}" already exists. Skipping...')
             pass
 
+def clean_dir(patients, input_dir, output_dir):
+    #for patient_dir, types in patients.items():
 
 def find_files(dir_path):
     directories = {}
@@ -133,8 +152,8 @@ def id_files(dir_path):
             else:
                 patient['OTHER'].append(item)
 
-        if len(patient['LISTMODE']) != 2 or len(patient['PHYSIO']) != 2 or len(patient['CALIBRATION']) != 1:
-            continue        
+        #if len(patient['LISTMODE']) != 2 or len(patient['PHYSIO']) != 2 or len(patient['CALIBRATION']) != 1:
+        #    continue
 
         patients[key] = patient
 
@@ -163,5 +182,4 @@ if __name__ == "__main__":
     #    os.makedirs(output_path)
 
     patients = id_files(data_path)
-    #print(patients)
     order_files(patients, data_path, output_path, args)
