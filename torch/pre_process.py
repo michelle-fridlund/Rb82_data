@@ -13,8 +13,8 @@ from sklearn.preprocessing import RobustScaler
 
 
 class Data_Preprocess(object):
-    def __init__(self, args, hd_name = 'pet_100p_2mm_stat', ld_name= 'pet_25p_2mm_stat',
-                 ct_name = 'mask', extension = '.nii.gz'):
+    def __init__(self, args, hd_name = 'static_STRESS_100p', ld_name= 'static_STRESS_25p',
+                 ct_name = 'ACCT', extension = '.nii.gz'):
         # PET norm value from arguments
         # 232429.9 (25, 99.8)
 
@@ -33,6 +33,9 @@ class Data_Preprocess(object):
         # 6. 692625.1
         # 7. 624938.6
         # 8. 670900.2
+
+        # FINAL:
+        #1330576.2
         self.norm = args.norm 
 
         # Scale factor for different dose levels
@@ -45,6 +48,7 @@ class Data_Preprocess(object):
         
         # Paths to original files
         self.data_path = args.data_path
+        self.new_path = '/homes/michellef/my_projects/rhtorch/torch/rubidium2022/data'
         # List of patients in data dir
 
         #Test group
@@ -122,7 +126,11 @@ class Data_Preprocess(object):
     # Concatenate load/save path strings
     def create_paths(self, patient, filename):
         load_path = '%s/%s/%s%s' % (self.data_path, patient, filename, self.extension)
-        save_path = '%s/%s/%s%s%s' % (self.data_path, patient, filename, '_norm2', self.extension)
+        save_name = filename.split('_')[-1]
+        #save_path = '%s/%s/%s%s%s' % (self.data_path, patient, filename, '_norm2', self.extension)
+        save_path_temp = '%s/%s%s' % (self.new_path, patient, '_stress')
+        save_path = '%s/%s%s/%s%s%s' % (self.new_path, patient, '_stress', 'static_', save_name, self.extension)
+        create_dir(save_path_temp)
         return [load_path, save_path]
 
             
@@ -174,3 +182,8 @@ class Data_Preprocess(object):
             self.create_new_nifti(hd[0], ld[0], hd[1], 'hd')
             self.create_new_nifti(ld[0], ld[0], ld[1], 'ld') 
             #self.create_new_nifti(ct[0], ld[0], ct[1], 'ct')
+
+
+def create_dir(output):
+    if not os.path.exists(output):
+        os.makedirs(output)

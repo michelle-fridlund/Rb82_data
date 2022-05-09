@@ -328,8 +328,8 @@ if __name__ == "__main__":
     #copy_pet(data_path)
     #rename_pet(data_path)
 
-    #processor = pre_process.Data_Preprocess(args)
-    #processor.load_data()
+    processor = pre_process.Data_Preprocess(args)
+    processor.load_data()
 
     #prep_nnunet(data_path, '/homes/michellef/my_projects/ct_thorax/nnUNet_raw_data_base/nnUNet_raw_data/Task055_SegTHOR')
     #random_gate(args)
