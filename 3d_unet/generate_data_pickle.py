@@ -8,7 +8,7 @@ import numpy as np
 import data_generator as data
 from sklearn.model_selection import train_test_split, KFold
 from collections import defaultdict
-from plotting import find_patients
+#from plotting import find_patients
 
 
 data_path = ("/homes/michellef/rb82_doses.xlsx")
@@ -70,8 +70,9 @@ def write_summary(args, data_path):
 
 
 # This accomodates the rb82 folder structure for pytorch
-def sort_rb_phase(args, data_path):
-    data = write_summary(args, data_path)
+def sort_rb_phase():
+    #data = write_summary(args, data_path)
+    data = pickle.load(open('/homes/michellef/my_projects/rhtorch/torch/rubidium2022/data/rb82_final_train_temp.pickle', 'rb'))
     data_rb = {}
     for k, v in data.items():
         # Temporary arrays to store lists
@@ -89,6 +90,8 @@ def sort_rb_phase(args, data_path):
             pts_double_suffix.append(p)
 
         data_rb[k] = pts_double_suffix
+    with open('/homes/michellef/my_projects/rhtorch/torch/rubidium2022/data/rb82_final_train.pickle', 'wb') as p:
+        pickle.dump(data_rb, p)
     return data_rb
 
 
@@ -125,4 +128,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
     #data_path = str(args.data)
 
-    build_pickle(args, data_path)
+    #build_pickle(args, data_path)
+
+    sort_rb_phase()
