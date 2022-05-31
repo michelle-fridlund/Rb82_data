@@ -13,7 +13,7 @@ from sklearn.preprocessing import RobustScaler
 
 
 class Data_Preprocess(object):
-    def __init__(self, args, hd_name = 'static_STRESS_100p', ld_name= 'static_STRESS_25p',
+    def __init__(self, args, hd_name = 'gate7_REST_100p', ld_name= 'gate7_REST_25p',
                  ct_name = 'ACCT', extension = '.nii.gz'):
         # PET norm value from arguments
         # 232429.9 (25, 99.8)
@@ -35,7 +35,8 @@ class Data_Preprocess(object):
         # 8. 670900.2
 
         # FINAL:
-        #1330576.2
+        #1330576.2 -static
+        #5526364.9 -gated
         self.norm = args.norm 
 
         # Scale factor for different dose levels
@@ -48,11 +49,11 @@ class Data_Preprocess(object):
         
         # Paths to original files
         self.data_path = args.data_path
-        self.new_path = '/homes/michellef/my_projects/rhtorch/torch/rubidium2022/data'
+        self.new_path = '/homes/michellef/my_projects/rhtorch/my-torch/rb82/data'
         # List of patients in data dir
 
         #Test group
-        pk = pickle.load(open('/homes/michellef/my_projects/rhtorch/torch/rb82/data/rb82_6fold_scaled.pickle', 'rb'))
+        #pk = pickle.load(open('/homes/michellef/my_projects/rhtorch/torch/rb82/data/rb82_6fold_scaled.pickle', 'rb'))
         #self.summary = pk['test_0']
 
         self.summary = os.listdir(self.data_path)
@@ -77,6 +78,7 @@ class Data_Preprocess(object):
 
     # PET hard normalisation
     def normalise_pet(self, pixels):
+        self.state = args.state
         return pixels/self.norm
     
     
@@ -128,8 +130,8 @@ class Data_Preprocess(object):
         load_path = '%s/%s/%s%s' % (self.data_path, patient, filename, self.extension)
         save_name = filename.split('_')[-1]
         #save_path = '%s/%s/%s%s%s' % (self.data_path, patient, filename, '_norm2', self.extension)
-        save_path_temp = '%s/%s%s' % (self.new_path, patient, '_stress')
-        save_path = '%s/%s%s/%s%s%s' % (self.new_path, patient, '_stress', 'static_', save_name, self.extension)
+        save_path_temp = '%s/%s%s' % (self.new_path, patient, '_rest')
+        save_path = '%s/%s%s/%s%s%s' % (self.new_path, patient, '_rest', 'random_gate_', save_name, self.extension)
         create_dir(save_path_temp)
         return [load_path, save_path]
 
@@ -168,7 +170,9 @@ class Data_Preprocess(object):
     def load_data(self):
         print('\nLoading nifti files...')
 
-        patients = self.summary
+        patients = self.summary[452:492]
+        print(patients)
+        print(len(patients))
 
         #TODO: take filenames as arguments...
         for patient in tqdm(patients):     
