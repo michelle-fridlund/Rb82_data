@@ -21,8 +21,8 @@ import sys
 import re
 
 
-inference_path = '/homes/michellef/my_projects/rhtorch/torch/rb82/inferences_2022'
-input_path = '/homes/michellef/my_projects/rhtorch/torch/rb82/data'
+inference_path = '/homes/michellef/my_projects/rhtorch/my-torch/rb82/inferences'
+input_path = '/homes/michellef/my_projects/rhtorch/my-torch/rb82/data'
 
 
 # Return all files of selected format in a directory
@@ -60,7 +60,7 @@ def read_pickle(pkl_path):
 
 # TODO: Rewrite this later for NOT hard-coded 
 def denorm(pixels):
-    return pixels*232429.9/4.0
+    return pixels*1330576.2/4.0
 
 
 # Return numpy array
@@ -254,18 +254,9 @@ def move_remove_inference(data_path):
 # Convert user-defined model outputs to dicoms
 def convert_patient_dicom(args):
     # Hard-coded for test patients
-    #patients = return_patient_list(args)[2:4]
-    patients = ['06fb290d-9666-47fb-a780-f796a9ca8e03_02',
-                '0d64ef76-5f71-4485-b481-613f17beedfe_02',
-                '3708dcc9-bce3-444d-b106-2909bf7a973b',
-                '41309e5d-a63d-4150-b7c4-753f08143a3c',
-                'a853b89f-e179-4a91-8f38-71298b5616d8',
-                '19bf5adc-30df-44d9-a95d-9fd77b1a02ce',
-                '6af03e0e-f2c7-483a-b617-b1563cfad550',
-                '72a5cb53-6e9a-42d6-a6e5-827db88257aa',
-                'b7b93d03-ad94-44cc-b581-3b07c9742c68',
-                '1c9d3af1-f408-400c-b59e-583435fa1b9e']
+    patients = return_patient_list(args)[0:4]
     for p in tqdm(patients):
+        print(p)
         # Rest and stress inference dir paths
         input_dir1 = f'{input_path}/{p}_rest'
         input_dir2 = f'{input_path}/{p}_stress'
@@ -274,16 +265,16 @@ def convert_patient_dicom(args):
         output_dir2 = f'{inference_path}/{p}_stress'
         # Full path to respective nifti files
         # Directories: input_dir = data, output_dir = inferences
-        nifty_file1 = os.path.join(output_dir1, str(args.nifty))
-        nifty_file2 = os.path.join(output_dir2, str(args.nifty))
+        nifty_file1 = os.path.join(input_dir1, str(args.nifty))
+        nifty_file2 = os.path.join(input_dir2, str(args.nifty))
         # Respective rest and stress original dicom paths
-        dicom_container1 = os.path.join(str(args.data_path), p, 'REST')
-        dicom_container2 = os.path.join(str(args.data_path), p, 'STRESS')
+        #dicom_container1 = os.path.join(str(args.data_path), p, 'REST')
+        #dicom_container2 = os.path.join(str(args.data_path), p, 'STRESS')
         # Get dirname from nifti/model input
         save_dir_name = str((re.search('^(.*?)\.nii.gz', args.nifty)).group(1))
         # Create save dir in inference parent folders
-        dicom_output1 = os.path.join(output_dir1, save_dir_name)
-        dicom_output2 = os.path.join(output_dir2, save_dir_name)
+        #dicom_output1 = os.path.join(output_dir1, save_dir_name)
+        #dicom_output2 = os.path.join(output_dir2, save_dir_name)
         # Create a separate subdir for images
         image_output1 = os.path.join(output_dir1, 'images', save_dir_name)
         image_output2 = os.path.join(output_dir2, 'images', save_dir_name)
@@ -296,8 +287,8 @@ def convert_patient_dicom(args):
         plot_nifti(nifty_file2, image_output2)
 
         # Call nii2dcm on rest/stress from rhscripts 
-        np2dcm(nifty_file1, dicom_container1, dicom_output1)
-        np2dcm(nifty_file2, dicom_container2, dicom_output2)
+        #np2dcm(nifty_file1, dicom_container1, dicom_output1)
+        #np2dcm(nifty_file2, dicom_container2, dicom_output2)
 
         print(f'{p} converted to DICOM.')
 

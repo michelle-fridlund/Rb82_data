@@ -72,10 +72,9 @@ def find_patients(args):
     patient_dict = {}
     patients = read_pickle(str(args.pkl_path))
     gate_num = args.gate_num
-    hd = f'pet_100p_stat_norm2.nii.gz'
-    ld = f'pet_25p_stat_norm2.nii.gz'
-    out1 = f'static_LightningAE_ResAE_stat_bz8_1e-4_TIODataModule_bz8_128x128x16_k0_e600_e=290.nii.gz'
-    out2 = f'static_LightningAE_ResAE_stat_ct_bz8_1e-4_TIODataModule_bz8_128x128x16_k0_e600_e=434.nii.gz'
+    hd = f'static_100p.nii.gz'
+    ld = f'static_25p.nii.gz'
+    out1 = f'LightningAE_ResNet_AE_bz8_1e-4_final_TIODataModule_bz8_128x128x16_k0_e600.nii.gz'
     #out3 = f'gate{gate_num}_LightningAE_Res3DUnet_random_stat_lre-3_v3_TIODataModule_bz8_128x128x16_k0_e600_e=296.nii.gz'
     #out4 = f'gate{gate_num}_LightningAE_Res3DUnet_randomgate_static_scaled_test_TIODataModule_bz8_128x128x16_k0_e600_e=500.nii.gz'
     #out5 = f'gate{gate_num}_LightningAE_Res3DUnet_random_stat_bz4_1e-4_TIODataModule_bz4_128x128x16_k0_e600_e=400.nii.gz'
@@ -83,7 +82,7 @@ def find_patients(args):
         patient_dict[p] = {'hd': os.path.join(
             str(args.data), p, hd), 'ld': os.path.join(str(args.data), p, ld),
             'out1': os.path.join(str(args.inference), p, out1),
-            'out2': os.path.join(str(args.inference), p, out2),
+            #'out2': os.path.join(str(args.inference), p, out2),
             #'out3': os.path.join(str(args.inference), p, out3),
             #'out4': os.path.join(str(args.inference), p, out4),
             #'out5': os.path.join(str(args.inference), p, out5),
@@ -122,14 +121,14 @@ def get_stats(args):
 
     metrics = get_metrics(args, ld_type = 'ld')
     metrics_inference1 = get_metrics(args, ld_type = 'out1')
-    metrics_inference2 = get_metrics(args, ld_type = 'out2')
+    #metrics_inference2 = get_metrics(args, ld_type = 'out2')
     #metrics_inference3 = get_metrics(args, ld_type = 'out3')
     #metrics_inference4 = get_metrics(args, ld_type = 'out4')
     #metrics_inference5 = get_metrics(args, ld_type = 'out5')
 
     psnr, ssim, nrmse = return_values(metrics)
     psnr2, ssim2, nrmse2 = return_values(metrics_inference1)
-    psnr3, ssim3, nrmse3 = return_values(metrics_inference2)
+    #psnr3, ssim3, nrmse3 = return_values(metrics_inference2)
     #psnr4, ssim4, nrmse4 = return_values(metrics_inference3)
     #psnr5, ssim5, nrmse5 = return_values(metrics_inference4)
     #psnr6, ssim6, nrmse6 = return_values(metrics_inference5)
@@ -144,13 +143,15 @@ def get_stats(args):
     print(f"SSIM value is: {np.mean(ssim2):.4f} + {err(ssim2):.4f}")
     print(f"NRMSE value is: {np.mean(nrmse2):.4f} + {err(nrmse2):.4f}")
 
-    print('\n\n stat + ct')
+    return metrics, metrics_inference1
+
+"""     print('\n\n stat + ct')
     print(f"PSNR value is: {np.mean(psnr3):.4f} + {err(psnr3):.4f}")
     print(f"SSIM value is: {np.mean(ssim3):.4f} + {err(ssim3):.4f}")
     print(f"NRMSE value is: {np.mean(nrmse3):.4f} + {err(nrmse3):.4f}")
 
 
-    return metrics, metrics_inference1, metrics_inference2  
+    return metrics, metrics_inference1, metrics_inference2   """
 
 """    
     print('\n\n Gate + stat 1e-3')
@@ -182,18 +183,19 @@ def get_stats(args):
 
 def print_values(args):
     gate_num = args.gate_num
-    metrics, metrics_inference1, metrics_inference2 = get_stats(args)
+    metrics, metrics_inference1 = get_stats(args)
     data = pd.DataFrame.from_dict(metrics)
     data1 = pd.DataFrame.from_dict(metrics_inference1)
-    data2 = pd.DataFrame.from_dict(metrics_inference2)
-
+    #data2 = pd.DataFrame.from_dict(metrics_inference2)
     
-    concatenated = pd.concat([data.assign(image='Low-Dose Gate'), data2.assign(image='Denoised Random Gate')])
-    sns.boxplot(x=concatenated.image, y = concatenated.nrmse, data = concatenated)
-    plt.title(f'NRMSE')
+    
+    concatenated = pd.concat([data.assign(image='Low-dose static'), data1.assign(image='Denoised low-dose')])
+    #concatenated = pd.concat([data.assign(image='Low-dose static'), data2.assign(image='Denoised low-dose')])
+    sns.boxplot(x=concatenated.image, y = concatenated.psnr, data = concatenated)
+    plt.title(f'PSNR')
     plt.xlabel('Image Type')
-    plt.ylabel('NRMSE')
-    plt.savefig(f'/homes/michellef/clinical_eval/8march_2022_gated_nrmse{gate_num}.png')
+    plt.ylabel('PSNR')
+    plt.savefig(f'/homes/michellef/clinical_eval/may29_results/29may22_static_final_psnr.png')
 
 """     df = pd.DataFrame(columns=['before','after',])
     for k,v in zip(metrics['psnr'], metrics_inference1['psnr']):
@@ -231,6 +233,6 @@ if __name__ == "__main__":
     # Read arguments from the command line
     args = parser.parse_args()
 
-    get_stats(args)
-    #print_values(args)
+    #get_stats(args)
+    print_values(args)
     print('Done.')
