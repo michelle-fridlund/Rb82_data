@@ -166,36 +166,42 @@ df2 = pd.DataFrame({#'ef_resnet_gate_stress': [47,75,43,66,67,83,68,37,71],
                            '500cfb2b-e287-4e4c-8143-273524f7564b',])
 
 df = pd.DataFrame(columns=['clinical','low','dose'])
-for k,v in zip(tpd_rest_100,tpd_rest_25):
+for k,v in zip(tpd_stress_100,tpd_stress_25):
     df = df.append({'clinical': k, 'low':v, 'dose':'25%'},ignore_index=True)
-for k,v in zip(tpd_rest_100,tpd_rest_out): # HERE!!!
+for k,v in zip(tpd_stress_100,tpd_stress_out): # HERE!!!
     df = df.append({'clinical': k, 'low':v, 'dose':'25% (Denoised)'},ignore_index=True) # HERE!!!
 df.clinical = df.clinical.astype('float')
 df.low = df.low.astype('float')
 
 #line_kws={'label':"y={0:.2f}x+{1:.2f}".format(slope,intercept)}    # HERE!!!
-slope, intercept, r_value, p_value, std_err = stats.linregress(df2['tpd_rest_100'],df2['tpd_rest_25'])  
-slope2, intercept2, r_value2, p_value2, std_err2 = stats.linregress(df2['tpd_rest_100'],df2['tpd_rest_out']) # HERE!!!
+slope, intercept, r_value, p_value, std_err = stats.linregress(df2['tpd_stress_100'],df2['tpd_stress_25'])  
+slope2, intercept2, r_value2, p_value2, std_err2 = stats.linregress(df2['tpd_stress_100'],df2['tpd_stress_out']) # HERE!!!
 print(p_value, p_value2)
+
 
 fgrid = sns.lmplot(x="clinical", y="low", data=df, hue = 'dose', palette="Set1")
 ax = fgrid.axes[0,0]   # HERE!!! p={0:.4f}".format(p_value)
 #ax.set(xlabel="Clinical MBF rest [mL/(min·g)]", ylabel="Low-Dose MBF rest [mL/(min·g)]") 
-ax.set(xlabel="Clinical TPD rest [%]", ylabel="Low-Dose TPD rest [%]") 
-plt.text(2, 9, "y={0:.2f}x+{1:.2f}".format(slope,intercept), horizontalalignment='left', size='medium', color='crimson', weight='semibold')
-plt.text(2, 8.2, "R={0:.2f}".format(r_value), horizontalalignment='left', size='medium', color='crimson', weight='semibold')
-plt.text(2, 7.4, "p=2.4047e-07", horizontalalignment='left', size='medium', color='crimson', weight='semibold')
-plt.text(6, 2, "y={0:.2f}x+{1:.2f}".format(slope2, intercept2), horizontalalignment='left', size='medium', color='steelblue', weight='semibold')
-plt.text(6, 1.2, "R={0:.2f}".format(r_value2), horizontalalignment='left', size='medium', color='steelblue', weight='semibold')
-plt.text(6, 0.4, "p=3.5978e-07", horizontalalignment='left', size='medium', color='steelblue', weight='semibold')
-#list1 = [i for i in range (1,80)]
-#plt.plot(list1, linewidth=2, linestyle='--', color = 'black')
-#plt.xlim(20,90)
-#plt.ylim(20,100)
-#plt.savefig('/homes/michellef/clinical_eval/abstract/tpd_rest.png')
+#ax.set(xlabel="Clinical TPD stress [%]", ylabel="Low-Dose TPD stress [%]") 
+plt.text(5, 19.6, "y={0:.2f}x+{1:.2f}".format(slope,intercept), horizontalalignment='left', size='medium', color='crimson', weight='semibold')
+plt.text(5, 18.3, "R={0:.2f}".format(r_value), horizontalalignment='left', size='medium', color='crimson', weight='semibold')
+plt.text(5, 17, "p=3.3e-09", horizontalalignment='left', size='medium', color='crimson', weight='semibold')
+plt.text(15,9, "y={0:.2f}x{1:.2f}".format(slope2, intercept2), horizontalalignment='left', size='medium', color='steelblue', weight='semibold')
+plt.text(15, 7.7, "R={0:.2f}".format(r_value2), horizontalalignment='left', size='medium', color='steelblue', weight='semibold')
+plt.text(15, 6.4, "p=8.3e-09", horizontalalignment='left', size='medium', color='steelblue', weight='semibold')
+list1 = [1,25]
+list2 = [1,25]
+plt.plot(list1, list2, linewidth=2, linestyle='--', color = 'black')
+plt.xlim(0,25)
+plt.ylim(0,25)
+plt.yticks(fontsize = 14)
+plt.xticks(fontsize = 14)
+plt.xlabel('Clinical TPD stress [%]', fontsize=18)
+plt.ylabel('Low-Dose TPD stress [%]', fontsize=18)
+plt.savefig('/homes/michellef/clinical_eval/vancouver/tpd_stress.png')
 plt.close()
 
-# The horizontal plot is made using the hline function
+""" # The horizontal plot is made using the hline function
 my_range=range(1,len(df2.index)+1)
 
 ordered_df = df2.sort_values(by='tpd_stress_100')
@@ -224,7 +230,7 @@ plt.text(19.4, 11.5, "Severe", horizontalalignment='left', size='medium', color=
 plt.text(18.6, 11.0, "abnormality", horizontalalignment='left', size='medium', color='brown', alpha = 0.5) 
 
 plt.savefig('/homes/michellef/clinical_eval/abstract/out_stress.png')
-plt.close()
+plt.close() """
 
 """ plt.axvline(x=1.5, color='r', linestyle='--', alpha = 0.4)
 plt.text(0.9, 11.0, "Elevated cardiac risk", horizontalalignment='left', size='medium', color='r', alpha = 0.5)
