@@ -13,7 +13,7 @@ from sklearn.preprocessing import RobustScaler
 
 
 class Data_Preprocess(object):
-    def __init__(self, args, hd_name = 'gate7_REST_100p', ld_name= 'gate7_REST_25p',
+    def __init__(self, args, hd_name = '3_stress-lm-00-psftof_000_000_ctmv_4i_21s', ld_name= '3_rest_ld',
                  ct_name = 'ACCT', extension = '.nii.gz'):
         # PET norm value from arguments
         # 232429.9 (25, 99.8)
@@ -37,6 +37,10 @@ class Data_Preprocess(object):
         # FINAL:
         #1330576.2 -static
         #5526364.9 -gated
+
+        #536117.7 - ld test
+        #636337.1 - hd test
+
         self.norm = args.norm 
 
         # Scale factor for different dose levels
@@ -49,7 +53,7 @@ class Data_Preprocess(object):
         
         # Paths to original files
         self.data_path = args.data_path
-        self.new_path = '/homes/michellef/my_projects/rhtorch/my-torch/rb82/data'
+        self.new_path = '/homes/michellef/my_projects/rhtorch/static_hd_norm'
         # List of patients in data dir
 
         #Test group
@@ -78,7 +82,6 @@ class Data_Preprocess(object):
 
     # PET hard normalisation
     def normalise_pet(self, pixels):
-        self.state = args.state
         return pixels/self.norm
     
     
@@ -128,10 +131,11 @@ class Data_Preprocess(object):
     # Concatenate load/save path strings
     def create_paths(self, patient, filename):
         load_path = '%s/%s/%s%s' % (self.data_path, patient, filename, self.extension)
-        save_name = filename.split('_')[-1]
-        #save_path = '%s/%s/%s%s%s' % (self.data_path, patient, filename, '_norm2', self.extension)
-        save_path_temp = '%s/%s%s' % (self.new_path, patient, '_rest')
-        save_path = '%s/%s%s/%s%s%s' % (self.new_path, patient, '_rest', 'random_gate_', save_name, self.extension)
+        save_path_temp = '%s/%s' % (self.new_path, patient)
+        save_path = '%s/%s/%s%s' % (self.new_path, patient, 'static_ld_2mm_norm', self.extension)
+        #save_name = filename.split('_')[-1]
+        #save_path_temp = '%s/%s%s' % (self.new_path, patient, '_rest')
+        #save_path = '%s/%s%s/%s%s%s' % (self.new_path, patient, '_rest', 'random_gate_', save_name, self.extension)
         create_dir(save_path_temp)
         return [load_path, save_path]
 
@@ -170,22 +174,20 @@ class Data_Preprocess(object):
     def load_data(self):
         print('\nLoading nifti files...')
 
-        patients = self.summary[452:492]
-        print(patients)
-        print(len(patients))
+        patients = self.summary
 
         #TODO: take filenames as arguments...
         for patient in tqdm(patients):     
             print(patient)
             # Ignore the pickle file in the data directory
-            if not 'pickle' in str(patient):
-                hd = self.create_paths(patient, self.hd_name)
+            if not 'pickle' in str(patient) and 'rest' in str(patient):
+                #hd = self.create_paths(patient, self.hd_name)
                 ld = self.create_paths(patient, self.ld_name)
                 #ct = self.create_paths(patient, self.ct_name)
-            # ld[0] used for affine CT transformation
-            self.create_new_nifti(hd[0], ld[0], hd[1], 'hd')
-            self.create_new_nifti(ld[0], ld[0], ld[1], 'ld') 
-            #self.create_new_nifti(ct[0], ld[0], ct[1], 'ct')
+                # ld[0] used for affine CT transformation
+                #self.create_new_nifti(hd[0], ld[0], hd[1], 'hd')
+                self.create_new_nifti(ld[0], ld[0], ld[1], 'ld') 
+                #self.create_new_nifti(ct[0], ld[0], ct[1], 'ct')
 
 
 def create_dir(output):
