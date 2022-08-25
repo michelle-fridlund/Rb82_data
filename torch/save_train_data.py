@@ -1,16 +1,13 @@
 import os
-import re
 import numpy as np
 import argparse
 import pickle
 import nibabel as nib
 from pathlib import Path
-from scipy.stats import iqr
-import matplotlib.pyplot as plt
-from sklearn.metrics import mean_squared_error
+from tqdm import tqdm
 from sklearn.model_selection import train_test_split
-import pandas as pd
-import seaborn as sns
+from prep_torch_data import dicom_to_nifti
+import pickle
 
 req_files = os.listdir('/homes/claes/data_shared/Rb82_train/8cd25543-c065-11ec-b751-e3702ec34f99')
 
@@ -38,6 +35,7 @@ def find_patients(args):
     paths = {}
     patients = os.listdir(data)
     for p in patients:
+    # Avoid any previously generated .pickle
         if '.pickle' not in p: 
             path = os.path.join(data, p)
             if data == '/homes/claes/data_shared/Rb82_train/':
@@ -48,152 +46,132 @@ def find_patients(args):
                     paths[p] = path
             else:
                 paths[p] = path
-    # Avoid any previously generated .pickle
     return paths
 
-# Split patients in train/valid
-def data_split(args):
+def dcm2nifti(args):
     paths = find_patients(args)
-    patients = list(paths.keys())
-    print(f'{len(patients)} patients found')
-    pts_train, pts_test = train_test_split(patients, test_size=0.2)
-    return pts_train, pts_test
+    state = str(os.path.basename(args.data)).split('_')[0].lower()
+    
+    c = 0
+    for k,v in paths.items():
+        output_dir = f'/homes/michellef/my_projects/rhtorch/quadra/{k}_{state}'
+        # Remove in case of redoing
+        if args.force:
+            try:
+                os.remove(output_dir)
+                print(f'deleted {k}')
+            except Exception as error:
+                print(error)
+                print(f'Cannot delete {output_dir} or does not exist.')
+                continue
+        # check if the number of files is correct: static = 111, gated = 888        
+        files = os.listdir(v)
+        if len(files) == 0 or len(files) != 888:
+            print(f'!No files found for {k}!')
+        else:
+            dicom_to_nifti(v, output_dir)
+            #print(f'{c}. {input_} to {output_}')
+        c += 1
 
-# Write pickle file with data split
-def write_pickle(args):
-    pts_train, pts_test = data_split(args)
+    print(f'{c} patients converted.')
 
-    data = {}
-    data["train_0"] = []
-    data["test_0"] = []
-    data.update({"train_0": pts_train})
-    data.update({"test_0": pts_test})
+# Identify Quadra Recon Type
+def find_recon_type(file_dir):
+    # Subdirectory path for patient
+    dcm_file = os.path.join(file_dir, os.listdir(file_dir)[0])
+    os.chdir(file_dir)
+    file_dir2 = Path(file_dir)
+    if not (file_dir2/'dump.txt').exists():
+        os.system(f"dcmdump '{dcm_file}' --search SeriesDescription >> \
+                  '/homes/michellef/dump.txt'")
 
-    with open('/homes/michellef/my_projects/rhtorch/torch/rubidium2022/data/rb82_final_train.pickle', 'wb') as p:
+    with open('/homes/michellef/dump.txt') as f:
+        for line in f.readlines():
+            recon_type = line.strip()
+    os.remove('/homes/michellef/dump.txt')
+    return str(recon_type)
+
+def write_pickle(data, save_path):
+    save_path = Path(save_path)
+    with open(save_path, 'wb') as p:
         pickle.dump(data, p)
 
-# Nifti to numpy array
-def nib2np(p):
-    nifti = nib.load(p)
-    d_type = nifti.header.get_data_dtype()  # get data type from nifti header
-    pixels = np.array(nifti.get_fdata(), dtype=np.dtype(d_type))
-    return pixels
+def load_pickle(save_path):
+    p = pickle.load(open(save_path,'rb'))
+    return p
 
-# Calculate normalisation constant
-def get_iqr(vals):
-    return iqr(vals, rng=(0, 95))
+def sort_recon_type(args):
+    paths = find_patients(args)
 
-# Calculate normalisation constant
-def get_iqr2(vals):
-    return iqr(vals, rng=(0, 98))
+    if args.pickle:
+        patient_recons = load_pickle('/homes/michellef/quadra_recons_Aug25.pickle')
+    else:
+        patient_recons = {}
+        for k,v in paths.items():
+            recon_types = {'90s': [],
+                        '600s': [],
+                        'CT': [],}
 
-# Calculate max intensity
-def get_max(vals):
-    return np.max(vals)
+            subdirs = os.listdir(v)
+            for s in subdirs:
+                # Full path to subdirs
+                full_r = os.path.join(v, s)
+                recon_type = find_recon_type(full_r)
+                if '90s' in str(recon_type):
+                    recon_types['90s'].append(full_r)
+                elif '600s' in str(recon_type):
+                    recon_types['600s'].append(full_r)
+                elif 'CT' in str(recon_type):
+                    recon_types['CT'].append(full_r)
+                else:
+                    print(f'Unknown type at {k}')
+        
+                patient_recons[k] = recon_types
+        write_pickle(patient_recons, '/homes/michellef/quadra_recons_Aug25.pickle')
 
-# Calculate max intensity
-def get_mean(vals):
-    return np.mean(vals)
+    return patient_recons
 
-# Return a dict of individual IQR and MAX pixel values per patient
-def get_stats(args):
-    stat_dict = {}
-    patients = find_patients(args)
+def dcm2nifti_quadra(args):
+    patient_recons = sort_recon_type(args)
 
-    patient_num = len(list(patients.keys()))
-    print(f'{patient_num} patients found')
+    c = 0
+    for k,v in patient_recons.items():
+        if len(v['600s']) == 0:
+            print(f'No files in {k}!!!')
+        else:
+            input_dir = v['600s'][0]
+            output_dir = f'/homes/michellef/my_projects/rhtorch/quadra_600s/{k}'
+            dicom_to_nifti(input_dir, output_dir)
+            c+=1
+            print(c)
 
-    for name, path in patients.items():
-        values = {
-            'IQR': [],
-            'MAX': [],
-            'MEAN': [],
-        }
-        # Returns full path to file
-        nifti = find_nifti(path)
-        for n in nifti:
-    # TODO: add image type as parser instread/
-            #if 'static_REST_25p' in n or 'static_STRESS_25p' in n:
-            if 'static_25p.nii.gz' in n:
-            #if os.path.basename(n) in gated_files_hd: #n is a full path
-                pixels = nib2np(n)
-                iqr_value = get_iqr(pixels)
-                max_value = get_max(pixels)
-                mean_value = get_mean(pixels)
-                values['IQR'].append(iqr_value)
-                values['MAX'].append(max_value)
-                values['MEAN'].append(mean_value)
-
-        stat_dict[name] = values
-
-    return stat_dict
-
-# Called with plot arg
-def plot_values(args):
-    data = get_stats(args)
-    # Extract individual values - rewrite later
-    iqrs =[]
-    maxs = []
-    means = []
-
-    for k,v in data.items():
-        for val in v['IQR']:
-            iqrs.append(val)
-        for val in v['MAX']:
-            maxs.append(val)
-        for val in v['MEAN']:
-            means.append(val)
-
-    
-    dpd = pd.Series(maxs)
-    # Median  
-    median_val  = np.median(maxs)
-    mean_val  = np.mean(maxs)
-
-    main_iqr = get_iqr(maxs)
-    main_iqr2 = get_iqr2(maxs)
-
-    #grand_mean = get_mean(means)
-    #print("Grand mean static HD: {:.1f}".format(grand_mean))
-
-    print("98th percentile of max SUV across training patients: {:.1f}".format(main_iqr2))
-
-
-    # Histogram
-    #dpd.plot.hist(grid=False, bins=20, rwidth=0.9, color='#607c8e')
-    dpd.plot(style = '.', color='#607c8e')
-    #plt.axhline(y = mean_val, color = 'r', linestyle = '-')
-    plt.axhline(y = main_iqr2, color = 'r', linestyle = '-')
-    #plt.text(1000.0, 1100000, "Mean:", horizontalalignment='left', size='small', color='r', alpha = 0.8)
-    #plt.text(990.0, mean_val, "{:.1f}".format(mean_val), horizontalalignment='left', size='small', color='r', alpha = 0.8)
-    plt.text(992.0, main_iqr2+50000, "iqr(0,98):", horizontalalignment='left', size='small', color='r', alpha = 0.8)
-    plt.text(986.0, main_iqr2-50000, "{:.1f}".format(main_iqr2), horizontalalignment='left', size='small', color='r', alpha = 0.8)
-    plt.title('25% maximal pixel intensities per patient scan (static rest + stress)')
-    plt.xlabel('Patient #')
-    #plt.ylabel('IQR')
-    plt.ylabel('MAX intensity value (normalised)')
-    plt.savefig('/homes/michellef/clinical_eval/static_ld_maxint_norm.png')
-    plt.close("all")
-
-    dpd.plot.box(color='#607c8e')
-    plt.title('25% maximal pixel intensities per patient scan (static rest + stress)')
-    plt.ylabel('MAX Intensity value (normalised)')
-    plt.xlabel('patient image')
-    plt.savefig('/homes/michellef/clinical_eval/static_ld_maxint_box_norm.png')
-    plt.close("all")
-
+#Unknown type at kj6XTeGGxR_0.0
+#Unknown type at rZ2iIdEqx3_0.0
+#Unknown type at Y8xxt2K8Zm_0.0
+#Unknown type at BKUaYEujyW_0.0
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    parser.add_argument('--force', action='store_true',
+                        help="Force file deletion before copying")
+    parser.set_defaults(force=False)
     parser.add_argument('--data', dest='data', type=str, 
                         default='/homes/claes/data_shared/Rb82_train/',
                         help='data source directory')
-    parser.add_argument("-p", "--plot", help="plot values",
+    parser.add_argument("-q", "--quadra", help="data from quadra",
+                        action="store_true")
+    # Load patient dict from pickle
+    parser.add_argument("-p", "--pickle", help="data from quadra",
+                    action="store_true")
+    # Parse this tag if original data in dicom format
+    parser.add_argument("--dicom", help="plot values",
                         action="store_true")
 
     args = parser.parse_args()
 
-    if args.plot:
-        plot_values(args)
+    if args.quadra:
+        dcm2nifti_quadra(args)
     else:
-        write_pickle(args)
+        #get_stats(args)
+        dcm2nifti(args)
+        #write_pickle_test()
