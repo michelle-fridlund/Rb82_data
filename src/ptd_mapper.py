@@ -80,8 +80,6 @@ def order_files(patients, input_dir, output_dir):
             print(f'Directory "{patient_dir}" already exists. Skipping...')
             pass
 
-def clean_dir(patients, input_dir, output_dir):
-    #for patient_dir, types in patients.items():
 
 def find_files(dir_path):
     directories = {}
