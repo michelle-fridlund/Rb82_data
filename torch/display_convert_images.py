@@ -6,7 +6,7 @@ Created on Mon Sep 13 2021 15:29
 """
 import os
 import matplotlib.pyplot as plt
-from rhscripts.conversion import nifty_to_dcm
+from rhscripts.conversion import dcm_to_nifty, nifty_to_dcm
 import glob
 import numpy as np
 import argparse
@@ -21,8 +21,9 @@ import sys
 import re
 
 
-inference_path = '/homes/michellef/my_projects/rhtorch/my-torch/rb82/inferences'
-input_path = '/homes/michellef/my_projects/rhtorch/my-torch/rb82/data'
+inference_path = '/homes/michellef/my_projects/rhtorch/my-torch/rb82/inferences_static_FINAL'
+input_path = '/homes/michellef/my_projects/rhtorch/my-torch/rb82/static_norm_final'
+save_path = '/homes/michellef/my_projects/rhtorch/static_out_dcm'
 
 
 # Return all files of selected format in a directory
@@ -60,7 +61,8 @@ def read_pickle(pkl_path):
 
 # TODO: Rewrite this later for NOT hard-coded 
 def denorm(pixels):
-    return pixels*1330576.2/4.0
+    #return pixels*5526364.9
+    return pixels
 
 
 # Return numpy array
@@ -168,7 +170,7 @@ def find_patients(args):
 
 
 # Convert nifti to dicom
-def np2dcm(nifty_file, dicom_container, dicom_output):
+def nii2dcm(nifty_file, dicom_container, dicom_output):
     nifty_to_dcm(nifty_file,
             dicom_container,
             dicom_output,
@@ -180,6 +182,7 @@ def plot_nifti(nifty, save_dir):
     img = nib.load(nifty)
     d_type = img.header.get_data_dtype()  # get data type from nifti header
     img2 = np.array(img.get_fdata(), dtype=np.dtype(d_type))
+    img2 = np.rot90(img2)
 
     (a, b, c) = img2.shape
     for i in range(0, c):
@@ -250,11 +253,49 @@ def move_remove_inference(data_path):
             print(p)
             continue """
 
-
 # Convert user-defined model outputs to dicoms
 def convert_patient_dicom(args):
     # Hard-coded for test patients
-    patients = return_patient_list(args)[0:4]
+    patients = return_patient_list(args)
+    for p in tqdm(patients):
+        patient_name = p.split('_')[0]
+        state = p.split('_')[1].upper()
+        # Inference dir paths
+        input_dir = f'{input_path}/{p}'
+        # Rest and stress inference dir paths
+        output_dir = f'{inference_path}/{p}'
+        # Full path to respective nifti files
+        # Directories: input_dir = data, output_dir = inferences
+        nifty_file = os.path.join(output_dir, str(args.nifty))
+        # Original dicom paths
+        dicom_container = os.path.join(f'/homes/claes/data_shared/Rb82_test/{state}_25p_2mm', patient_name)
+        # Get dirname from nifti/model input
+        save_dir_name = str((re.search('^(.*?)\.nii.gz', args.nifty)).group(1))
+        # Create save dir in inference parent folders
+        dicom_output = os.path.join(f'{save_path}/{p}')
+        # Create a separate subdir for images
+        #image_output1 = os.path.join(output_dir1, 'images', save_dir_name)
+        #image_output2 = os.path.join(output_dir2, 'images', save_dir_name)
+        
+        makedirs(dicom_output)
+
+        # Plot per slice for user-defined inference model
+        #plot_nifti(nifty_file1, image_output1)
+        #plot_nifti(nifty_file2, image_output2)
+        #print(os.listdir(dicom_container1))
+        # Call nii2dcm on rest/stress from rhscripts 
+        nii2dcm(nifty_file, dicom_container, dicom_output)
+
+        print(f'{p} converted to DICOM.')
+
+    print('Done.')
+
+""" # Convert user-defined model outputs to dicoms
+def convert_patient_dicom(args):
+    # Hard-coded for test patients
+    patients = return_patient_list(args)
+    print(patients)
+    print(len(patients))
     for p in tqdm(patients):
         print(p)
         # Rest and stress inference dir paths
@@ -265,34 +306,36 @@ def convert_patient_dicom(args):
         output_dir2 = f'{inference_path}/{p}_stress'
         # Full path to respective nifti files
         # Directories: input_dir = data, output_dir = inferences
-        nifty_file1 = os.path.join(input_dir1, str(args.nifty))
-        nifty_file2 = os.path.join(input_dir2, str(args.nifty))
+        nifty_file1 = os.path.join(output_dir1, str(args.nifty))
+        nifty_file2 = os.path.join(output_dir2, str(args.nifty))
         # Respective rest and stress original dicom paths
         #dicom_container1 = os.path.join(str(args.data_path), p, 'REST')
         #dicom_container2 = os.path.join(str(args.data_path), p, 'STRESS')
+        dicom_container1 = os.path.join('/homes/claes/data_shared/Rb82_test/REST_25p_2mm', p)
+        dicom_container2 = os.path.join('/homes/claes/data_shared/Rb82_test/STRESS_25p_2mm', p)
         # Get dirname from nifti/model input
         save_dir_name = str((re.search('^(.*?)\.nii.gz', args.nifty)).group(1))
         # Create save dir in inference parent folders
-        #dicom_output1 = os.path.join(output_dir1, save_dir_name)
-        #dicom_output2 = os.path.join(output_dir2, save_dir_name)
+        dicom_output1 = os.path.join(f'{save_path}/{p}_rest')
+        dicom_output2 = os.path.join(f'{save_path}/{p}_stress')
         # Create a separate subdir for images
-        image_output1 = os.path.join(output_dir1, 'images', save_dir_name)
-        image_output2 = os.path.join(output_dir2, 'images', save_dir_name)
+        #image_output1 = os.path.join(output_dir1, 'images', save_dir_name)
+        #image_output2 = os.path.join(output_dir2, 'images', save_dir_name)
         
-        makedirs(image_output1)
-        makedirs(image_output2)
+        makedirs(dicom_output1)
+        makedirs(dicom_output2)
 
         # Plot per slice for user-defined inference model
-        plot_nifti(nifty_file1, image_output1)
-        plot_nifti(nifty_file2, image_output2)
-
+        #plot_nifti(nifty_file1, image_output1)
+        #plot_nifti(nifty_file2, image_output2)
+        #print(os.listdir(dicom_container1))
         # Call nii2dcm on rest/stress from rhscripts 
-        #np2dcm(nifty_file1, dicom_container1, dicom_output1)
-        #np2dcm(nifty_file2, dicom_container2, dicom_output2)
+        nii2dcm(nifty_file1, Path(dicom_container1), dicom_output1)
+        nii2dcm(nifty_file2, Path(dicom_container2), dicom_output2)
 
         print(f'{p} converted to DICOM.')
 
-    print('Done.')
+    print('Done.') """
 
 
 if __name__ == "__main__":
