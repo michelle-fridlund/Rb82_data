@@ -58,6 +58,9 @@ def rmse_(hd, ld):
 def read_pickle(pkl_file):
     summary = pickle.load(open('%s' % pkl_file, 'rb'))
     # Test patients are a list of a list
+    train = len(summary['train_0'])
+    test = len(summary['test_0'])
+    #print(f'Train: {train}, Test: {test}')
     return summary['test_0']
 
 
@@ -74,10 +77,11 @@ def find_patients(args):
     gate_num = args.gate_num
     hd = f'static_100p.nii.gz'
     ld = f'static_25p.nii.gz'
-    out1 = f'LightningAE_ResNet_AE_bz8_1e-4_final_TIODataModule_bz8_128x128x16_k0_e600.nii.gz'
-    #out3 = f'gate{gate_num}_LightningAE_Res3DUnet_random_stat_lre-3_v3_TIODataModule_bz8_128x128x16_k0_e600_e=296.nii.gz'
-    #out4 = f'gate{gate_num}_LightningAE_Res3DUnet_randomgate_static_scaled_test_TIODataModule_bz8_128x128x16_k0_e600_e=500.nii.gz'
-    #out5 = f'gate{gate_num}_LightningAE_Res3DUnet_random_stat_bz4_1e-4_TIODataModule_bz4_128x128x16_k0_e600_e=400.nii.gz'
+    out1 = f'LightningAE_ResNet_AE_bz8_1e-4_e300_TIODataModule_bz8_128x128x16_k0_e300.nii.gz'
+    #out2 = f'LightningAE_ResNet_AE_bz8_1e-4_final_gate_static_TIODataModule_bz8_128x128x16_k0_e600_e297.nii.gz'
+    #out3 = f'LightningAE_ResNet_AE_bz8_1e-4_final_gate_static_TIODataModule_bz8_128x128x16_k0_e600_e393.nii.gz'
+    #out4 = f'LightningAE_ResNet_AE_bz8_1e-4_final_gate_static_TIODataModule_bz8_128x128x16_k0_e600_last.nii.gz'
+
     for p in patients:
         patient_dict[p] = {'hd': os.path.join(
             str(args.data), p, hd), 'ld': os.path.join(str(args.data), p, ld),
@@ -122,7 +126,7 @@ def get_stats(args):
     metrics = get_metrics(args, ld_type = 'ld')
     metrics_inference1 = get_metrics(args, ld_type = 'out1')
     #metrics_inference2 = get_metrics(args, ld_type = 'out2')
-    #metrics_inference3 = get_metrics(args, ld_type = 'out3')
+    #etrics_inference3 = get_metrics(args, ld_type = 'out3')
     #metrics_inference4 = get_metrics(args, ld_type = 'out4')
     #metrics_inference5 = get_metrics(args, ld_type = 'out5')
 
@@ -133,33 +137,31 @@ def get_stats(args):
     #psnr5, ssim5, nrmse5 = return_values(metrics_inference4)
     #psnr6, ssim6, nrmse6 = return_values(metrics_inference5)
 
-    print('Original: \n\n')
+    print('Original: \n')
     print(f"PSNR value is: {np.mean(psnr):.4f} + {err(psnr):.4f}")
     print(f"SSIM value is: {np.mean(ssim):.4f} + {err(ssim):.4f}")
     print(f"NRMSE value is: {np.mean(nrmse):.4f} + {err(nrmse):.4f}")
 
-    print('\n\n stat')
+    print('\n\n gated e241:')
     print(f"PSNR value is: {np.mean(psnr2):.4f} + {err(psnr2):.4f}")
     print(f"SSIM value is: {np.mean(ssim2):.4f} + {err(ssim2):.4f}")
     print(f"NRMSE value is: {np.mean(nrmse2):.4f} + {err(nrmse2):.4f}")
 
+
     return metrics, metrics_inference1
 
-"""     print('\n\n stat + ct')
+"""
+    print('\n\n gated e297:')
     print(f"PSNR value is: {np.mean(psnr3):.4f} + {err(psnr3):.4f}")
     print(f"SSIM value is: {np.mean(ssim3):.4f} + {err(ssim3):.4f}")
     print(f"NRMSE value is: {np.mean(nrmse3):.4f} + {err(nrmse3):.4f}")
 
-
-    return metrics, metrics_inference1, metrics_inference2   """
-
-"""    
-    print('\n\n Gate + stat 1e-3')
+    print('\n\n gated e393:')
     print(f"PSNR value is: {np.mean(psnr4):.4f} + {err(psnr4):.4f}")
     print(f"SSIM value is: {np.mean(ssim4):.4f} + {err(ssim4):.4f}")
     print(f"NRMSE value is: {np.mean(nrmse4):.4f} + {err(nrmse4):.4f}")
 
-    print('\n\n Gate + stat 1e-4')
+    print('\n\n gate last')
     print('Inference: ')
     print(f"PSNR value is: {np.mean(psnr5):.4f} + {err(psnr5):.4f}")
     print(f"SSIM value is: {np.mean(ssim5):.4f} + {err(ssim5):.4f}")
@@ -182,22 +184,27 @@ def get_stats(args):
 
 
 def print_values(args):
-    gate_num = args.gate_num
+    #gate_num = args.gate_num
     metrics, metrics_inference1 = get_stats(args)
     data = pd.DataFrame.from_dict(metrics)
     data1 = pd.DataFrame.from_dict(metrics_inference1)
     #data2 = pd.DataFrame.from_dict(metrics_inference2)
     
     
-    concatenated = pd.concat([data.assign(image='Low-dose static'), data1.assign(image='Denoised low-dose')])
+    concatenated = pd.concat([data.assign(image='Low-dose static'), data1.assign(image='Denoised low-dose static')])
     #concatenated = pd.concat([data.assign(image='Low-dose static'), data2.assign(image='Denoised low-dose')])
-    sns.boxplot(x=concatenated.image, y = concatenated.psnr, data = concatenated)
+    ax = sns.boxplot(x=concatenated.image, y = concatenated.psnr, data = concatenated)
     plt.title(f'PSNR')
-    plt.xlabel('Image Type')
-    plt.ylabel('PSNR')
-    plt.savefig(f'/homes/michellef/clinical_eval/may29_results/29may22_static_final_psnr.png')
+    #plt.xlabel('Image Type')
+    #plt.ylabel('NRMSE')
+    ax.yaxis.set_major_locator(plt.MaxNLocator(5))
+    ax.set(ylabel=None)
+    #label_size = 100
+    #mpl.rcParams['ytick.labelsize'] = label_size
+    plt.yticks(fontsize = 15)
+    plt.savefig(f'/homes/michellef/my_projects/rhtorch/AUG_19_static_psnr.png')
 
-"""     df = pd.DataFrame(columns=['before','after',])
+    df = pd.DataFrame(columns=['before','after',])
     for k,v in zip(metrics['psnr'], metrics_inference1['psnr']):
         df = df.append({'before': k, 'after':v},ignore_index=True)
     df.before = df.before.astype('float')
@@ -207,7 +214,7 @@ def print_values(args):
     from bioinfokit.analys import stat
     res = stat()
     res.ttest(df = df, res = ['after', 'before'], test_type = 3)
-    print(res.summary) """
+    print(res.summary)
 
 if __name__ == "__main__":
     # Initiate the parser
@@ -215,14 +222,16 @@ if __name__ == "__main__":
     required_args = parser.add_argument_group('required arguments')
 
     # Required args: data path
-    required_args.add_argument(
-        "--data", dest='data',  help="Path to target image directory", required=True)
     # Required args: inference path
+    parser.add_argument(
+        "--data", dest='data', default='/homes/michellef/my_projects/rhtorch/my-torch/rb82/data',
+        help="Path to target image directory")
     required_args.add_argument(
         "--inference", dest='inference',  help="Path to inference directory", required=True)
 
     # Specify a pkl file for list of patients
-    parser.add_argument('--pkl', dest='pkl_path', help="pickle file path")
+    parser.add_argument('--pkl', dest='pkl_path', help="pickle file path",
+        default = '/homes/michellef/my_projects/rhtorch/my-torch/rb82/data/rb82_final_train.pickle')
     # Select gate number
     parser.add_argument('--gate', dest='gate_num', type=int, help="Gate number")
 
