@@ -12,7 +12,7 @@ from shutil import copy, rmtree
 from tqdm import tqdm
 from pathlib import Path
 import argparse
-import dicom2nifti
+#import dicom2nifti
 import pre_process
 
 FORCE_DELETE = False
@@ -200,19 +200,25 @@ def rename_gates(dir_path):
 
 
 def convert_nii_gate(dir_path):
-    gates = find_gates(dir_path)
-    print(gates)
+    #gates = find_gates(dir_path)
+    gates = [f'Gate{i}' for i in range(1,9)]
+    patients = os.listdir(dir_path)
     c = 1
-    for gate in tqdm(gates):
-        #Create output path in parent dir for all gates
-        output_ = str(Path(gate).parent)
-        files = os.listdir(os.path.join(dir_path, gate))
-        if len(files) == 0:
-            print(f'!No files found for {gate}!')
-        else:
-            dicom_to_nifti(os.path.join(dir_path, gate),
-                        os.path.join(dir_path, output_))
-            print(f'{c}. {gate} to {output_}')
+    for p in patients:
+        full_path = os.path.join(dir_path,p)
+        for gate in tqdm(gates):
+            #Create output path in parent dir for all gates
+            gate_dir = os.path.join(full_path, gate)
+            output_ = str(Path(gate_dir).parent)
+            files = os.listdir(gate_dir)
+            if len(files) == 0:
+                print(f'!No files found for {gate}!')
+            else:
+                dicom_to_nifti(gate_dir, full_path)
+                print(f'{c}. {gate} to {output_}')
+                old = f'{output_}/3_stress_ekg.nii.gz'
+                new = f'{output_}/{gate.lower()}_hd_6mm.nii.gz'
+                os.rename(old,new)
         c += 1
 
     print(f'{c} patients converted.')
@@ -323,13 +329,7 @@ if __name__ == "__main__":
 
     #data_path = str(args.data_path)
  
-    #convert_nii_gate(data_path)
-    #rename_gates(data_path)
-    #copy_pet(data_path)
-    #rename_pet(data_path)
+    #convert_nii_gate(args.data_path)
 
     processor = pre_process.Data_Preprocess(args)
     processor.load_data()
-
-    #prep_nnunet(data_path, '/homes/michellef/my_projects/ct_thorax/nnUNet_raw_data_base/nnUNet_raw_data/Task055_SegTHOR')
-    #random_gate(args)
