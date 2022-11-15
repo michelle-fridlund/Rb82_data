@@ -5,6 +5,7 @@ import pickle
 import nibabel as nib
 from save_train_data import find_nifti
 from tqdm import tqdm
+from shutil import move
 from scipy.stats import iqr
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
@@ -13,15 +14,16 @@ import seaborn as sns
 
 # Split patients in train/valid
 def data_split(args):
-    paths = find_patients(args)
-    patients = list(paths.keys())
+    patients = os.listdir(args.data)
     print(f'{len(patients)} patients found')
-    pts_train, pts_test = train_test_split(patients, test_size=0.2)
+    pts_train, pts_test = train_test_split(patients, test_size=0.1)
     return pts_train, pts_test
 
 # Write pickle file with data split
 def write_pickle(args):
     pts_train, pts_test = data_split(args)
+
+    print(len(pts_test))
 
     data = {}
     data["train_0"] = []
@@ -29,21 +31,22 @@ def write_pickle(args):
     data.update({"train_0": pts_train})
     data.update({"test_0": pts_test})
 
-    with open('/homes/michellef/my_projects/rhtorch/torch/rubidium2022/data/rb82_final_train.pickle', 'wb') as p:
+    with open('/homes/michellef/my_projects/rhtorch/quadra_aug27.pickle', 'wb') as p:
         pickle.dump(data, p)
 
 def write_pickle_test():
-    patients = os.listdir('/homes/michellef/my_projects/rhtorch/static_ld')
+    patients = os.listdir('/homes/michellef/my_projects/rhtorch/my-torch/rb82/Sep20_TEST_gate_norm_final')
     data = {}
     data["train_0"] = []
     data["test_0"] = []
     data.update({"test_0": patients})
     data.update({"train_0": patients})
 
-    with open('/homes/michellef/my_projects/rhtorch/split_test.pickle', 'wb') as p:
+    with open('/homes/michellef/my_projects/rhtorch/my-torch/rb82/Sep20_TEST_gate_norm_final/split_test_gated.pickle', 'wb') as p:
         pickle.dump(data, p)
-    data = pickle.load(open('/homes/michellef/my_projects/rhtorch/split_test.pickle', 'rb'))
-    print(data)
+
+    data = pickle.load(open('/homes/michellef/my_projects/rhtorch/my-torch/rb82/Sep20_TEST_gate_norm_final/split_test_gated.pickle', 'rb'))
+    print(len(data['test_0']))
 
 # Nifti to numpy array
 def nib2np(p):
@@ -54,7 +57,7 @@ def nib2np(p):
 
 # Calculate normalisation constant
 def get_iqr(vals):
-    return iqr(vals, rng=(0, 95))
+    return iqr(vals, rng=(0, 98))
 
 # Calculate max intensity
 def get_max(vals):
@@ -70,20 +73,26 @@ def get_stats(args):
     data_path = str(args.data)
     patients = os.listdir(data_path)
 
-    for patient in tqdm(patients):
-        full_path = os.path.join(data_path, patient)
-        max_values=[]
-        # Returns full path to file
-        nifti = find_nifti(full_path)
-        for n in nifti:
-            if 'static_REST_100p' in n or 'static_STRESS_100p.nii.gz' in n:
-                pixels = nib2np(n)
-                # Max pixel intensity per patient image
-                max_value = get_max(pixels)
-                max_values.append(max_value)
+    max_values=[]
+    for patient in patients:
+        if '.pickle' not in patient:
+            full_path = os.path.join(data_path, patient)
+            # Array contains max intensity per patient
+            # Returns full path to file
+            nifti = find_nifti(full_path)
+            for n in nifti:
+                if '600s' in n:
+                    max_values.append(os.path.basename(n))
+    print(sorted(max_values))
+                    #pixels = nib2np(n)
+                    #print(n, pixels.shape)
+"""                     # Max pixel intensity per patient image
+                    max_value = get_max(pixels)
+                    max_values.append(max_value)
 
     main_iqr = get_iqr(max_values)
-    print(f'IQR (0,98): {main_iqr}')
+    print(max_values)
+    print(f'IQR (0,98): {main_iqr}') """
 
 """
     print(f'IQR (0,98): main_iqr')
@@ -171,4 +180,5 @@ if __name__ == "__main__":
     if args.plot:
         plot_values(args)
     else:
-        get_stats(args)
+        #get_stats(args)
+        write_pickle_test()

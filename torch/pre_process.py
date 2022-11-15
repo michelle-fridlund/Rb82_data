@@ -9,11 +9,21 @@ import pickle
 import numpy as np
 import nibabel as nib 
 from tqdm import tqdm
+from pathlib import Path
 from sklearn.preprocessing import RobustScaler
+
+"""
+['11_ct_20__br38__3.nii.gz', '5_uld_ct_20__br38__3.nii.gz', '9_ct_20__br38__3.nii.gz', '4_ct_20__br38__3.nii.gz', '7_ct_20__br38__3.nii.gz', '6_uld_ct_20__br38__3.nii.gz', '10_ct_20__br38__3.nii.gz', '4_uld_ct_20__br38__3.nii.gz', '6_ct_20__br38__3.nii.gz', '3_ct_20__br38__3.nii.gz', '5_ct_20__br38__3.nii.gz', '3_uld_dyn_ct__20__br38__3.nii.gz']
+
+['16_pet_truex_2mm_600s.nii.gz', '21_pet_truex_2mm_600s.nii.gz', '17_pet_truex_2mm_600s.nii.gz', '11_pet_truex_2mm_600s.nii.gz', '12_pet_truex_2mm_600s.nii.gz', '15_pet_truex_2mm_600s.nii.gz', '18_pet_truex_2mm_600s.nii.gz', '13_pet_truex_2mm_600s.nii.gz', '10_pet_truex_2mm_600s.nii.gz', '14_pet_truex_2mm_600s.nii.gz']
+
+['19_pet_truex_2mm__90s.nii.gz', '16_pet_truex_2mm__90s.nii.gz', '14_pet_truex_2mm__90s.nii.gz', '22_pet_truex_2mm__90s.nii.gz', '15_pet_truex_2mm__90s.nii.gz', '13_pet_truex_2mm__90s.nii.gz', '18_pet_truex_2mm__90s.nii.gz', '21_pet_truex_2mm__90s.nii.gz', '17_pet_truex_2mm__90s.nii.gz']
+
+"""
 
 
 class Data_Preprocess(object):
-    def __init__(self, args, hd_name = '3_stress-lm-00-psftof_000_000_ctmv_4i_21s', ld_name= '3_rest_ld',
+    def __init__(self, args, hd_name = 'static_600s_suv', ld_name= 'static_90s_suv',
                  ct_name = 'ACCT', extension = '.nii.gz'):
         # PET norm value from arguments
         # 232429.9 (25, 99.8)
@@ -21,25 +31,12 @@ class Data_Preprocess(object):
         # 98th percentile of max intensity values: 
         # 476607.5
 
-        #2mm:
-        #776167.7
-
-        # Gates:
-        # 1. 685338.8
-        # 2. 631516.4
-        # 3. 615104.3
-        # 4. 627283.3
-        # 5. 695705.4
-        # 6. 692625.1
-        # 7. 624938.6
-        # 8. 670900.2
-
         # FINAL:
         #1330576.2 -static
         #5526364.9 -gated
 
-        #536117.7 - ld test
-        #636337.1 - hd test
+        # QUADRA HD
+        # 315806.6
 
         self.norm = args.norm 
 
@@ -53,7 +50,7 @@ class Data_Preprocess(object):
         
         # Paths to original files
         self.data_path = args.data_path
-        self.new_path = '/homes/michellef/my_projects/rhtorch/static_hd_norm'
+        self.new_path = '/homes/michellef/my_projects/rhtorch/my-torch/quadra/quadra_norm'
         # List of patients in data dir
 
         #Test group
@@ -84,6 +81,9 @@ class Data_Preprocess(object):
     def normalise_pet(self, pixels):
         return pixels/self.norm
     
+    # PET hard normalisation
+    def normalise_suv(self, pixels):
+        return pixels/self.norm
     
     def normalise_robust(self, pixels):
         scaler = RobustScaler()
@@ -115,7 +115,8 @@ class Data_Preprocess(object):
         if mode.get("mode") == "hd":
             return self.normalise_pet(numpy)
         elif mode.get("mode") == "ld":
-            return self.scale_pet_dose(self.normalise_pet(numpy))
+            return self.normalise_pet(numpy)
+            #return self.scale_pet_dose(self.normalise_pet(numpy))
         elif mode.get("mode") == "ct":
             # Some CTs have an extra slice at the end
             if numpy.shape[2] == 112:
@@ -131,13 +132,14 @@ class Data_Preprocess(object):
     # Concatenate load/save path strings
     def create_paths(self, patient, filename):
         load_path = '%s/%s/%s%s' % (self.data_path, patient, filename, self.extension)
-        save_path_temp = '%s/%s' % (self.new_path, patient)
-        save_path = '%s/%s/%s%s' % (self.new_path, patient, 'static_ld_2mm_norm', self.extension)
+        save_path = '%s/%s/%s%s%s' % (self.new_path, patient, filename, '_suv', self.extension)
+        return [load_path, save_path]
+    """ save_path_temp = '%s/%s%s' % (self.new_path, patient, '_stress')
+        save_path = '%s/%s%s/%s%s' % (self.new_path, patient, '_stress', filename, self.extension)
         #save_name = filename.split('_')[-1]
         #save_path_temp = '%s/%s%s' % (self.new_path, patient, '_rest')
         #save_path = '%s/%s%s/%s%s%s' % (self.new_path, patient, '_rest', 'random_gate_', save_name, self.extension)
-        create_dir(save_path_temp)
-        return [load_path, save_path]
+        create_dir(save_path_temp) """
 
             
     # Create normalised PET nifti
@@ -170,24 +172,41 @@ class Data_Preprocess(object):
         else:
             self.save_nifti(nifti, norm, save_path)
         
+    def correct_patient(self):
+        patients2 = self.summary
+        patients = []
+        for patient in tqdm(patients2):     
+            ld = self.create_paths(patient, self.ld_name)
+            if Path(ld[0]).exists():
+                print(patient)
+                patients.append(patient)
+        return patients
     
     def load_data(self):
         print('\nLoading nifti files...')
 
         patients = self.summary
-
-        #TODO: take filenames as arguments...
-        for patient in tqdm(patients):     
+        temp = []
+        #TODO: take filenames as arguments...[
+        for patient in tqdm(patients):
             print(patient)
-            # Ignore the pickle file in the data directory
-            if not 'pickle' in str(patient) and 'rest' in str(patient):
-                #hd = self.create_paths(patient, self.hd_name)
+        # Ignore the pickle file in the data directory
+            if not 'pickle' in str(patient):
+                hd = self.create_paths(patient, self.hd_name)
                 ld = self.create_paths(patient, self.ld_name)
                 #ct = self.create_paths(patient, self.ct_name)
                 # ld[0] used for affine CT transformation
-                #self.create_new_nifti(hd[0], ld[0], hd[1], 'hd')
-                self.create_new_nifti(ld[0], ld[0], ld[1], 'ld') 
+                if Path(ld[0]).exists():
+                    self.create_new_nifti(hd[0], ld[0], hd[1], 'hd')
+                    self.create_new_nifti(ld[0], ld[0], ld[1], 'ld') 
                 #self.create_new_nifti(ct[0], ld[0], ct[1], 'ct')
+"""             print(patient)
+            full = os.listdir(os.path.join(self.data_path, patient))
+            temp.append(full[1])
+            # Removes duplicates
+        l = [*set(sorted(temp))]
+        print(l) """
+            
 
 
 def create_dir(output):

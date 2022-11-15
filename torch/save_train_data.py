@@ -51,8 +51,8 @@ def find_patients(args):
 def dcm2nifti(args):
     paths = find_patients(args)
     state = str(os.path.basename(args.data)).split('_')[0].lower()
-    
-    c = 0
+    print(state)
+"""     c = 0
     for k,v in paths.items():
         output_dir = f'/homes/michellef/my_projects/rhtorch/quadra/{k}_{state}'
         # Remove in case of redoing
@@ -73,7 +73,7 @@ def dcm2nifti(args):
             #print(f'{c}. {input_} to {output_}')
         c += 1
 
-    print(f'{c} patients converted.')
+    print(f'{c} patients converted.') """
 
 # Identify Quadra Recon Type
 def find_recon_type(file_dir):
@@ -136,19 +136,13 @@ def dcm2nifti_quadra(args):
 
     c = 0
     for k,v in patient_recons.items():
-        if len(v['600s']) == 0:
+        if len(v['CT']) == 0:
             print(f'No files in {k}!!!')
         else:
-            input_dir = v['600s'][0]
-            output_dir = f'/homes/michellef/my_projects/rhtorch/quadra_600s/{k}'
+            input_dir = v['CT'][0]
+            output_dir = f'/homes/michellef/my_projects/rhtorch/quadra/{k}'
             dicom_to_nifti(input_dir, output_dir)
-            c+=1
-            print(c)
 
-#Unknown type at kj6XTeGGxR_0.0
-#Unknown type at rZ2iIdEqx3_0.0
-#Unknown type at Y8xxt2K8Zm_0.0
-#Unknown type at BKUaYEujyW_0.0
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -172,6 +166,6 @@ if __name__ == "__main__":
     if args.quadra:
         dcm2nifti_quadra(args)
     else:
-        #get_stats(args)
         dcm2nifti(args)
+        #read_header(args)
         #write_pickle_test()

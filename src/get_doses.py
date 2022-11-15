@@ -39,7 +39,7 @@ def find_ima(pt):
     return imas[0]
 
 
-def check_dates(dir_path):
+""" def check_dates(dir_path):
     for (dirpath, dirnames, filenames) in os.walk(dir_path):
         dirname = str(Path(dirpath).relative_to(dir_path))
         if '/REST' in str(dirname) and '/Sinograms' not in str(dirname):
@@ -53,10 +53,28 @@ def check_dates(dir_path):
                       >> /homes/michellef/weights.txt")
             os.system(f"dcmdump {ima1} --search PatientSex | (head -c 30; echo '{name}') \
                       >> /homes/michellef/sex.txt")
+            os.system(f"dcmdump {ima1} --search PatientAge | (head -c 30; echo '{name}') \
+                      >> /homes/michellef/age.txt") """
+
+
+def check_dates(dir_path):
+    patients = os.listdir(dir_path)
+    for p in tqdm(patients):
+        new_path = os.path.join(dir_path, p)
+        ima1 = 'REST-LM-00-PSFTOF_000_000_ctm.v-0001.ima'
+        name = p
+        # print(os.path.basename(ima))
+        os.chdir(new_path)
+        os.system(f"dcmdump {ima1} --search PatientWeight | (head -c 30; echo '{name}') \
+                    >> /homes/michellef/weights.txt")
+        os.system(f"dcmdump {ima1} --search PatientSex | (head -c 30; echo '{name}') \
+                    >> /homes/michellef/sex.txt")
+        os.system(f"dcmdump {ima1} --search PatientAge | (head -c 30; echo '{name}') \
+                    >> /homes/michellef/age.txt")
 
 
 def find_dates(dir_path):
-    #check_dates(dir_path)
+    check_dates(dir_path)
     anon_patients = {}
     with open('/homes/michellef/sex.txt') as f:
         for line in tqdm(f.readlines(), desc="Checking dates..."):  # progress bar
